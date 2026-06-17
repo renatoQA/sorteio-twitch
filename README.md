@@ -1,4 +1,4 @@
-# SorteioLive 🎲
+# SorteioLive  🎲
 
 Sistema de sorteio com verificação de presença para streamers da Twitch.
 
@@ -24,12 +24,14 @@ Pronto! Você vai ganhar um link tipo `sorteio-live.vercel.app`
 ## Trocar a senha
 
 No arquivo `src/App.jsx`, linha 5:
+
 ```
 const PASS = "streamer123"; // TROQUE AQUI
 ```
 
 ## Regras do sorteio
 
-- Mínimo **3 dias** diferentes de presença
-- Mínimo **60 minutos** no total (pode ser dividido)
-- Sorteio 100% aleatório entre os elegíveis
+* Mínimo **3 dias** diferentes de presença
+* Mínimo **60 minutos** no total (pode ser dividido)
+* Sorteio 100% aleatório entre os elegíveis
+
