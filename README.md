@@ -1,4 +1,4 @@
-# SorteioLive  🎲
+# SorteioLive 🎲
 
 Sistema de sorteio com verificação de presença para streamers da Twitch.
 
