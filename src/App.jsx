@@ -335,6 +335,8 @@ export default function App() {
         .tab-btn { flex: 1; min-width: 72px; padding: 13px 8px; font-size: 12px; font-weight: 700; color: #ADADB8; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: color .15s; letter-spacing: .3px; }
         .tab-btn.active { color: #9146FF; border-bottom-color: #9146FF; }
         .body { padding: 14px; max-width: 600px; margin: 0 auto; padding-bottom: 32px; }
+        @media (min-width: 768px) { .body { max-width: 900px; padding: 24px 32px 48px; } }
+        @media (min-width: 1200px) { .body { max-width: 1100px; } }
         .card { background: #18181B; border: 1px solid #26262C; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
         .card-title { font-weight: 700; font-size: 15px; margin-bottom: 14px; }
         .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -379,6 +381,9 @@ export default function App() {
           .grid3 { grid-template-columns: 1fr 1fr; }
           .stat-val { font-size: 20px; }
           .topbar { padding: 12px 14px; }
+        }
+        @media (min-width: 768px) {
+          .prize-img { max-height: 480px; object-fit: contain; background: #1a0533; }
         }
       `}</style>
 
@@ -438,6 +443,7 @@ export default function App() {
             <img
               src="/premio.png"
               alt="Prêmio Semanal"
+              className="prize-img"
               style={{ width: "100%", height: "auto", display: "block" }}
               onError={e => { e.target.style.display = "none"; }}
             />
