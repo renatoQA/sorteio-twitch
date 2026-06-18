@@ -1,6 +1,12 @@
 const CLIENT_ID = 'bso3queqhjj7epoc18d9tfomtmthbm';
 const WEBHOOK_URL = 'https://sorteio-twitch.vercel.app/api/twitch-webhook';
 
+const SUB_TYPES = [
+  'channel.chat.message',
+  'channel.subscribe',
+  'channel.subscription.message',
+];
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -21,42 +27,59 @@ export default async function handler(req, res) {
   };
 
   try {
-    // Delete any existing channel.chat.message subscriptions for this broadcaster
-    const listRes = await fetch(
-      `https://api.twitch.tv/helix/eventsub/subscriptions?type=channel.chat.message`,
-      { headers }
-    );
+    // List all existing subscriptions and delete matching ones
+    const listRes = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', { headers });
     const listData = await listRes.json();
-    const existing = (listData.data || []).filter(
-      s => s.condition.broadcaster_user_id === broadcaster_id
+    const toDelete = (listData.data || []).filter(s =>
+      s.condition.broadcaster_user_id === broadcaster_id &&
+      SUB_TYPES.includes(s.type)
     );
     await Promise.all(
-      existing.map(s =>
+      toDelete.map(s =>
         fetch(`https://api.twitch.tv/helix/eventsub/subscriptions?id=${s.id}`, {
-          method: 'DELETE',
-          headers,
+          method: 'DELETE', headers,
         })
       )
     );
 
-    // Create fresh subscription
-    const createRes = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
+    // Create channel.chat.message subscription
+    await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
       method: 'POST',
       headers,
       body: JSON.stringify({
         type: 'channel.chat.message',
         version: '1',
         condition: { broadcaster_user_id: broadcaster_id, user_id },
-        transport: {
-          method: 'webhook',
-          callback: WEBHOOK_URL,
-          secret,
-        },
+        transport: { method: 'webhook', callback: WEBHOOK_URL, secret },
+      }),
+    });
+
+    // Create channel.subscribe subscription
+    await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        type: 'channel.subscribe',
+        version: '1',
+        condition: { broadcaster_user_id: broadcaster_id },
+        transport: { method: 'webhook', callback: WEBHOOK_URL, secret },
+      }),
+    });
+
+    // Create channel.subscription.message subscription (resubs)
+    const createRes = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        type: 'channel.subscription.message',
+        version: '1',
+        condition: { broadcaster_user_id: broadcaster_id },
+        transport: { method: 'webhook', callback: WEBHOOK_URL, secret },
       }),
     });
 
     const data = await createRes.json();
-    return res.status(createRes.status).json(data);
+    return res.status(200).json({ ok: true, last: data });
   } catch (e) {
     return res.status(500).json({ error: 'Erro ao registrar EventSub' });
   }

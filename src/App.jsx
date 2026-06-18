@@ -87,9 +87,20 @@ export default function App() {
   }, [fetchState]);
 
   useEffect(() => {
+    // Restore bot token
     const t = localStorage.getItem('bot_token');
     const id = localStorage.getItem('bot_uid');
     if (t && id) { setStreamerToken(t); setStreamerTwitchId(id); }
+    // Restore admin session
+    if (sessionStorage.getItem('admin_unlocked') === '1') setStreamerUnlocked(true);
+    // Restore viewer Twitch session
+    try {
+      const u = localStorage.getItem('twitch_user');
+      if (u) setTwitchUser(JSON.parse(u));
+    } catch {}
+    // Restore redeemed prize code
+    const code = localStorage.getItem('redeemed_code');
+    if (code) setRedeemedCode(code);
   }, []);
 
   useEffect(() => {
@@ -115,6 +126,7 @@ export default function App() {
       const { data } = await userRes.json();
       const u = data[0];
       setTwitchUser(u);
+      localStorage.setItem('twitch_user', JSON.stringify({ id: u.id, login: u.login, display_name: u.display_name }));
       setTab("viewer");
       await act("register", { twitch_id: u.id, nick: u.login, display_name: u.display_name });
       flash(`Bem-vindo, ${u.display_name}! ✅`, "#00C853");
@@ -154,7 +166,7 @@ export default function App() {
       client_id: CLIENT_ID,
       redirect_uri: REDIRECT_URI,
       response_type: "token",
-      scope: "user:write:chat user:read:chat",
+      scope: "user:write:chat user:read:chat channel:read:subscriptions",
       state: "streamer",
     });
     window.location.href = `https://id.twitch.tv/oauth2/authorize?${p}`;
@@ -236,7 +248,7 @@ export default function App() {
   }
 
   function unlockStreamer() {
-    if (pass === PASS) { setStreamerUnlocked(true); setPass(""); }
+    if (pass === PASS) { setStreamerUnlocked(true); sessionStorage.setItem('admin_unlocked', '1'); setPass(""); }
     else flash("Senha incorreta.", "#FF4747");
   }
 
@@ -273,7 +285,7 @@ export default function App() {
       });
       const data = await r.json();
       if (!r.ok) flash(data.error || "Erro!", "#FF4747");
-      else { setRedeemedCode(data.giftcard); flash("Prêmio resgatado! 🎉", "#00C853"); }
+      else { setRedeemedCode(data.giftcard); localStorage.setItem('redeemed_code', data.giftcard); flash("Prêmio resgatado! 🎉", "#00C853"); }
     } catch { flash("Erro de conexão!", "#FF4747"); }
     finally { setActing(false); }
   }
@@ -439,7 +451,7 @@ export default function App() {
         {/* VIEWER */}
         {tab === "viewer" && <div className="fade-up">
           {/* Prize redemption banner */}
-          {twitchUser && state?.prize?.twitch_id === twitchUser.id && !state.prize.redeemed && (
+          {twitchUser && state?.prize?.twitch_id === twitchUser.id && (!state.prize.redeemed || redeemedCode) && (
             <div style={{ background: "#9146FF18", border: "2px solid #9146FF", borderRadius: 12, padding: "16px", marginBottom: 12, textAlign: "center" }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>🎁</div>
               <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>Você ganhou um prêmio!</div>
@@ -447,7 +459,10 @@ export default function App() {
                 <div>
                   <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 10 }}>Seu código gift card:</div>
                   <div style={{ background: "#26262C", borderRadius: 8, padding: "12px 16px", fontSize: 18, fontWeight: 800, color: "#9146FF", letterSpacing: 2, wordBreak: "break-all", marginBottom: 10 }}>{redeemedCode}</div>
-                  <div style={{ fontSize: 11, color: "#ADADB8" }}>Guarde este código! Ele não será mostrado novamente.</div>
+                  <button className="btn btn-full" style={{ background: "#26262C", color: "#9146FF", border: "1.5px solid #9146FF55", marginBottom: 8 }} onClick={() => navigator.clipboard.writeText(redeemedCode).then(() => flash("Código copiado! ✓", "#00C853"))}>
+                    📋 Copiar código
+                  </button>
+                  <div style={{ fontSize: 11, color: "#ADADB8" }}>Código salvo neste dispositivo. Copie e guarde em local seguro!</div>
                 </div>
               ) : state.prize.enabled ? (
                 <div>
@@ -480,7 +495,7 @@ export default function App() {
                     <div style={{ fontWeight: 800, fontSize: 16 }}>{twitchUser.display_name}</div>
                     <div style={{ fontSize: 11, color: "#00C853", marginTop: 1 }}>✓ Twitch verificado · @{twitchUser.login}</div>
                   </div>
-                  <button className="btn-ghost" style={{ padding: "7px 12px", fontSize: 12 }} onClick={() => setTwitchUser(null)}>Sair</button>
+                  <button className="btn-ghost" style={{ padding: "7px 12px", fontSize: 12 }} onClick={() => { setTwitchUser(null); localStorage.removeItem('twitch_user'); }}>Sair</button>
                 </div>
                 <div className="divider" />
                 <span className="label">check-in na live de hoje</span>
@@ -519,6 +534,7 @@ export default function App() {
                     <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
                       <span style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</span>
                       <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "elegível" : "pendente"}</span>
+                      {v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4" }}>★ sub</span>}
                     </div>
                     <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 4 }}>{uniqueDays(v.sessions).length} lives · {Math.floor(calcMins(v.sessions)/60)}h{calcMins(v.sessions)%60}m · <strong style={{ color: "#9146FF" }}>{score} pts</strong></div>
                     <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.round(score/maxScore*100)}%`, background: i === 0 ? "#FFD700" : "#9146FF" }} /></div>
@@ -644,7 +660,7 @@ export default function App() {
                     <div key={v.twitch_id || v.nick} className="viewer-row">
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</div>
-                        <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 2 }}>{days} lives · {Math.floor(mins/60)}h{mins%60}m · <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok?"elegível":"pendente"}</span></div>
+                        <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 2 }}>{days} lives · {Math.floor(mins/60)}h{mins%60}m · <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok?"elegível":"pendente"}</span>{v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4", marginLeft: 4 }}>★ sub</span>}</div>
                       </div>
                       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                         {hasToday ? [15,30,60].map(m => (
@@ -658,7 +674,7 @@ export default function App() {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button className="btn-ghost" style={{ flex: 1, color: "#FF4747", borderColor: "#FF474744" }} onClick={resetAll} disabled={acting}>Resetar tudo</button>
-                <button className="btn-ghost" onClick={() => setStreamerUnlocked(false)}>Sair</button>
+                <button className="btn-ghost" onClick={() => { setStreamerUnlocked(false); sessionStorage.removeItem('admin_unlocked'); }}>Sair</button>
               </div>
             </>}
 
@@ -778,7 +794,10 @@ function ViewerCard({ v, vList }) {
           <div style={{ fontWeight: 700, fontSize: 15 }}>{v.display_name || v.nick}</div>
           <div style={{ fontSize: 11, color: "#ADADB8" }}>#{rank} no ranking · {totalScore(v)} pts · código: <strong style={{ color: "#9146FF" }}>{v.code}</strong></div>
         </div>
-        <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "Elegível ✓" : "Pendente"}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+          <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "Elegível ✓" : "Pendente"}</span>
+          {v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4" }}>★ Inscrito</span>}
+        </div>
       </div>
 
       {/* mini tabs */}
