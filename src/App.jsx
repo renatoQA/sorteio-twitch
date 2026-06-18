@@ -436,7 +436,7 @@ export default function App() {
               <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>🎁 Prêmio Semanal</div>
             </div>
             <img
-              src="/premio.jpg"
+              src="/premio.png"
               alt="Prêmio Semanal"
               style={{ width: "100%", display: "block", maxHeight: 420, objectFit: "cover" }}
               onError={e => { e.target.style.display = "none"; }}
