@@ -735,12 +735,12 @@ export default function App() {
                 <div style={{ marginBottom: 16 }}>
                   <span className="label">Tempo de giro: <strong style={{ color: "#9146FF" }}>{spinSecs}s</strong></span>
                   <input
-                    type="range" min={3} max={30} step={1} value={spinSecs}
+                    type="range" min={3} max={100} step={1} value={spinSecs}
                     onChange={e => setSpinSecs(Number(e.target.value))}
                     style={{ width: "100%", accentColor: "#9146FF", cursor: "pointer", marginTop: 6 }}
                   />
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#ADADB8", marginTop: 3 }}>
-                    <span>3s</span><span>30s</span>
+                    <span>3s</span><span>100s</span>
                   </div>
                 </div>
                 <SpinWheel
