@@ -11,15 +11,6 @@ function uniqueDays(sessions) { return [...new Set(sessions.map(s => s.date))]; 
 function isEligible(v) { return uniqueDays(v.sessions).length >= MIN_DAYS && calcMins(v.sessions) >= MIN_MINS; }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
 
-function genVerifier() {
-  const arr = new Uint8Array(32);
-  crypto.getRandomValues(arr);
-  return btoa(String.fromCharCode(...arr)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
-async function genChallenge(v) {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
-  return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
 
 export default function App() {
   const [state, setState] = useState(null);
@@ -72,60 +63,37 @@ export default function App() {
   }, [fetchState]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    if (code) {
+    const hash = window.location.hash;
+    if (hash.includes('access_token')) {
       window.history.replaceState({}, '', '/');
-      handleCallback(code);
+      const params = new URLSearchParams(hash.slice(1));
+      const token = params.get('access_token');
+      if (token) handleToken(token);
     }
   }, []);
 
-  async function handleCallback(code) {
+  async function handleToken(token) {
     setLoggingIn(true);
     try {
-      const verifier = sessionStorage.getItem('pkce_verifier');
-      if (!verifier) { flash('Erro de login. Tente novamente.', '#FF4747'); return; }
-
-      const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: CLIENT_ID,
-          code,
-          code_verifier: verifier,
-          grant_type: 'authorization_code',
-          redirect_uri: REDIRECT_URI,
-        }),
-      });
-      const token = await tokenRes.json();
-      if (!token.access_token) { flash('Erro ao fazer login com Twitch.', '#FF4747'); return; }
-
       const userRes = await fetch('https://api.twitch.tv/helix/users', {
-        headers: { 'Authorization': `Bearer ${token.access_token}`, 'Client-Id': CLIENT_ID },
+        headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': CLIENT_ID },
       });
       const { data } = await userRes.json();
       const u = data[0];
-      sessionStorage.removeItem('pkce_verifier');
       setTwitchUser(u);
       setTab('viewer');
-
       await act('register', { twitch_id: u.id, nick: u.login, display_name: u.display_name });
       flash(`Bem-vindo, ${u.display_name}! ✅`, '#00C853');
     } catch { flash('Erro ao fazer login. Tente novamente.', '#FF4747'); }
     finally { setLoggingIn(false); }
   }
 
-  async function loginWithTwitch() {
-    const verifier = genVerifier();
-    const challenge = await genChallenge(verifier);
-    sessionStorage.setItem('pkce_verifier', verifier);
+  function loginWithTwitch() {
     const p = new URLSearchParams({
       client_id: CLIENT_ID,
       redirect_uri: REDIRECT_URI,
-      response_type: 'code',
+      response_type: 'token',
       scope: 'user:read:email',
-      code_challenge: challenge,
-      code_challenge_method: 'S256',
     });
     window.location.href = `https://id.twitch.tv/oauth2/authorize?${p}`;
   }
