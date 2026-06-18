@@ -447,11 +447,27 @@ export default function App() {
         body { background: #0E0E10; overscroll-behavior: none; }
         .app { min-height: 100dvh; background: #0E0E10; color: #EFEFF1; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
         .splash { min-height: 100dvh; background: #0E0E10; display: flex; align-items: center; justify-content: center; color: #9146FF; gap: 12px; font-size: 16px; font-family: system-ui; }
-        .topbar { background: #18181B; border-bottom: 2px solid #9146FF; padding: 14px 16px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; }
-        .tabs { display: flex; background: #18181B; border-bottom: 1px solid #26262C; overflow-x: auto; scrollbar-width: none; }
-        .tabs::-webkit-scrollbar { display: none; }
-        .tab-btn { flex: 1; min-width: 72px; padding: 13px 8px; font-size: 12px; font-weight: 700; color: #ADADB8; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: color .15s; letter-spacing: .3px; }
-        .tab-btn.active { color: #9146FF; border-bottom-color: #9146FF; }
+        .navbar { background: #18181B; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 0 #9146FF44, 0 4px 32px rgba(145,70,255,0.12); }
+        .navbar-top { display: flex; align-items: center; padding: 0 16px; height: 56px; gap: 12px; }
+        .logo-badge { background: linear-gradient(135deg, #9146FF 0%, #5B1A99 100%); border-radius: 9px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 0 12px #9146FF55; }
+        .logo-text { line-height: 1; }
+        .logo-name { font-weight: 900; font-size: 15px; color: #EFEFF1; letter-spacing: -.3px; }
+        .logo-sub { font-size: 9px; color: #9146FF; letter-spacing: 1.8px; text-transform: uppercase; font-weight: 700; margin-top: 2px; }
+        .navbar-nav { display: none; }
+        .nav-item { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #ADADB8; background: none; border: none; cursor: pointer; transition: color .15s, background .15s; white-space: nowrap; }
+        .nav-item:hover { color: #EFEFF1; background: #26262C; }
+        .nav-item.active { color: #9146FF; background: #9146FF18; }
+        .live-pill { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 20px; border: 1px solid; white-space: nowrap; }
+        .navbar-tabs { display: flex; overflow-x: auto; scrollbar-width: none; border-top: 1px solid #26262C; }
+        .navbar-tabs::-webkit-scrollbar { display: none; }
+        .nav-tab { flex: 1; min-width: 72px; padding: 11px 8px; font-size: 12px; font-weight: 700; color: #ADADB8; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: color .15s; letter-spacing: .3px; }
+        .nav-tab.active { color: #9146FF; border-bottom-color: #9146FF; }
+        @media (min-width: 768px) {
+          .navbar-top { padding: 0 32px; height: 62px; max-width: 1100px; margin: 0 auto; }
+          .navbar-nav { display: flex; align-items: center; gap: 4px; margin-left: 24px; flex: 1; }
+          .navbar-tabs { display: none; }
+          .navbar > .navbar-top { max-width: unset; }
+        }
         .body { padding: 14px; max-width: 600px; margin: 0 auto; padding-bottom: 32px; }
         @media (min-width: 768px) { .body { max-width: 900px; padding: 24px 32px 48px; } }
         @media (min-width: 1200px) { .body { max-width: 1100px; } }
@@ -498,31 +514,54 @@ export default function App() {
         @media (max-width: 400px) {
           .grid3 { grid-template-columns: 1fr 1fr; }
           .stat-val { font-size: 20px; }
-          .topbar { padding: 12px 14px; }
         }
         @media (min-width: 768px) {
           .prize-img { max-height: 480px; object-fit: contain; background: #1a0533; }
         }
       `}</style>
 
-      {/* Topbar */}
-      <div className="topbar">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 16, color: "#EFEFF1", lineHeight: 1.1 }}>Area do Tailung</div>
-          <div style={{ fontSize: 10, color: "#ADADB8", letterSpacing: ".5px" }}>sorteio verificado</div>
-        </div>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: state?.liveActive ? "#00C853" : "#ADADB8" }}>
-          <div className="live-dot" style={{ background: state?.liveActive ? "#FF4747" : "#3D3D47", animation: state?.liveActive ? "pulse 1.5s infinite" : "none" }} />
-          {state?.liveActive ? "AO VIVO" : "OFFLINE"}
-        </div>
-      </div>
+      {/* Navbar */}
+      <div className="navbar">
+        <div className="navbar-top">
+          {/* Logo */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            <div className="logo-badge">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
+            </div>
+            <div className="logo-text">
+              <div className="logo-name">Area do Tailung</div>
+              <div className="logo-sub">Sorteio</div>
+            </div>
+          </div>
 
-      {/* Tabs */}
-      <div className="tabs">
-        {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["streamer","Streamer"]].map(([id,label]) => (
-          <button key={id} className={`tab-btn${tab===id?" active":""}`} onClick={() => setTab(id)}>{label}</button>
-        ))}
+          {/* Nav inline — desktop only */}
+          <nav className="navbar-nav">
+            {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["streamer","Streamer"]].map(([id,label]) => (
+              <button key={id} className={`nav-item${tab===id?" active":""}`} onClick={() => setTab(id)}>{label}</button>
+            ))}
+          </nav>
+
+          {/* Right side */}
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            {twitchUser && (
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#9146FF", background: "#9146FF15", padding: "5px 10px", borderRadius: 8, display: "flex", alignItems: "center", gap: 5 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
+                {twitchUser.display_name || twitchUser.login}
+              </div>
+            )}
+            <div className="live-pill" style={{ color: state?.liveActive ? "#FF4747" : "#ADADB8", borderColor: state?.liveActive ? "#FF474744" : "#3D3D47", background: state?.liveActive ? "#FF474712" : "#26262C" }}>
+              <div className="live-dot" style={{ background: state?.liveActive ? "#FF4747" : "#3D3D47", animation: state?.liveActive ? "pulse 1.5s infinite" : "none" }} />
+              {state?.liveActive ? "AO VIVO" : "OFFLINE"}
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs row — mobile only */}
+        <div className="navbar-tabs">
+          {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["streamer","Streamer"]].map(([id,label]) => (
+            <button key={id} className={`nav-tab${tab===id?" active":""}`} onClick={() => setTab(id)}>{label}</button>
+          ))}
+        </div>
       </div>
 
       <div className="body">
