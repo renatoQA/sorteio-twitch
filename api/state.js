@@ -83,6 +83,13 @@ export default async function handler(req, res) {
       state.winner = eligible[Math.floor(Math.random() * eligible.length)];
     }
 
+    else if (action === 'draw_specific') {
+      const { twitch_id } = payload;
+      const v = state.viewers[twitch_id];
+      if (!v) return res.status(404).json({ error: 'Viewer não encontrado' });
+      state.winner = v;
+    }
+
     else if (action === 'clear_winner') {
       state.winner = null;
     }

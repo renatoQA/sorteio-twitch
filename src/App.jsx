@@ -26,6 +26,118 @@ function monthLabel(d) {
   return `${months[parseInt(m)-1]} ${y}`;
 }
 
+function SpinWheel({ eligible, spinSecs, onDone }) {
+  const canvasRef = useRef(null);
+  const animRef = useRef(null);
+  const activeRef = useRef(false);
+  const [spinning, setSpinning] = useState(false);
+  const [winner, setWinner] = useState(null);
+
+  const COLORS = ["#9146FF","#7B2FBE","#6D28D9","#A855F7","#5B1A99","#C084FC","#4C1A7A","#8B5CF6","#D8B4FE","#7C3AED","#3B0764","#B45FDB"];
+
+  function drawFrame(rot, items) {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const S = canvas.width;
+    const cx = S / 2, cy = S / 2, r = cx - 6;
+    const n = items.length;
+    const arc = (2 * Math.PI) / n;
+    ctx.clearRect(0, 0, S, S);
+    items.forEach((item, i) => {
+      const a0 = rot + i * arc, a1 = a0 + arc;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, a0, a1); ctx.closePath();
+      ctx.fillStyle = COLORS[i % COLORS.length]; ctx.fill();
+      ctx.strokeStyle = "#0E0E10"; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(a0 + arc / 2);
+      ctx.textAlign = "right"; ctx.fillStyle = "#fff";
+      ctx.font = `bold ${n > 12 ? 9 : 11}px Inter,system-ui,sans-serif`;
+      ctx.shadowColor = "#00000099"; ctx.shadowBlur = 3;
+      ctx.fillText((item.display_name || item.nick).slice(0, 13), r - 10, 4);
+      ctx.restore();
+    });
+    ctx.beginPath(); ctx.arc(cx, cy, 16, 0, 2 * Math.PI);
+    ctx.fillStyle = "#18181B"; ctx.fill();
+    ctx.strokeStyle = "#9146FF"; ctx.lineWidth = 3; ctx.stroke();
+  }
+
+  const eligibleKey = eligible.map(v => v.twitch_id || v.nick).join(",");
+
+  useEffect(() => {
+    if (activeRef.current || !eligible.length) return;
+    drawFrame(-Math.PI / 2 - (2 * Math.PI / eligible.length) / 2, eligible);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eligibleKey]);
+
+  useEffect(() => () => { if (animRef.current) cancelAnimationFrame(animRef.current); }, []);
+
+  function spin() {
+    if (activeRef.current || !eligible.length) return;
+    const n = eligible.length;
+    const arc = (2 * Math.PI) / n;
+    const idx = Math.floor(Math.random() * n);
+    // spin forward so segment idx lands at top pointer
+    // totalDelta = (numSpins+1)*2π - idx*arc brings winner to -π/2
+    const numSpins = 5 + Math.floor(Math.random() * 3);
+    const startRot = -Math.PI / 2 - arc / 2;
+    const totalDelta = (numSpins + 1) * 2 * Math.PI - idx * arc;
+    const duration = spinSecs * 1000;
+    let t0 = null;
+
+    activeRef.current = true;
+    setSpinning(true);
+    setWinner(null);
+
+    function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+
+    function frame(ts) {
+      if (!t0) t0 = ts;
+      const t = Math.min((ts - t0) / duration, 1);
+      drawFrame(startRot + totalDelta * easeOut(t), eligible);
+      if (t < 1) {
+        animRef.current = requestAnimationFrame(frame);
+      } else {
+        activeRef.current = false;
+        setSpinning(false);
+        setWinner(eligible[idx]);
+        onDone(eligible[idx]);
+      }
+    }
+    animRef.current = requestAnimationFrame(frame);
+  }
+
+  if (!eligible.length) return (
+    <div style={{ textAlign: "center", color: "#ADADB8", fontSize: 13, padding: "20px 0" }}>
+      Nenhum viewer elegível ainda.
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+      <div style={{ position: "relative" }}>
+        <div style={{
+          position: "absolute", top: -2, left: "50%", transform: "translateX(-50%)", zIndex: 2,
+          width: 0, height: 0,
+          borderLeft: "10px solid transparent", borderRight: "10px solid transparent",
+          borderTop: "20px solid #FFD700",
+          filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))"
+        }} />
+        <canvas ref={canvasRef} width={280} height={280}
+          style={{ display: "block", borderRadius: "50%", border: "2px solid #9146FF44" }} />
+      </div>
+      {winner && !spinning && (
+        <div style={{ textAlign: "center" }} className="fade-up">
+          <div style={{ fontSize: 10, color: "#ADADB8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🏆 Caiu em</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#9146FF" }}>{winner.display_name || winner.nick}</div>
+        </div>
+      )}
+      <button className="btn btn-full" onClick={spin} disabled={spinning} style={{ maxWidth: 280 }}>
+        {spinning ? "🎡 Girando..." : "🎡 Girar Roleta"}
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +160,7 @@ export default function App() {
   const [streamerTwitchId, setStreamerTwitchId] = useState('');
   const [botActive, setBotActive] = useState(false);
   const botTimerRef = useRef(null);
+  const [spinSecs, setSpinSecs] = useState(8);
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -239,6 +352,11 @@ export default function App() {
   async function drawWinner() {
     const res = await act("draw");
     if (res.ok) flash(`🎉 Vencedor: ${res.data.winner?.display_name || res.data.winner?.nick}!`);
+  }
+
+  async function drawSpecific(twitch_id) {
+    const res = await act("draw_specific", { twitch_id });
+    if (res.ok) flash(`🏆 ${res.data.winner?.display_name || res.data.winner?.nick} é o vencedor!`);
   }
 
   async function endCycle() {
@@ -605,6 +723,32 @@ export default function App() {
                   <button className="btn-ghost" style={{ marginTop: 14, fontSize: 12, padding: "6px 14px" }} onClick={() => act("clear_winner")}>Limpar</button>
                 </div>
               )}
+
+              {/* Roleta */}
+              <div className="card">
+                <div style={{ fontWeight: 700, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                  🎡 Roleta
+                  <span style={{ fontSize: 11, color: "#9146FF", background: "#9146FF15", padding: "2px 8px", borderRadius: 10 }}>
+                    {eligCount} elegíve{eligCount === 1 ? "l" : "is"}
+                  </span>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <span className="label">Tempo de giro: <strong style={{ color: "#9146FF" }}>{spinSecs}s</strong></span>
+                  <input
+                    type="range" min={3} max={30} step={1} value={spinSecs}
+                    onChange={e => setSpinSecs(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: "#9146FF", cursor: "pointer", marginTop: 6 }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#ADADB8", marginTop: 3 }}>
+                    <span>3s</span><span>30s</span>
+                  </div>
+                </div>
+                <SpinWheel
+                  eligible={vList.filter(isEligible)}
+                  spinSecs={spinSecs}
+                  onDone={w => drawSpecific(w.twitch_id || w.nick)}
+                />
+              </div>
 
               {/* Bot do Chat */}
               <div className="card">
