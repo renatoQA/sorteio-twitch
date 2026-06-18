@@ -6,12 +6,14 @@ const API = "/api/state";
 const CLIENT_ID = "bso3queqhjj7epoc18d9tfomtmthbm";
 const REDIRECT_URI = "https://area-tailung.vercel.app";
 const MIN_MINS_LIVE = 60;
-const MIN_MINS_TOTAL = 480;
+const MIN_MINS_TOTAL = 660;
+const MIN_DAYS = 4;
 
 function calcMins(sessions) { return sessions.reduce((a, s) => a + (s.minutes || 0), 0); }
 function uniqueDays(sessions) { return [...new Set(sessions.map(s => s.date))]; }
+function qualifiedDays(sessions) { return sessions.filter(s => s.minutes >= MIN_MINS_LIVE).length; }
 function isEligible(v) {
-  return v.sessions.some(s => s.minutes >= MIN_MINS_LIVE) || calcMins(v.sessions) >= MIN_MINS_TOTAL;
+  return calcMins(v.sessions) >= MIN_MINS_TOTAL || qualifiedDays(v.sessions) >= MIN_DAYS;
 }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
 
@@ -743,7 +745,9 @@ export default function App() {
 
           <div className="card" style={{ background: "#9146FF10", borderColor: "#9146FF33" }}>
             <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.7 }}>
-              <strong style={{ color: "#9146FF" }}>Regra do sorteio:</strong> Acumule <strong>1 hora em qualquer live</strong> (mesmo que seja de forma picada) ou <strong>8 horas no total</strong> entre todas as lives da semana para se tornar elegível.
+              <strong style={{ color: "#9146FF" }}>Regra do sorteio:</strong> Para ser elegível você precisa cumprir <strong>uma</strong> das condições abaixo:<br />
+              <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ <strong>11 horas de live</strong> acumuladas no total</span>
+              <span style={{ paddingLeft: 8, display: "block", marginTop: 2 }}>✅ <strong>4 dias de check-in</strong> com no mínimo 1h em cada dia (incluindo o dia do sorteio)</span>
             </div>
           </div>
         </div>}
@@ -1128,7 +1132,6 @@ function ViewerCard({ v, vList }) {
   const mins = calcMins(v.sessions);
   const ok = isEligible(v);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
-  const bestLive = Math.max(0, ...v.sessions.map(s => s.minutes));
   const history = v.history || [];
 
   const now = new Date().toISOString().slice(0, 7);
@@ -1159,16 +1162,16 @@ function ViewerCard({ v, vList }) {
       {histTab === "semana" && <>
         <div className="grid2" style={{ marginBottom: 12 }}>
           <div>
-            <span className="label">melhor live</span>
-            <div style={{ fontWeight: 800, fontSize: 22, color: bestLive >= MIN_MINS_LIVE ? "#00C853" : "#9146FF" }}>{Math.floor(bestLive/60)}h{bestLive%60}m</div>
-            <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.min(100, bestLive/MIN_MINS_LIVE*100)}%`, background: bestLive >= MIN_MINS_LIVE ? "#00C853" : "#9146FF" }} /></div>
-            <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>meta: 1h por live</div>
+            <span className="label">dias qualificados</span>
+            <div style={{ fontWeight: 800, fontSize: 22, color: qualifiedDays(v.sessions) >= MIN_DAYS ? "#00C853" : "#9146FF" }}>{qualifiedDays(v.sessions)}<span style={{ fontSize: 14, fontWeight: 400, color: "#ADADB8" }}>/{MIN_DAYS}</span></div>
+            <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.min(100, qualifiedDays(v.sessions)/MIN_DAYS*100)}%`, background: qualifiedDays(v.sessions) >= MIN_DAYS ? "#00C853" : "#9146FF" }} /></div>
+            <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>meta: 4 dias com ≥1h</div>
           </div>
           <div>
-            <span className="label">total semana</span>
+            <span className="label">total acumulado</span>
             <div style={{ fontWeight: 800, fontSize: 22, color: mins >= MIN_MINS_TOTAL ? "#00C853" : "#9146FF" }}>{Math.floor(mins/60)}h{mins%60}m</div>
             <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.min(100, mins/MIN_MINS_TOTAL*100)}%`, background: mins >= MIN_MINS_TOTAL ? "#00C853" : "#9146FF" }} /></div>
-            <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>meta: 8h no total</div>
+            <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>meta: 11h no total</div>
           </div>
         </div>
         {v.sessions.length > 0 && (

@@ -2,7 +2,8 @@ import { kv } from '@vercel/kv';
 
 const STATE_KEY = 'sorteio_state';
 const MIN_MINS_LIVE = 60;
-const MIN_MINS_TOTAL = 480;
+const MIN_MINS_TOTAL = 660;
+const MIN_DAYS = 4;
 
 const defaultState = {
   viewers: {},
@@ -17,7 +18,8 @@ const defaultState = {
 
 function isEligible(v) {
   const totalMins = v.sessions.reduce((a, s) => a + (s.minutes || 0), 0);
-  return v.sessions.some(s => s.minutes >= MIN_MINS_LIVE) || totalMins >= MIN_MINS_TOTAL;
+  const qualifiedDays = v.sessions.filter(s => s.minutes >= MIN_MINS_LIVE).length;
+  return totalMins >= MIN_MINS_TOTAL || qualifiedDays >= MIN_DAYS;
 }
 
 export default async function handler(req, res) {
