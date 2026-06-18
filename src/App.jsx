@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+const CHANNEL = "otailungg";
 const PASS = "3n@2ysxk";
 const API = "/api/state";
 const CLIENT_ID = "bso3queqhjj7epoc18d9tfomtmthbm";
@@ -692,12 +693,29 @@ export default function App() {
             </div>
           </div>
 
-          <div className="card" style={{ borderColor: state?.liveActive ? "#00C85344" : "#26262C", textAlign: "center", padding: "22px 16px" }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>{state?.liveActive ? "🔴" : "⚫"}</div>
-            <div style={{ fontWeight: 800, fontSize: 17, color: state?.liveActive ? "#00C853" : "#ADADB8" }}>
-              {state?.liveActive ? "Live acontecendo agora!" : "Nenhuma live no momento"}
+          {/* Twitch Player */}
+          <div className="card" style={{ padding: 0, overflow: "hidden", borderColor: state?.liveActive ? "#FF474744" : "#26262C" }}>
+            <div style={{ background: "linear-gradient(135deg, #18181B, #26262C)", padding: "10px 14px", borderBottom: "1px solid #26262C", display: "flex", alignItems: "center", gap: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#EFEFF1" }}>{CHANNEL}</span>
+              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: state?.liveActive ? "#FF4747" : "#ADADB8" }}>
+                <div className="live-dot" style={{ background: state?.liveActive ? "#FF4747" : "#3D3D47", animation: state?.liveActive ? "pulse 1.5s infinite" : "none" }} />
+                {state?.liveActive ? "AO VIVO" : "OFFLINE"}
+              </div>
             </div>
-            {state?.liveActive && <div style={{ fontSize: 12, color: "#ADADB8", marginTop: 6 }}>Vai na aba Participar e faz seu check-in!</div>}
+            <div style={{ position: "relative", paddingTop: "56.25%", background: "#0E0E10" }}>
+              <iframe
+                src={`https://player.twitch.tv/?channel=${CHANNEL}&parent=area-tailung.vercel.app&autoplay=false&muted=false`}
+                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                allowFullScreen
+                title="oTaiLungg Live"
+              />
+            </div>
+            {state?.liveActive && (
+              <div style={{ padding: "10px 14px", fontSize: 12, color: "#ADADB8", borderTop: "1px solid #26262C" }}>
+                🔴 Live rolando agora! Vai na aba <strong style={{ color: "#9146FF", cursor: "pointer" }} onClick={() => setTab("viewer")}>Participar</strong> e faz seu check-in!
+              </div>
+            )}
           </div>
 
           <div className="card" style={{ padding: 0, overflow: "hidden", borderColor: "#9146FF55" }}>
