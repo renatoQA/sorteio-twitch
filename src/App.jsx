@@ -158,8 +158,11 @@ export default function App() {
   const [adminPrizeCode, setAdminPrizeCode] = useState(null);
   const [streamerToken, setStreamerToken] = useState('');
   const [streamerTwitchId, setStreamerTwitchId] = useState('');
+  const [streamerLogin, setStreamerLogin] = useState('');
   const [botActive, setBotActive] = useState(false);
   const botTimerRef = useRef(null);
+  const ircRef = useRef(null);
+  const ircReconnectRef = useRef(false);
   const [spinSecs, setSpinSecs] = useState(8);
   const [webhookSubs, setWebhookSubs] = useState(null);
   const [checkingWebhook, setCheckingWebhook] = useState(false);
@@ -205,7 +208,9 @@ export default function App() {
     // Restore bot token
     const t = localStorage.getItem('bot_token');
     const id = localStorage.getItem('bot_uid');
+    const login = localStorage.getItem('bot_login');
     if (t && id) { setStreamerToken(t); setStreamerTwitchId(id); }
+    if (login) setStreamerLogin(login);
     // Restore admin session
     if (sessionStorage.getItem('admin_unlocked') === '1') setStreamerUnlocked(true);
     // Restore viewer Twitch session
@@ -269,8 +274,10 @@ export default function App() {
       const u = data[0];
       setStreamerToken(token);
       setStreamerTwitchId(u.id);
+      setStreamerLogin(u.login);
       localStorage.setItem('bot_token', token);
       localStorage.setItem('bot_uid', u.id);
+      localStorage.setItem('bot_login', u.login);
       setTab("streamer");
       flash(`Bot conectado como @${u.login}! Entre com a senha para continuar.`, "#00C853");
     } catch { flash("Erro ao conectar bot Twitch.", "#FF4747"); }
@@ -304,7 +311,7 @@ export default function App() {
       const r = await fetch("/api/twitch-subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ broadcaster_id: streamerTwitchId, user_id: streamerTwitchId }),
+        body: JSON.stringify({ access_token: streamerToken, broadcaster_id: streamerTwitchId, user_id: streamerTwitchId }),
       });
       const data = await r.json();
       if (data.error) {
@@ -318,11 +325,49 @@ export default function App() {
     }
   }
 
+  function connectIRC(token, login) {
+    if (!token || !login) return;
+    const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+    ws.onopen = () => {
+      ws.send('CAP REQ :twitch.tv/tags');
+      ws.send(`PASS oauth:${token}`);
+      ws.send(`NICK ${login}`);
+      ws.send(`JOIN #${login}`);
+    };
+    ws.onmessage = (event) => {
+      const lines = event.data.split('\r\n').filter(Boolean);
+      for (const line of lines) {
+        if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv'); continue; }
+        if (line.includes('PRIVMSG')) {
+          const msgText = line.split('PRIVMSG')[1]?.split(':').slice(1).join(':').trim().toLowerCase();
+          if (msgText?.includes('#tailung')) {
+            const m = line.match(/user-id=(\d+)/);
+            if (m) {
+              fetch('/api/chat-credit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ viewer_id: m[1] }),
+              }).catch(() => {});
+            }
+          }
+        }
+      }
+    };
+    ws.onclose = () => {
+      ircRef.current = null;
+      if (ircReconnectRef.current) setTimeout(() => connectIRC(token, login), 5000);
+    };
+    ws.onerror = () => {};
+    ircRef.current = ws;
+  }
+
   function startBot() {
     sendBotMessage();
     subscribeEventSub();
     botTimerRef.current = setInterval(sendBotMessage, 15 * 60 * 1000);
     setBotActive(true);
+    ircReconnectRef.current = true;
+    connectIRC(streamerToken, streamerLogin);
     flash("Bot iniciado! Mensagem enviada no chat. 🤖", "#00C853");
   }
 
@@ -330,15 +375,19 @@ export default function App() {
     clearInterval(botTimerRef.current);
     botTimerRef.current = null;
     setBotActive(false);
+    ircReconnectRef.current = false;
+    if (ircRef.current) { ircRef.current.close(); ircRef.current = null; }
   }
 
   function disconnectBot() {
     stopBot();
     setStreamerTwitchId('');
     setStreamerToken('');
+    setStreamerLogin('');
     setWebhookSubs(null);
     localStorage.removeItem('bot_token');
     localStorage.removeItem('bot_uid');
+    localStorage.removeItem('bot_login');
   }
 
   async function checkWebhookStatus() {
