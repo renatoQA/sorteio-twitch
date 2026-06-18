@@ -27,9 +27,14 @@ export default async function handler(req, res) {
   };
 
   try {
-    // List all existing subscriptions and delete matching ones
+    // List and delete existing matching subscriptions
     const listRes = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', { headers });
     const listData = await listRes.json();
+
+    if (listRes.status === 401) {
+      return res.status(401).json({ error: 'Token expirado ou inválido. Desconecte e reconecte o bot.' });
+    }
+
     const toDelete = (listData.data || []).filter(s =>
       s.condition.broadcaster_user_id === broadcaster_id &&
       SUB_TYPES.includes(s.type)
@@ -42,45 +47,46 @@ export default async function handler(req, res) {
       )
     );
 
-    // Create channel.chat.message subscription
-    await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
+    // Create each subscription and capture results
+    const subs = [
+      {
         type: 'channel.chat.message',
         version: '1',
         condition: { broadcaster_user_id: broadcaster_id, user_id },
-        transport: { method: 'webhook', callback: WEBHOOK_URL, secret },
-      }),
-    });
-
-    // Create channel.subscribe subscription
-    await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
+      },
+      {
         type: 'channel.subscribe',
         version: '1',
         condition: { broadcaster_user_id: broadcaster_id },
-        transport: { method: 'webhook', callback: WEBHOOK_URL, secret },
-      }),
-    });
-
-    // Create channel.subscription.message subscription (resubs)
-    const createRes = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
+      },
+      {
         type: 'channel.subscription.message',
         version: '1',
         condition: { broadcaster_user_id: broadcaster_id },
-        transport: { method: 'webhook', callback: WEBHOOK_URL, secret },
-      }),
-    });
+      },
+    ];
 
-    const data = await createRes.json();
-    return res.status(200).json({ ok: true, last: data });
+    const results = [];
+    for (const sub of subs) {
+      const r = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          ...sub,
+          transport: { method: 'webhook', callback: WEBHOOK_URL, secret },
+        }),
+      });
+      const data = await r.json();
+      results.push({ type: sub.type, httpStatus: r.status, data });
+    }
+
+    const errors = results.filter(r => r.httpStatus >= 400);
+    if (errors.length) {
+      return res.status(200).json({ ok: false, results, errors });
+    }
+
+    return res.status(200).json({ ok: true, results });
   } catch (e) {
-    return res.status(500).json({ error: 'Erro ao registrar EventSub' });
+    return res.status(500).json({ error: String(e) });
   }
 }

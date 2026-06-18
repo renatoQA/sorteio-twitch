@@ -301,12 +301,21 @@ export default function App() {
   async function subscribeEventSub() {
     if (!streamerToken || !streamerTwitchId) return;
     try {
-      await fetch("/api/twitch-subscribe", {
+      const r = await fetch("/api/twitch-subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: streamerToken, broadcaster_id: streamerTwitchId, user_id: streamerTwitchId }),
       });
-    } catch {}
+      const data = await r.json();
+      if (data.error) {
+        flash(`Webhook erro: ${data.error}`, "#FF4747");
+      } else if (!data.ok && data.errors?.length) {
+        const e = data.errors[0];
+        flash(`Webhook falhou (${e.type}): ${e.data?.message || e.httpStatus}`, "#FF4747");
+      }
+    } catch (e) {
+      flash(`Erro ao registrar webhooks: ${e.message}`, "#FF4747");
+    }
   }
 
   function startBot() {
