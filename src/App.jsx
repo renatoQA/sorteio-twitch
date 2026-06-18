@@ -43,6 +43,7 @@ export default function App() {
   const [prizeWinnerId, setPrizeWinnerId] = useState("");
   const [prizeGiftcard, setPrizeGiftcard] = useState("");
   const [redeemedCode, setRedeemedCode] = useState(null);
+  const [adminPrizeCode, setAdminPrizeCode] = useState(null);
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -151,6 +152,21 @@ export default function App() {
   function unlockStreamer() {
     if (pass === PASS) { setStreamerUnlocked(true); setPass(""); }
     else flash("Senha incorreta.", "#FF4747");
+  }
+
+  async function fetchPrizeCode() {
+    setActing(true);
+    try {
+      const r = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "get_prize_code", payload: {} }),
+      });
+      const data = await r.json();
+      if (r.ok) setAdminPrizeCode(data.giftcard);
+      else flash(data.error || "Erro!", "#FF4747");
+    } catch { flash("Erro de conexão!", "#FF4747"); }
+    finally { setActing(false); }
   }
 
   async function savePrize() {
@@ -533,8 +549,12 @@ export default function App() {
                   <>
                     <div style={{ background: state.prize.redeemed ? "#00C85315" : state.prize.enabled ? "#9146FF15" : "#26262C", border: `1px solid ${state.prize.redeemed ? "#00C85344" : state.prize.enabled ? "#9146FF44" : "#3D3D47"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{state.prize.display_name}</div>
-                      <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 8 }}>
-                        Código: <span style={{ color: "#9146FF", letterSpacing: 1 }}>{"•".repeat(10)} (oculto)</span>
+                      <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        Código:&nbsp;
+                        {adminPrizeCode
+                          ? <span style={{ background: "#26262C", borderRadius: 6, padding: "3px 10px", color: "#9146FF", fontWeight: 800, letterSpacing: 1, wordBreak: "break-all" }}>{adminPrizeCode}</span>
+                          : <button onClick={fetchPrizeCode} disabled={acting} style={{ background: "none", border: "1px solid #9146FF44", borderRadius: 6, padding: "3px 10px", color: "#9146FF", fontSize: 12, cursor: "pointer" }}>👁 Ver código</button>
+                        }
                       </div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                         <span className={`badge ${state.prize.redeemed ? "badge-ok" : state.prize.enabled ? "badge-ok" : "badge-pend"}`}>

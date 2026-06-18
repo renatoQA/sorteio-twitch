@@ -150,6 +150,11 @@ export default async function handler(req, res) {
       state.cycleStart = endDate;
     }
 
+    else if (action === 'get_prize_code') {
+      if (!state.prize) return res.status(404).json({ error: 'Nenhum prêmio configurado.' });
+      return res.status(200).json({ giftcard: state.prize.giftcard });
+    }
+
     else if (action === 'set_prize') {
       const { twitch_id, display_name, giftcard } = payload;
       if (!twitch_id || !giftcard) return res.status(400).json({ error: 'Preencha o vencedor e o código.' });
