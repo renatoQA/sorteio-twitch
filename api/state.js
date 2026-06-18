@@ -1,13 +1,22 @@
 import { kv } from '@vercel/kv';
 
 const STATE_KEY = 'sorteio_state';
+const MIN_MINS_LIVE = 60;
+const MIN_MINS_TOTAL = 480;
 
 const defaultState = {
   viewers: {},
   liveActive: false,
   liveDate: null,
   winner: null,
+  cycleHistory: [],
+  cycleStart: null,
 };
+
+function isEligible(v) {
+  const totalMins = v.sessions.reduce((a, s) => a + (s.minutes || 0), 0);
+  return v.sessions.some(s => s.minutes >= MIN_MINS_LIVE) || totalMins >= MIN_MINS_TOTAL;
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,14 +33,14 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { action, payload } = req.body;
     let state = await kv.get(STATE_KEY) || { ...defaultState };
+    if (!state.cycleHistory) state.cycleHistory = [];
 
     if (action === 'register') {
       const { twitch_id, nick, display_name } = payload;
-      if (state.viewers[twitch_id]) {
-        return res.status(200).json(state);
-      }
+      if (state.viewers[twitch_id]) return res.status(200).json(state);
       const code = Math.random().toString(36).slice(2, 7).toUpperCase();
       state.viewers[twitch_id] = { twitch_id, nick, display_name, code, sessions: [], checkedInToday: false };
+      if (!state.cycleStart) state.cycleStart = new Date().toISOString().slice(0, 10);
     }
 
     else if (action === 'checkin') {
@@ -48,6 +57,7 @@ export default async function handler(req, res) {
       Object.keys(state.viewers).forEach(id => { state.viewers[id].checkedInToday = false; });
       state.liveActive = true;
       state.liveDate = new Date().toISOString().slice(0, 10);
+      if (!state.cycleStart) state.cycleStart = state.liveDate;
     }
 
     else if (action === 'close_live') {
@@ -64,12 +74,7 @@ export default async function handler(req, res) {
     }
 
     else if (action === 'draw') {
-      const MIN_DAYS = 3, MIN_MINS = 60;
-      const eligible = Object.values(state.viewers).filter(v => {
-        const days = [...new Set(v.sessions.map(s => s.date))].length;
-        const mins = v.sessions.reduce((a, s) => a + (s.minutes || 0), 0);
-        return days >= MIN_DAYS && mins >= MIN_MINS;
-      });
+      const eligible = Object.values(state.viewers).filter(isEligible);
       if (!eligible.length) return res.status(400).json({ error: 'Nenhum elegível!' });
       state.winner = eligible[Math.floor(Math.random() * eligible.length)];
     }
@@ -84,8 +89,38 @@ export default async function handler(req, res) {
       delete state.viewers[twitch_id];
     }
 
+    else if (action === 'end_cycle') {
+      const allViewers = Object.values(state.viewers);
+      const allDates = new Set(allViewers.flatMap(v => v.sessions.map(s => s.date)));
+      const totalMinutes = allViewers.reduce((a, v) => a + v.sessions.reduce((b, s) => b + (s.minutes || 0), 0), 0);
+      const eligible = allViewers.filter(isEligible);
+
+      const cycle = {
+        endDate: new Date().toISOString().slice(0, 10),
+        startDate: state.cycleStart,
+        winner: state.winner || null,
+        stats: {
+          totalViewers: allViewers.length,
+          eligibleViewers: eligible.length,
+          totalMinutes,
+          totalLives: allDates.size,
+        },
+      };
+
+      state.cycleHistory.unshift(cycle);
+
+      Object.keys(state.viewers).forEach(id => {
+        state.viewers[id].sessions = [];
+        state.viewers[id].checkedInToday = false;
+      });
+      state.liveActive = false;
+      state.liveDate = null;
+      state.winner = null;
+      state.cycleStart = new Date().toISOString().slice(0, 10);
+    }
+
     else if (action === 'reset') {
-      state = { ...defaultState };
+      state = { ...defaultState, cycleHistory: [] };
     }
 
     await kv.set(STATE_KEY, state);
