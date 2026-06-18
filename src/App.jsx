@@ -287,7 +287,7 @@ export default function App() {
       client_id: CLIENT_ID,
       redirect_uri: REDIRECT_URI,
       response_type: "token",
-      scope: "user:write:chat user:read:chat channel:read:subscriptions",
+      scope: "chat:read chat:edit user:write:chat user:read:chat channel:read:subscriptions",
       state: "streamer",
     });
     window.location.href = `https://id.twitch.tv/oauth2/authorize?${p}`;
@@ -343,6 +343,11 @@ export default function App() {
       const lines = event.data.split('\r\n').filter(Boolean);
       for (const line of lines) {
         if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv'); continue; }
+
+        // Log auth errors and notices from Twitch
+        if (line.includes('NOTICE') || line.includes('ERROR') || line.includes('Login authentication failed')) {
+          addLog('err', line.replace(/^@[^ ]+ /, '').slice(0, 120));
+        }
 
         if (line.includes('PRIVMSG')) {
           const displayName = line.match(/display-name=([^;]+)/)?.[1] || '?';
