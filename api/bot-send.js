@@ -1,5 +1,5 @@
 const CLIENT_ID = 'bso3queqhjj7epoc18d9tfomtmthbm';
-const BOT_MSG = '🎲 Mande #tailung no chat e ganhe +15min na Area do Tailung! (só pra quem já fez check-in)';
+const BOT_MSG = '🎲 Mande #tailung no chat e para contabilizar seu tempo na Area do Tailung! (só pra quem já fez check-in)';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

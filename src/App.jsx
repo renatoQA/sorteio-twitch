@@ -431,6 +431,18 @@ export default function App() {
             {state?.liveActive && <div style={{ fontSize: 12, color: "#ADADB8", marginTop: 6 }}>Vai na aba Participar e faz seu check-in!</div>}
           </div>
 
+          <div className="card" style={{ padding: 0, overflow: "hidden", borderColor: "#9146FF55" }}>
+            <div style={{ background: "linear-gradient(135deg, #1a0533 0%, #2d1060 100%)", padding: "14px 16px 10px", borderBottom: "1px solid #9146FF33" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>🎁 Prêmio Semanal</div>
+            </div>
+            <img
+              src="/premio.jpg"
+              alt="Prêmio Semanal"
+              style={{ width: "100%", display: "block", maxHeight: 420, objectFit: "cover" }}
+              onError={e => { e.target.style.display = "none"; }}
+            />
+          </div>
+
           <div className="card">
             <div className="card-title">Como participar</div>
             {["Entre na aba Participar e conecte sua conta Twitch","Faça check-in em cada live que você assistir","Acumule 1h em qualquer live ou 8h no total da semana para entrar no sorteio"].map((txt, i) => (
