@@ -161,6 +161,8 @@ export default function App() {
   const [botActive, setBotActive] = useState(false);
   const botTimerRef = useRef(null);
   const [spinSecs, setSpinSecs] = useState(8);
+  const [webhookSubs, setWebhookSubs] = useState(null);
+  const [checkingWebhook, setCheckingWebhook] = useState(false);
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -325,8 +327,24 @@ export default function App() {
     stopBot();
     setStreamerTwitchId('');
     setStreamerToken('');
+    setWebhookSubs(null);
     localStorage.removeItem('bot_token');
     localStorage.removeItem('bot_uid');
+  }
+
+  async function checkWebhookStatus() {
+    if (!streamerToken) return;
+    setCheckingWebhook(true);
+    try {
+      const r = await fetch('/api/eventsub-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: streamerToken }),
+      });
+      const data = await r.json();
+      setWebhookSubs(data.data || []);
+    } catch { flash('Erro ao verificar webhooks', '#FF4747'); }
+    finally { setCheckingWebhook(false); }
   }
 
   async function doCheckin() {
@@ -820,6 +838,29 @@ export default function App() {
                       <button className="btn-ghost" onClick={disconnectBot} style={{ whiteSpace: "nowrap" }}>Desconectar</button>
                     </div>
                     {!state?.liveActive && !botActive && <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 8 }}>Abra a live para ativar o bot.</div>}
+                    <div style={{ marginTop: 12, borderTop: "1px solid #26262C", paddingTop: 12 }}>
+                      <button className="btn-ghost" style={{ fontSize: 11, padding: "5px 12px" }} onClick={checkWebhookStatus} disabled={checkingWebhook}>
+                        {checkingWebhook ? "Verificando..." : "🔍 Verificar webhooks"}
+                      </button>
+                      {webhookSubs !== null && (
+                        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                          {webhookSubs.length === 0 && <div style={{ fontSize: 11, color: "#FF4747" }}>⚠ Nenhuma subscrição encontrada. Reinicie o bot.</div>}
+                          {webhookSubs.map(s => {
+                            const ok = s.status === 'enabled';
+                            const color = ok ? "#00C853" : "#FF4747";
+                            return (
+                              <div key={s.id} style={{ background: "#26262C", borderRadius: 8, padding: "7px 10px", fontSize: 11 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                                  <span style={{ color: "#ADADB8", fontFamily: "monospace" }}>{s.type}</span>
+                                  <span style={{ color, fontWeight: 700, flexShrink: 0 }}>{ok ? "✓ enabled" : `✗ ${s.status}`}</span>
+                                </div>
+                                {!ok && <div style={{ color: "#FF474788", fontSize: 10, marginTop: 3 }}>Reinicie o bot para recriar este webhook.</div>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
