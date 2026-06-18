@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 const PASS = "3n@2ysxk";
 const API = "/api/state";
@@ -44,6 +44,10 @@ export default function App() {
   const [prizeGiftcard, setPrizeGiftcard] = useState("");
   const [redeemedCode, setRedeemedCode] = useState(null);
   const [adminPrizeCode, setAdminPrizeCode] = useState(null);
+  const [streamerToken, setStreamerToken] = useState('');
+  const [streamerTwitchId, setStreamerTwitchId] = useState('');
+  const [botActive, setBotActive] = useState(false);
+  const botTimerRef = useRef(null);
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -83,12 +87,22 @@ export default function App() {
   }, [fetchState]);
 
   useEffect(() => {
+    const t = localStorage.getItem('bot_token');
+    const id = localStorage.getItem('bot_uid');
+    if (t && id) { setStreamerToken(t); setStreamerTwitchId(id); }
+  }, []);
+
+  useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes("access_token")) {
       window.history.replaceState({}, "", "/");
       const params = new URLSearchParams(hash.slice(1));
       const token = params.get("access_token");
-      if (token) handleToken(token);
+      const oauthState = params.get("state");
+      if (token) {
+        if (oauthState === "streamer") handleStreamerToken(token);
+        else handleToken(token);
+      }
     }
   }, []);
 
@@ -114,8 +128,80 @@ export default function App() {
       redirect_uri: REDIRECT_URI,
       response_type: "token",
       scope: "user:read:email",
+      state: "viewer",
     });
     window.location.href = `https://id.twitch.tv/oauth2/authorize?${p}`;
+  }
+
+  async function handleStreamerToken(token) {
+    try {
+      const userRes = await fetch("https://api.twitch.tv/helix/users", {
+        headers: { Authorization: `Bearer ${token}`, "Client-Id": CLIENT_ID },
+      });
+      const { data } = await userRes.json();
+      const u = data[0];
+      setStreamerToken(token);
+      setStreamerTwitchId(u.id);
+      localStorage.setItem('bot_token', token);
+      localStorage.setItem('bot_uid', u.id);
+      setTab("streamer");
+      flash(`Bot conectado como @${u.login}! Entre com a senha para continuar.`, "#00C853");
+    } catch { flash("Erro ao conectar bot Twitch.", "#FF4747"); }
+  }
+
+  function loginStreamerBot() {
+    const p = new URLSearchParams({
+      client_id: CLIENT_ID,
+      redirect_uri: REDIRECT_URI,
+      response_type: "token",
+      scope: "user:write:chat user:read:chat",
+      state: "streamer",
+    });
+    window.location.href = `https://id.twitch.tv/oauth2/authorize?${p}`;
+  }
+
+  async function sendBotMessage() {
+    if (!streamerToken || !streamerTwitchId) return;
+    try {
+      await fetch("/api/bot-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: streamerToken, broadcaster_id: streamerTwitchId, sender_id: streamerTwitchId }),
+      });
+    } catch {}
+  }
+
+  async function subscribeEventSub() {
+    if (!streamerToken || !streamerTwitchId) return;
+    try {
+      await fetch("/api/twitch-subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: streamerToken, broadcaster_id: streamerTwitchId, user_id: streamerTwitchId }),
+      });
+    } catch {}
+  }
+
+  function startBot() {
+    sendBotMessage();
+    subscribeEventSub();
+    botTimerRef.current = setInterval(sendBotMessage, 15 * 60 * 1000);
+    setBotActive(true);
+    flash("Bot iniciado! Mensagem enviada no chat. 🤖", "#00C853");
+  }
+
+  function stopBot() {
+    clearInterval(botTimerRef.current);
+    botTimerRef.current = null;
+    setBotActive(false);
+  }
+
+  function disconnectBot() {
+    stopBot();
+    setStreamerTwitchId('');
+    setStreamerToken('');
+    localStorage.removeItem('bot_token');
+    localStorage.removeItem('bot_uid');
   }
 
   async function doCheckin() {
@@ -485,6 +571,41 @@ export default function App() {
                   <button className="btn-ghost" style={{ marginTop: 14, fontSize: 12, padding: "6px 14px" }} onClick={() => act("clear_winner")}>Limpar</button>
                 </div>
               )}
+
+              {/* Bot do Chat */}
+              <div className="card">
+                <div style={{ fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                  🤖 Bot do Chat
+                  {botActive && <span style={{ fontSize: 11, color: "#00C853", background: "#00C85318", padding: "2px 8px", borderRadius: 10, fontWeight: 700 }}>● ATIVO</span>}
+                </div>
+                {!streamerTwitchId ? (
+                  <>
+                    <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 12, lineHeight: 1.7 }}>
+                      Conecte sua conta Twitch para o bot postar <strong style={{ color: "#EFEFF1" }}>#tailung</strong> no chat a cada 15min. Viewers que responderem ganham +15min automaticamente.
+                    </div>
+                    <button className="btn btn-full" onClick={loginStreamerBot}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
+                      Conectar Twitch (Bot)
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 12, color: "#00C853", marginBottom: 10 }}>✓ Twitch conectado</div>
+                    <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 12, lineHeight: 1.7 }}>
+                      {botActive
+                        ? "Bot ativo: postando #tailung no chat a cada 15min e somando tempo automaticamente."
+                        : "Bot pronto. Inicie para postar no chat a cada 15min e capturar as respostas dos viewers."}
+                    </div>
+                    <div className="row">
+                      {!botActive
+                        ? <button className="btn btn-green btn-full" onClick={startBot} disabled={!state?.liveActive}>▶ Iniciar Bot</button>
+                        : <button className="btn btn-red btn-full" onClick={stopBot}>⏹ Parar Bot</button>}
+                      <button className="btn-ghost" onClick={disconnectBot} style={{ whiteSpace: "nowrap" }}>Desconectar</button>
+                    </div>
+                    {!state?.liveActive && !botActive && <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 8 }}>Abra a live para ativar o bot.</div>}
+                  </>
+                )}
+              </div>
             </>}
 
             {/* ADMIN: CICLO */}
@@ -526,7 +647,7 @@ export default function App() {
                         <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 2 }}>{days} lives · {Math.floor(mins/60)}h{mins%60}m · <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok?"elegível":"pendente"}</span></div>
                       </div>
                       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                        {state?.liveActive && hasToday ? [15,30,60].map(m => (
+                        {hasToday ? [15,30,60].map(m => (
                           <button key={m} className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11, borderRadius: 8 }} onClick={() => addTime(v.twitch_id, m)} disabled={acting}>+{m}</button>
                         )) : <span style={{ color: "#3D3D47", fontSize: 11 }}>{state?.liveActive ? "sem checkin" : "—"}</span>}
                         <button onClick={() => { if (window.confirm(`Deletar ${v.display_name || v.nick}?`)) act("delete_viewer", { twitch_id: v.twitch_id || v.nick }); }} disabled={acting} style={{ background: "none", border: "none", cursor: "pointer", color: "#FF474755", fontSize: 16, padding: "2px 4px", lineHeight: 1 }}>✕</button>
