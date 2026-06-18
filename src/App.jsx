@@ -347,6 +347,11 @@ export default function App() {
         // Log auth errors and notices from Twitch
         if (line.includes('NOTICE') || line.includes('ERROR') || line.includes('Login authentication failed')) {
           addLog('err', line.replace(/^@[^ ]+ /, '').slice(0, 120));
+          if (line.includes('Login unsuccessful') || line.includes('Login authentication failed')) {
+            ircReconnectRef.current = false;
+            ws.close();
+            addLog('err', '⚠ Token inválido — clique em Desconectar e reconecte o bot Twitch.');
+          }
         }
 
         if (line.includes('PRIVMSG')) {
