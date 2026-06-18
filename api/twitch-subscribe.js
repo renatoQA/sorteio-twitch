@@ -7,6 +7,18 @@ const SUB_TYPES = [
   'channel.subscription.message',
 ];
 
+async function getAppToken() {
+  const secret = process.env.TWITCH_CLIENT_SECRET;
+  if (!secret) throw new Error('TWITCH_CLIENT_SECRET não configurado na Vercel.');
+  const r = await fetch(
+    `https://id.twitch.tv/oauth2/token?client_id=${CLIENT_ID}&client_secret=${secret}&grant_type=client_credentials`,
+    { method: 'POST' }
+  );
+  const data = await r.json();
+  if (!data.access_token) throw new Error('Falha ao obter App Access Token: ' + JSON.stringify(data));
+  return data.access_token;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -14,27 +26,24 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { access_token, broadcaster_id, user_id } = req.body || {};
-  if (!access_token || !broadcaster_id || !user_id) {
+  const { broadcaster_id, user_id } = req.body || {};
+  if (!broadcaster_id || !user_id) {
     return res.status(400).json({ error: 'Parâmetros faltando' });
   }
 
-  const secret = process.env.TWITCH_WEBHOOK_SECRET || 'tailung_webhook_2024';
-  const headers = {
-    'Authorization': `Bearer ${access_token}`,
-    'Client-Id': CLIENT_ID,
-    'Content-Type': 'application/json',
-  };
+  const webhookSecret = process.env.TWITCH_WEBHOOK_SECRET || 'tailung_webhook_2024';
 
   try {
+    const appToken = await getAppToken();
+    const headers = {
+      'Authorization': `Bearer ${appToken}`,
+      'Client-Id': CLIENT_ID,
+      'Content-Type': 'application/json',
+    };
+
     // List and delete existing matching subscriptions
     const listRes = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', { headers });
     const listData = await listRes.json();
-
-    if (listRes.status === 401) {
-      return res.status(401).json({ error: 'Token expirado ou inválido. Desconecte e reconecte o bot.' });
-    }
-
     const toDelete = (listData.data || []).filter(s =>
       s.condition.broadcaster_user_id === broadcaster_id &&
       SUB_TYPES.includes(s.type)
@@ -49,21 +58,9 @@ export default async function handler(req, res) {
 
     // Create each subscription and capture results
     const subs = [
-      {
-        type: 'channel.chat.message',
-        version: '1',
-        condition: { broadcaster_user_id: broadcaster_id, user_id },
-      },
-      {
-        type: 'channel.subscribe',
-        version: '1',
-        condition: { broadcaster_user_id: broadcaster_id },
-      },
-      {
-        type: 'channel.subscription.message',
-        version: '1',
-        condition: { broadcaster_user_id: broadcaster_id },
-      },
+      { type: 'channel.chat.message',        version: '1', condition: { broadcaster_user_id: broadcaster_id, user_id } },
+      { type: 'channel.subscribe',           version: '1', condition: { broadcaster_user_id: broadcaster_id } },
+      { type: 'channel.subscription.message', version: '1', condition: { broadcaster_user_id: broadcaster_id } },
     ];
 
     const results = [];
@@ -73,7 +70,7 @@ export default async function handler(req, res) {
         headers,
         body: JSON.stringify({
           ...sub,
-          transport: { method: 'webhook', callback: WEBHOOK_URL, secret },
+          transport: { method: 'webhook', callback: WEBHOOK_URL, secret: webhookSecret },
         }),
       });
       const data = await r.json();

@@ -304,7 +304,7 @@ export default function App() {
       const r = await fetch("/api/twitch-subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ access_token: streamerToken, broadcaster_id: streamerTwitchId, user_id: streamerTwitchId }),
+        body: JSON.stringify({ broadcaster_id: streamerTwitchId, user_id: streamerTwitchId }),
       });
       const data = await r.json();
       if (data.error) {
