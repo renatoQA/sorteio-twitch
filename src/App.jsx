@@ -296,6 +296,12 @@ export default function App() {
   async function sendBotMessage() {
     if (!streamerToken || !streamerTwitchId) return;
     try {
+      // Open new credit window before sending message
+      await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "tick_cycle", payload: {} }),
+      });
       await fetch("/api/bot-send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

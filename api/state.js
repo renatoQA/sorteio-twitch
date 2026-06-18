@@ -12,6 +12,7 @@ const defaultState = {
   cycleHistory: [],
   cycleStart: null,
   prize: null,
+  botCycle: 0,
 };
 
 function isEligible(v) {
@@ -81,6 +82,10 @@ export default async function handler(req, res) {
       const eligible = Object.values(state.viewers).filter(isEligible);
       if (!eligible.length) return res.status(400).json({ error: 'Nenhum elegível!' });
       state.winner = eligible[Math.floor(Math.random() * eligible.length)];
+    }
+
+    else if (action === 'tick_cycle') {
+      state.botCycle = (state.botCycle || 0) + 1;
     }
 
     else if (action === 'set_sub') {

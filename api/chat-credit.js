@@ -22,13 +22,16 @@ export default async function handler(req, res) {
     const idx = v.sessions.findLastIndex(s => s.date === state.liveDate);
     if (idx === -1) return res.status(200).json({ ok: false, reason: 'no_session' });
 
-    const cooldownKey = `cd:${viewer_id}`;
-    const credited = await kv.get(cooldownKey);
-    if (credited) return res.status(200).json({ ok: false, reason: 'cooldown' });
+    // Only one credit per bot message cycle
+    const currentCycle = state.botCycle || 0;
+    if (currentCycle === 0) return res.status(200).json({ ok: false, reason: 'bot_not_started' });
+    if ((v.lastCreditedCycle ?? -1) >= currentCycle) {
+      return res.status(200).json({ ok: false, reason: 'cooldown' });
+    }
 
     state.viewers[viewer_id].sessions[idx].minutes += 15;
+    state.viewers[viewer_id].lastCreditedCycle = currentCycle;
     await kv.set(STATE_KEY, state);
-    await kv.set(cooldownKey, '1', { ex: 840 });
 
     return res.status(200).json({ ok: true, viewer: v.display_name || v.nick });
   } catch (e) {
