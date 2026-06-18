@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 const PASS = "3n@2ysxk";
 const API = "/api/state";
 const CLIENT_ID = "bso3queqhjj7epoc18d9tfomtmthbm";
-const REDIRECT_URI = "https://sorteio-twitch.vercel.app";
+const REDIRECT_URI = "https://area-tailung.vercel.app";
 const MIN_MINS_LIVE = 60;
 const MIN_MINS_TOTAL = 480;
 

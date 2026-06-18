@@ -1,5 +1,5 @@
 const CLIENT_ID = 'bso3queqhjj7epoc18d9tfomtmthbm';
-const WEBHOOK_URL = 'https://sorteio-twitch.vercel.app/api/twitch-webhook';
+const WEBHOOK_URL = 'https://area-tailung.vercel.app/api/twitch-webhook';
 
 const SUB_TYPES = [
   'channel.chat.message',
