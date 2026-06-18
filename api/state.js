@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       const { nick } = payload;
       const n = nick.trim().toLowerCase();
       const v = state.viewers[n];
-      if (!v) return res.status(404).json({ error: 'Nick não encontrado!' });
+      if (!v) return res.status(404).json({ error: 'Viewer não cadastrado! Faça o cadastro primeiro.' });
       if (!state.liveActive) return res.status(400).json({ error: 'Nenhuma live ativa!' });
       if (v.checkedInToday) return res.status(400).json({ error: 'Você já fez check-in hoje!' });
       state.viewers[n].sessions.push({ date: state.liveDate, minutes: 0 });
@@ -76,6 +76,13 @@ export default async function handler(req, res) {
 
     else if (action === 'clear_winner') {
       state.winner = null;
+    }
+
+    else if (action === 'delete_viewer') {
+      const { nick } = payload;
+      const n = nick.trim().toLowerCase();
+      if (!state.viewers[n]) return res.status(404).json({ error: 'Viewer não encontrado' });
+      delete state.viewers[n];
     }
 
     else if (action === 'reset') {

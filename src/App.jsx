@@ -311,7 +311,7 @@ export default function App() {
                 const ok = isEligible(v);
                 const hasToday = v.sessions.some(s => s.date === state?.liveDate);
                 return (
-                  <div key={v.nick} style={{ borderBottom: "1px solid #26262C22", padding: "9px 0", display: "grid", gridTemplateColumns: "1fr 56px 56px 80px auto", gap: 8, alignItems: "center", fontSize: 12 }}>
+                  <div key={v.nick} style={{ borderBottom: "1px solid #26262C22", padding: "9px 0", display: "grid", gridTemplateColumns: "1fr 56px 56px 80px auto 28px", gap: 8, alignItems: "center", fontSize: 12 }}>
                     <span style={{ fontWeight: 700 }}>{v.nick}</span>
                     <span style={{ color: days >= MIN_DAYS ? "#00C853" : "#ADADB8" }}>{days}/{MIN_DAYS}d</span>
                     <span style={{ color: mins >= MIN_MINS ? "#00C853" : "#ADADB8" }}>{mins}min</span>
@@ -321,6 +321,7 @@ export default function App() {
                         <button key={m} style={{ ...s.btnGhost, padding: "3px 7px", fontSize: 11 }} onClick={() => addTime(v.nick, m)} disabled={acting}>+{m}</button>
                       )) : <span style={{ color: "#ADADB8" }}>{state?.liveActive ? "sem checkin" : "—"}</span>}
                     </div>
+                    <button onClick={() => { if (window.confirm(`Deletar ${v.nick}?`)) act("delete_viewer", { nick: v.nick }); }} disabled={acting} style={{ background: "none", border: "none", cursor: "pointer", color: "#FF474788", fontSize: 15, padding: 0, lineHeight: 1 }} title="Deletar viewer">✕</button>
                   </div>
                 );
               })}
