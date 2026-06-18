@@ -164,8 +164,7 @@ export default function App() {
   const ircRef = useRef(null);
   const ircReconnectRef = useRef(false);
   const [spinSecs, setSpinSecs] = useState(8);
-  const [webhookSubs, setWebhookSubs] = useState(null);
-  const [checkingWebhook, setCheckingWebhook] = useState(false);
+  const [ircLog, setIrcLog] = useState([]);
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -325,6 +324,11 @@ export default function App() {
     }
   }
 
+  function addLog(type, msg) {
+    const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setIrcLog(prev => [{ time, type, msg }, ...prev].slice(0, 50));
+  }
+
   function connectIRC(token, login) {
     if (!token || !login) return;
     const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
@@ -333,32 +337,40 @@ export default function App() {
       ws.send(`PASS oauth:${token}`);
       ws.send(`NICK ${login}`);
       ws.send(`JOIN #${login}`);
+      addLog('info', `Conectado ao chat de #${login}`);
     };
     ws.onmessage = (event) => {
       const lines = event.data.split('\r\n').filter(Boolean);
       for (const line of lines) {
         if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv'); continue; }
 
-        // #tailung in chat → add 15min (with cooldown via backend)
         if (line.includes('PRIVMSG')) {
-          const msgText = line.split('PRIVMSG')[1]?.split(':').slice(1).join(':').trim().toLowerCase();
-          if (msgText?.includes('#tailung')) {
+          const displayName = line.match(/display-name=([^;]+)/)?.[1] || '?';
+          const msgText = line.split('PRIVMSG')[1]?.split(':').slice(1).join(':').trim();
+          const lower = msgText?.toLowerCase() || '';
+
+          if (lower.includes('#tailung')) {
             const m = line.match(/user-id=(\d+)/);
+            addLog('tailung', `${displayName}: "${msgText}"`);
             if (m) {
               fetch('/api/chat-credit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ viewer_id: m[1] }),
-              }).catch(() => {});
+              }).then(r => r.json()).then(d => {
+                if (d.ok) addLog('ok', `+15min para ${displayName}`);
+                else addLog('skip', `${displayName} ignorado: ${d.reason}`);
+              }).catch(() => addLog('err', `Erro ao creditar ${displayName}`));
             }
           }
         }
 
-        // Sub / resub → mark viewer as subscriber
         if (line.includes('USERNOTICE')) {
           const msgId = line.match(/msg-id=([^;]+)/)?.[1];
           if (msgId === 'sub' || msgId === 'resub') {
             const userId = line.match(/user-id=(\d+)/)?.[1];
+            const displayName = line.match(/display-name=([^;]+)/)?.[1] || userId;
+            addLog('sub', `${displayName} sub/resub detectado`);
             if (userId) {
               fetch(API, {
                 method: 'POST',
@@ -372,9 +384,10 @@ export default function App() {
     };
     ws.onclose = () => {
       ircRef.current = null;
+      addLog('info', 'IRC desconectado' + (ircReconnectRef.current ? ' — reconectando em 5s...' : ''));
       if (ircReconnectRef.current) setTimeout(() => connectIRC(token, login), 5000);
     };
-    ws.onerror = () => {};
+    ws.onerror = () => addLog('err', 'Erro na conexão IRC');
     ircRef.current = ws;
   }
 
@@ -406,20 +419,6 @@ export default function App() {
     localStorage.removeItem('bot_login');
   }
 
-  async function checkWebhookStatus() {
-    if (!streamerToken) return;
-    setCheckingWebhook(true);
-    try {
-      const r = await fetch('/api/eventsub-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: streamerToken }),
-      });
-      const data = await r.json();
-      setWebhookSubs(data.data || []);
-    } catch { flash('Erro ao verificar webhooks', '#FF4747'); }
-    finally { setCheckingWebhook(false); }
-  }
 
   async function doCheckin() {
     if (!twitchUser) return flash("Faça login com Twitch primeiro!", "#FF4747");
@@ -915,6 +914,25 @@ export default function App() {
                     <div style={{ marginTop: 10, fontSize: 11, color: "#ADADB8", lineHeight: 1.6 }}>
                       📡 Conectado via IRC — captura <strong style={{ color: "#EFEFF1" }}>#tailung</strong> e subs em tempo real.
                     </div>
+                    {botActive && (
+                      <div style={{ marginTop: 12, borderTop: "1px solid #26262C", paddingTop: 12 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#ADADB8", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+                          <span>📋 Log IRC</span>
+                          <span style={{ cursor: "pointer", color: "#9146FF" }} onClick={() => setIrcLog([])}>limpar</span>
+                        </div>
+                        <div style={{ background: "#0E0E10", borderRadius: 8, padding: "8px 10px", maxHeight: 200, overflowY: "auto", fontFamily: "monospace", fontSize: 11 }}>
+                          {ircLog.length === 0 && <div style={{ color: "#3D3D47" }}>Aguardando eventos...</div>}
+                          {ircLog.map((e, i) => {
+                            const colors = { ok: "#00C853", skip: "#ADADB8", tailung: "#9146FF", sub: "#FF69B4", err: "#FF4747", info: "#FFB347" };
+                            return (
+                              <div key={i} style={{ color: colors[e.type] || "#EFEFF1", marginBottom: 3 }}>
+                                <span style={{ color: "#3D3D47", marginRight: 6 }}>{e.time}</span>{e.msg}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
