@@ -438,7 +438,7 @@ export default function App() {
             <img
               src="/premio.png"
               alt="Prêmio Semanal"
-              style={{ width: "100%", display: "block", maxHeight: 420, objectFit: "cover" }}
+              style={{ width: "100%", height: "auto", display: "block" }}
               onError={e => { e.target.style.display = "none"; }}
             />
           </div>
