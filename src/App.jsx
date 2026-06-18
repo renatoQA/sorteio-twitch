@@ -3,25 +3,36 @@ import { useState, useEffect, useCallback } from "react";
 const MIN_DAYS = 3, MIN_MINS = 60;
 const PASS = "streamer123";
 const API = "/api/state";
+const CLIENT_ID = "bso3queqhjj7epoc18d9tfomtmthbm";
+const REDIRECT_URI = "https://sorteio-twitch.vercel.app";
 
 function calcMins(sessions) { return sessions.reduce((a, s) => a + (s.minutes || 0), 0); }
 function uniqueDays(sessions) { return [...new Set(sessions.map(s => s.date))]; }
 function isEligible(v) { return uniqueDays(v.sessions).length >= MIN_DAYS && calcMins(v.sessions) >= MIN_MINS; }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
 
+function genVerifier() {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return btoa(String.fromCharCode(...arr)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+async function genChallenge(v) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
+  return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
 export default function App() {
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
-  const [nick, setNick] = useState("");
-  const [nickCI, setNickCI] = useState("");
   const [pass, setPass] = useState("");
   const [streamerUnlocked, setStreamerUnlocked] = useState(false);
   const [flashMsg, setFlashMsg] = useState("");
   const [flashColor, setFlashColor] = useState("#9146FF");
   const [flashTimer, setFlashTimer] = useState(null);
-  const [preview, setPreview] = useState(null);
   const [acting, setActing] = useState(false);
+  const [twitchUser, setTwitchUser] = useState(null);
+  const [loggingIn, setLoggingIn] = useState(false);
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -54,33 +65,75 @@ export default function App() {
     finally { setActing(false); }
   }, [flash]);
 
-  // poll a cada 5s pra sincronizar viewers
   useEffect(() => {
     fetchState();
     const interval = setInterval(fetchState, 5000);
     return () => clearInterval(interval);
   }, [fetchState]);
 
-  // atualiza preview quando state muda
   useEffect(() => {
-    if (nick && state?.viewers) {
-      const n = nick.trim().toLowerCase();
-      setPreview(state.viewers[n] || null);
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      window.history.replaceState({}, '', '/');
+      handleCallback(code);
     }
-  }, [state, nick]);
+  }, []);
 
-  async function doRegister() {
-    const n = nick.trim().toLowerCase();
-    if (!n) return flash("Digite seu nick!", "#FF4747");
-    const res = await act("register", { nick: n });
-    if (res.ok) { flash("Cadastrado! ✅", "#00C853"); setNick(""); }
+  async function handleCallback(code) {
+    setLoggingIn(true);
+    try {
+      const verifier = sessionStorage.getItem('pkce_verifier');
+      if (!verifier) { flash('Erro de login. Tente novamente.', '#FF4747'); return; }
+
+      const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: CLIENT_ID,
+          code,
+          code_verifier: verifier,
+          grant_type: 'authorization_code',
+          redirect_uri: REDIRECT_URI,
+        }),
+      });
+      const token = await tokenRes.json();
+      if (!token.access_token) { flash('Erro ao fazer login com Twitch.', '#FF4747'); return; }
+
+      const userRes = await fetch('https://api.twitch.tv/helix/users', {
+        headers: { 'Authorization': `Bearer ${token.access_token}`, 'Client-Id': CLIENT_ID },
+      });
+      const { data } = await userRes.json();
+      const u = data[0];
+      sessionStorage.removeItem('pkce_verifier');
+      setTwitchUser(u);
+      setTab('viewer');
+
+      await act('register', { twitch_id: u.id, nick: u.login, display_name: u.display_name });
+      flash(`Bem-vindo, ${u.display_name}! ✅`, '#00C853');
+    } catch { flash('Erro ao fazer login. Tente novamente.', '#FF4747'); }
+    finally { setLoggingIn(false); }
+  }
+
+  async function loginWithTwitch() {
+    const verifier = genVerifier();
+    const challenge = await genChallenge(verifier);
+    sessionStorage.setItem('pkce_verifier', verifier);
+    const p = new URLSearchParams({
+      client_id: CLIENT_ID,
+      redirect_uri: REDIRECT_URI,
+      response_type: 'code',
+      scope: 'user:read:email',
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+    });
+    window.location.href = `https://id.twitch.tv/oauth2/authorize?${p}`;
   }
 
   async function doCheckin() {
-    const n = nickCI.trim().toLowerCase();
-    if (!n) return flash("Digite seu nick!", "#FF4747");
-    const res = await act("checkin", { nick: n });
-    if (res.ok) { flash("Check-in feito! ✅", "#00C853"); setNickCI(""); }
+    if (!twitchUser) return flash('Faça login com Twitch primeiro!', '#FF4747');
+    const res = await act('checkin', { twitch_id: twitchUser.id });
+    if (res.ok) flash('Check-in feito! ✅', '#00C853');
   }
 
   async function toggleLive() {
@@ -93,13 +146,13 @@ export default function App() {
     }
   }
 
-  async function addTime(nick, minutes) {
-    await act("add_time", { nick, minutes });
+  async function addTime(twitch_id, minutes) {
+    await act("add_time", { twitch_id, minutes });
   }
 
   async function drawWinner() {
     const res = await act("draw");
-    if (res.ok) flash(`🎉 Vencedor: ${res.data.winner.nick}!`);
+    if (res.ok) flash(`🎉 Vencedor: ${res.data.winner.display_name || res.data.winner.nick}!`);
   }
 
   function unlockStreamer() {
@@ -113,15 +166,16 @@ export default function App() {
     if (res.ok) flash("Sistema zerado.");
   }
 
-  if (loading) return (
+  if (loading || loggingIn) return (
     <div style={{ minHeight: "100vh", background: "#0E0E10", display: "flex", alignItems: "center", justifyContent: "center", color: "#9146FF", fontFamily: "Inter,sans-serif", fontSize: 16, gap: 12 }}>
       <svg width="24" height="24" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
-      Carregando SorteioLive...
+      {loggingIn ? 'Fazendo login com Twitch...' : 'Carregando SorteioLive...'}
     </div>
   );
 
   const vList = state ? Object.values(state.viewers).sort((a, b) => totalScore(b) - totalScore(a)) : [];
   const eligCount = vList.filter(isEligible).length;
+  const myViewer = twitchUser ? state?.viewers?.[twitchUser.id] : null;
 
   const s = {
     app: { minHeight: "100vh", background: "#0E0E10", color: "#EFEFF1", fontFamily: "'Inter',sans-serif", fontSize: 14 },
@@ -149,13 +203,13 @@ export default function App() {
     const days = uniqueDays(v.sessions).length;
     const mins = calcMins(v.sessions);
     const ok = isEligible(v);
-    const rank = vList.findIndex(x => x.nick === v.nick) + 1;
+    const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
     return (
       <div style={{ ...s.card, borderColor: ok ? "#00C85344" : "#9146FF44" }}>
         <div style={{ ...s.row, marginBottom: 14 }}>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#9146FF33", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#9146FF" }}>{v.nick[0].toUpperCase()}</div>
+          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#9146FF33", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#9146FF" }}>{(v.display_name || v.nick)[0].toUpperCase()}</div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>{v.nick}</div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>{v.display_name || v.nick}</div>
             <div style={{ fontSize: 11, color: "#ADADB8" }}>código: <strong style={{ color: "#9146FF" }}>{v.code}</strong> · #{rank} · {totalScore(v)} pts</div>
           </div>
           <div style={{ marginLeft: "auto" }}><span style={s.badge(ok)}>{ok ? "Elegível ✓" : "Pendente"}</span></div>
@@ -183,7 +237,7 @@ export default function App() {
         <span style={{ fontSize: 12, color: "#ADADB8" }}>participação verificada</span>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: state?.liveActive ? "#00C853" : "#ADADB8" }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: state?.liveActive ? "#FF4747" : "#ADADB8", animation: state?.liveActive ? "pulse 1.5s infinite" : "none" }} />
-          {state?.liveActive ? `🔴 Live ao vivo!` : "⚫ Offline"}
+          {state?.liveActive ? "🔴 Live ao vivo!" : "⚫ Offline"}
         </div>
       </div>
 
@@ -204,7 +258,7 @@ export default function App() {
           </div>
           <div style={s.card}>
             <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Como participar</div>
-            {["Cadastre-se na aba Sou Viewer com seu nick da Twitch","Faça check-in toda vez que entrar em uma live","Apareça em pelo menos 3 lives e acumule 60 minutos no total"].map((txt, i) => (
+            {["Entre na aba Sou Viewer e conecte sua conta Twitch","Faça check-in toda vez que entrar em uma live","Apareça em pelo menos 3 lives e acumule 60 minutos no total"].map((txt, i) => (
               <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
                 <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#9146FF", color: "#fff", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i+1}</div>
                 <div style={{ fontSize: 13, color: "#ADADB8", lineHeight: 1.6 }}>{txt}</div>
@@ -221,23 +275,45 @@ export default function App() {
         </>}
 
         {tab === "viewer" && <>
-          <div style={s.card}>
-            <span style={s.label}>cadastro — nick da twitch</span>
-            <div style={{ ...s.row, marginBottom: 12 }}>
-              <input style={s.inp} placeholder="ex: xgamer123" value={nick} onChange={e => setNick(e.target.value)} onKeyDown={e => e.key === "Enter" && doRegister()} />
-              <button style={s.btn()} onClick={doRegister} disabled={acting}>Cadastrar</button>
+          {!twitchUser ? (
+            <div style={{ ...s.card, textAlign: "center", padding: "40px 20px" }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="#9146FF" style={{ marginBottom: 16 }}><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
+              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>Entre com sua conta Twitch</div>
+              <div style={{ color: "#ADADB8", fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
+                Login obrigatório para garantir que cada pessoa<br/>participe apenas uma vez no sorteio.
+              </div>
+              <button style={{ ...s.btn(), fontSize: 15, padding: "12px 28px", display: "inline-flex", alignItems: "center", gap: 10 }} onClick={loginWithTwitch}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
+                Entrar com Twitch
+              </button>
             </div>
-            <div style={{ height: 1, background: "#26262C", margin: "12px 0" }} />
-            <span style={s.label}>check-in na live de hoje</span>
-            <div style={{ fontSize: 12, color: state?.liveActive ? "#00C853" : "#ADADB8", marginBottom: 8 }}>
-              {state?.liveActive ? "● Live ativa agora! Faça seu check-in." : "Nenhuma live ativa no momento."}
+          ) : (
+            <div>
+              <div style={s.card}>
+                <div style={{ ...s.row, marginBottom: 16 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#9146FF33", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#9146FF", fontSize: 18 }}>{twitchUser.display_name[0].toUpperCase()}</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{twitchUser.display_name}</div>
+                    <div style={{ fontSize: 11, color: "#ADADB8" }}>@{twitchUser.login} · Twitch verificado ✓</div>
+                  </div>
+                  <button style={{ ...s.btnGhost, marginLeft: "auto", fontSize: 12, padding: "5px 12px" }} onClick={() => setTwitchUser(null)}>Sair</button>
+                </div>
+                <div style={{ height: 1, background: "#26262C", margin: "0 0 16px" }} />
+                <span style={s.label}>check-in na live de hoje</span>
+                <div style={{ fontSize: 12, color: state?.liveActive ? "#00C853" : "#ADADB8", marginBottom: 12 }}>
+                  {state?.liveActive ? "● Live ativa agora! Faça seu check-in." : "Nenhuma live ativa no momento."}
+                </div>
+                <button
+                  style={{ ...s.btn(myViewer?.checkedInToday ? "#3D3D47" : "#00C853"), width: "100%" }}
+                  onClick={doCheckin}
+                  disabled={acting || !state?.liveActive || myViewer?.checkedInToday}
+                >
+                  {myViewer?.checkedInToday ? "✓ Check-in já feito hoje" : "Fazer Check-in"}
+                </button>
+              </div>
+              <ViewerStatus v={myViewer} />
             </div>
-            <div style={s.row}>
-              <input style={s.inp} placeholder="seu nick" value={nickCI} onChange={e => setNickCI(e.target.value)} onKeyDown={e => e.key === "Enter" && doCheckin()} />
-              <button style={s.btn("#00C853")} onClick={doCheckin} disabled={acting}>Check-in</button>
-            </div>
-          </div>
-          <ViewerStatus v={preview} />
+          )}
         </>}
 
         {tab === "ranking" && <>
@@ -250,12 +326,12 @@ export default function App() {
               const ok = isEligible(v);
               const medals = ["🥇","🥈","🥉"];
               return (
-                <div key={v.nick} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: i < vList.length-1 ? "1px solid #26262C22" : "none", alignItems: "center" }}>
+                <div key={v.twitch_id || v.nick} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: i < vList.length-1 ? "1px solid #26262C22" : "none", alignItems: "center" }}>
                   <div style={{ width: 22, textAlign: "center", fontWeight: 700, color: i < 3 ? ["#FFD700","#C0C0C0","#CD7F32"][i] : "#ADADB8", fontSize: i < 3 ? 16 : 13 }}>{i < 3 ? medals[i] : `#${i+1}`}</div>
-                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#9146FF33", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#9146FF", fontSize: 13, flexShrink: 0 }}>{v.nick[0].toUpperCase()}</div>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#9146FF33", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#9146FF", fontSize: 13, flexShrink: 0 }}>{(v.display_name || v.nick)[0].toUpperCase()}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                      <span style={{ fontWeight: 700, fontSize: 13 }}>{v.nick}</span>
+                      <span style={{ fontWeight: 700, fontSize: 13 }}>{v.display_name || v.nick}</span>
                       <span style={s.badge(ok)}>{ok ? "elegível" : "pendente"}</span>
                     </div>
                     <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 4 }}>{uniqueDays(v.sessions).length} dias · {calcMins(v.sessions)} min · <strong style={{ color: "#9146FF" }}>{score} pts</strong></div>
@@ -296,7 +372,7 @@ export default function App() {
             {state?.winner && (
               <div style={s.winner}>
                 <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>🏆 Vencedor</div>
-                <div style={{ fontSize: 28, fontWeight: 900, color: "#9146FF" }}>{state.winner.nick}</div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: "#9146FF" }}>{state.winner.display_name || state.winner.nick}</div>
                 <div style={{ fontSize: 12, color: "#ADADB8", marginTop: 4 }}>{uniqueDays(state.winner.sessions).length} dias · {calcMins(state.winner.sessions)} min · código: {state.winner.code}</div>
                 <button style={{ ...s.btnGhost, marginTop: 12, fontSize: 12, padding: "5px 12px" }} onClick={() => act("clear_winner")}>Limpar</button>
               </div>
@@ -311,17 +387,17 @@ export default function App() {
                 const ok = isEligible(v);
                 const hasToday = v.sessions.some(s => s.date === state?.liveDate);
                 return (
-                  <div key={v.nick} style={{ borderBottom: "1px solid #26262C22", padding: "9px 0", display: "grid", gridTemplateColumns: "1fr 56px 56px 80px auto 28px", gap: 8, alignItems: "center", fontSize: 12 }}>
-                    <span style={{ fontWeight: 700 }}>{v.nick}</span>
+                  <div key={v.twitch_id || v.nick} style={{ borderBottom: "1px solid #26262C22", padding: "9px 0", display: "grid", gridTemplateColumns: "1fr 56px 56px 80px auto 28px", gap: 8, alignItems: "center", fontSize: 12 }}>
+                    <span style={{ fontWeight: 700 }}>{v.display_name || v.nick}</span>
                     <span style={{ color: days >= MIN_DAYS ? "#00C853" : "#ADADB8" }}>{days}/{MIN_DAYS}d</span>
                     <span style={{ color: mins >= MIN_MINS ? "#00C853" : "#ADADB8" }}>{mins}min</span>
                     <span style={s.badge(ok)}>{ok ? "elegível" : "pendente"}</span>
                     <div style={{ display: "flex", gap: 4 }}>
                       {state?.liveActive && hasToday ? [15,30,60].map(m => (
-                        <button key={m} style={{ ...s.btnGhost, padding: "3px 7px", fontSize: 11 }} onClick={() => addTime(v.nick, m)} disabled={acting}>+{m}</button>
+                        <button key={m} style={{ ...s.btnGhost, padding: "3px 7px", fontSize: 11 }} onClick={() => addTime(v.twitch_id, m)} disabled={acting}>+{m}</button>
                       )) : <span style={{ color: "#ADADB8" }}>{state?.liveActive ? "sem checkin" : "—"}</span>}
                     </div>
-                    <button onClick={() => { if (window.confirm(`Deletar ${v.nick}?`)) act("delete_viewer", { nick: v.nick }); }} disabled={acting} style={{ background: "none", border: "none", cursor: "pointer", color: "#FF474788", fontSize: 15, padding: 0, lineHeight: 1 }} title="Deletar viewer">✕</button>
+                    <button onClick={() => { if (window.confirm(`Deletar ${v.display_name || v.nick}?`)) act("delete_viewer", { twitch_id: v.twitch_id }); }} disabled={acting} style={{ background: "none", border: "none", cursor: "pointer", color: "#FF474788", fontSize: 15, padding: 0, lineHeight: 1 }} title="Deletar viewer">✕</button>
                   </div>
                 );
               })}

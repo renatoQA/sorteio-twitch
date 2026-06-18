@@ -26,26 +26,26 @@ export default async function handler(req, res) {
     let state = await kv.get(STATE_KEY) || { ...defaultState };
 
     if (action === 'register') {
-      const { nick } = payload;
-      const n = nick.trim().toLowerCase();
-      if (state.viewers[n]) return res.status(400).json({ error: 'Nick já cadastrado!' });
+      const { twitch_id, nick, display_name } = payload;
+      if (state.viewers[twitch_id]) {
+        return res.status(200).json(state);
+      }
       const code = Math.random().toString(36).slice(2, 7).toUpperCase();
-      state.viewers[n] = { nick: n, code, sessions: [], checkedInToday: false };
+      state.viewers[twitch_id] = { twitch_id, nick, display_name, code, sessions: [], checkedInToday: false };
     }
 
     else if (action === 'checkin') {
-      const { nick } = payload;
-      const n = nick.trim().toLowerCase();
-      const v = state.viewers[n];
-      if (!v) return res.status(404).json({ error: 'Viewer não cadastrado! Faça o cadastro primeiro.' });
+      const { twitch_id } = payload;
+      const v = state.viewers[twitch_id];
+      if (!v) return res.status(404).json({ error: 'Viewer não cadastrado!' });
       if (!state.liveActive) return res.status(400).json({ error: 'Nenhuma live ativa!' });
       if (v.checkedInToday) return res.status(400).json({ error: 'Você já fez check-in hoje!' });
-      state.viewers[n].sessions.push({ date: state.liveDate, minutes: 0 });
-      state.viewers[n].checkedInToday = true;
+      state.viewers[twitch_id].sessions.push({ date: state.liveDate, minutes: 0 });
+      state.viewers[twitch_id].checkedInToday = true;
     }
 
     else if (action === 'open_live') {
-      Object.keys(state.viewers).forEach(n => { state.viewers[n].checkedInToday = false; });
+      Object.keys(state.viewers).forEach(id => { state.viewers[id].checkedInToday = false; });
       state.liveActive = true;
       state.liveDate = new Date().toISOString().slice(0, 10);
     }
@@ -55,12 +55,12 @@ export default async function handler(req, res) {
     }
 
     else if (action === 'add_time') {
-      const { nick, minutes } = payload;
-      const v = state.viewers[nick];
+      const { twitch_id, minutes } = payload;
+      const v = state.viewers[twitch_id];
       if (!v) return res.status(404).json({ error: 'Viewer não encontrado' });
       const idx = v.sessions.findLastIndex(s => s.date === state.liveDate);
       if (idx === -1) return res.status(400).json({ error: 'Sem sessão hoje' });
-      state.viewers[nick].sessions[idx].minutes += minutes;
+      state.viewers[twitch_id].sessions[idx].minutes += minutes;
     }
 
     else if (action === 'draw') {
@@ -79,10 +79,9 @@ export default async function handler(req, res) {
     }
 
     else if (action === 'delete_viewer') {
-      const { nick } = payload;
-      const n = nick.trim().toLowerCase();
-      if (!state.viewers[n]) return res.status(404).json({ error: 'Viewer não encontrado' });
-      delete state.viewers[n];
+      const { twitch_id } = payload;
+      if (!state.viewers[twitch_id]) return res.status(404).json({ error: 'Viewer não encontrado' });
+      delete state.viewers[twitch_id];
     }
 
     else if (action === 'reset') {
