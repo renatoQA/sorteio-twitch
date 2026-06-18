@@ -83,6 +83,11 @@ export default async function handler(req, res) {
       state.winner = eligible[Math.floor(Math.random() * eligible.length)];
     }
 
+    else if (action === 'set_sub') {
+      const { twitch_id } = payload;
+      if (state.viewers[twitch_id]) state.viewers[twitch_id].hasSub = true;
+    }
+
     else if (action === 'draw_specific') {
       const { twitch_id } = payload;
       const v = state.viewers[twitch_id];

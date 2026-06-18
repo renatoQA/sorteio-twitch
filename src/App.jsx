@@ -329,7 +329,7 @@ export default function App() {
     if (!token || !login) return;
     const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
     ws.onopen = () => {
-      ws.send('CAP REQ :twitch.tv/tags');
+      ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
       ws.send(`PASS oauth:${token}`);
       ws.send(`NICK ${login}`);
       ws.send(`JOIN #${login}`);
@@ -338,6 +338,8 @@ export default function App() {
       const lines = event.data.split('\r\n').filter(Boolean);
       for (const line of lines) {
         if (line.startsWith('PING')) { ws.send('PONG :tmi.twitch.tv'); continue; }
+
+        // #tailung in chat → add 15min (with cooldown via backend)
         if (line.includes('PRIVMSG')) {
           const msgText = line.split('PRIVMSG')[1]?.split(':').slice(1).join(':').trim().toLowerCase();
           if (msgText?.includes('#tailung')) {
@@ -347,6 +349,21 @@ export default function App() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ viewer_id: m[1] }),
+              }).catch(() => {});
+            }
+          }
+        }
+
+        // Sub / resub → mark viewer as subscriber
+        if (line.includes('USERNOTICE')) {
+          const msgId = line.match(/msg-id=([^;]+)/)?.[1];
+          if (msgId === 'sub' || msgId === 'resub') {
+            const userId = line.match(/user-id=(\d+)/)?.[1];
+            if (userId) {
+              fetch(API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'set_sub', payload: { twitch_id: userId } }),
               }).catch(() => {});
             }
           }
@@ -363,7 +380,6 @@ export default function App() {
 
   function startBot() {
     sendBotMessage();
-    subscribeEventSub();
     botTimerRef.current = setInterval(sendBotMessage, 15 * 60 * 1000);
     setBotActive(true);
     ircReconnectRef.current = true;
@@ -896,28 +912,8 @@ export default function App() {
                       <button className="btn-ghost" onClick={disconnectBot} style={{ whiteSpace: "nowrap" }}>Desconectar</button>
                     </div>
                     {!state?.liveActive && !botActive && <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 8 }}>Abra a live para ativar o bot.</div>}
-                    <div style={{ marginTop: 12, borderTop: "1px solid #26262C", paddingTop: 12 }}>
-                      <button className="btn-ghost" style={{ fontSize: 11, padding: "5px 12px" }} onClick={checkWebhookStatus} disabled={checkingWebhook}>
-                        {checkingWebhook ? "Verificando..." : "🔍 Verificar webhooks"}
-                      </button>
-                      {webhookSubs !== null && (
-                        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-                          {webhookSubs.length === 0 && <div style={{ fontSize: 11, color: "#FF4747" }}>⚠ Nenhuma subscrição encontrada. Reinicie o bot.</div>}
-                          {webhookSubs.map(s => {
-                            const ok = s.status === 'enabled';
-                            const color = ok ? "#00C853" : "#FF4747";
-                            return (
-                              <div key={s.id} style={{ background: "#26262C", borderRadius: 8, padding: "7px 10px", fontSize: 11 }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                                  <span style={{ color: "#ADADB8", fontFamily: "monospace" }}>{s.type}</span>
-                                  <span style={{ color, fontWeight: 700, flexShrink: 0 }}>{ok ? "✓ enabled" : `✗ ${s.status}`}</span>
-                                </div>
-                                {!ok && <div style={{ color: "#FF474788", fontSize: 10, marginTop: 3 }}>Reinicie o bot para recriar este webhook.</div>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                    <div style={{ marginTop: 10, fontSize: 11, color: "#ADADB8", lineHeight: 1.6 }}>
+                      📡 Conectado via IRC — captura <strong style={{ color: "#EFEFF1" }}>#tailung</strong> e subs em tempo real.
                     </div>
                   </>
                 )}
