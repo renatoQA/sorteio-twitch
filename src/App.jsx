@@ -40,6 +40,9 @@ export default function App() {
   const [twitchUser, setTwitchUser] = useState(null);
   const [loggingIn, setLoggingIn] = useState(false);
   const [historyFilter, setHistoryFilter] = useState("all");
+  const [prizeWinnerId, setPrizeWinnerId] = useState("");
+  const [prizeGiftcard, setPrizeGiftcard] = useState("");
+  const [redeemedCode, setRedeemedCode] = useState(null);
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -148,6 +151,29 @@ export default function App() {
   function unlockStreamer() {
     if (pass === PASS) { setStreamerUnlocked(true); setPass(""); }
     else flash("Senha incorreta.", "#FF4747");
+  }
+
+  async function savePrize() {
+    const winner = vList.find(v => v.twitch_id === prizeWinnerId);
+    if (!prizeWinnerId || !prizeGiftcard.trim()) return flash("Preencha o vencedor e o código.", "#FF4747");
+    const res = await act("set_prize", { twitch_id: prizeWinnerId, display_name: winner?.display_name || winner?.nick || prizeWinnerId, giftcard: prizeGiftcard.trim() });
+    if (res.ok) { flash("Prêmio salvo! ✅", "#00C853"); setPrizeGiftcard(""); }
+  }
+
+  async function redeemPrize() {
+    if (!twitchUser) return;
+    setActing(true);
+    try {
+      const r = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "redeem_prize", payload: { twitch_id: twitchUser.id } }),
+      });
+      const data = await r.json();
+      if (!r.ok) flash(data.error || "Erro!", "#FF4747");
+      else { setRedeemedCode(data.giftcard); flash("Prêmio resgatado! 🎉", "#00C853"); }
+    } catch { flash("Erro de conexão!", "#FF4747"); }
+    finally { setActing(false); }
   }
 
   async function resetAll() {
@@ -310,6 +336,27 @@ export default function App() {
 
         {/* VIEWER */}
         {tab === "viewer" && <div className="fade-up">
+          {/* Prize redemption banner */}
+          {twitchUser && state?.prize?.twitch_id === twitchUser.id && !state.prize.redeemed && (
+            <div style={{ background: "#9146FF18", border: "2px solid #9146FF", borderRadius: 12, padding: "16px", marginBottom: 12, textAlign: "center" }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>🎁</div>
+              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>Você ganhou um prêmio!</div>
+              {redeemedCode ? (
+                <div>
+                  <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 10 }}>Seu código gift card:</div>
+                  <div style={{ background: "#26262C", borderRadius: 8, padding: "12px 16px", fontSize: 18, fontWeight: 800, color: "#9146FF", letterSpacing: 2, wordBreak: "break-all", marginBottom: 10 }}>{redeemedCode}</div>
+                  <div style={{ fontSize: 11, color: "#ADADB8" }}>Guarde este código! Ele não será mostrado novamente.</div>
+                </div>
+              ) : state.prize.enabled ? (
+                <div>
+                  <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14 }}>Seu prêmio está disponível para resgate!</div>
+                  <button className="btn btn-full" style={{ background: "#9146FF", fontSize: 15, padding: "13px 20px" }} onClick={redeemPrize} disabled={acting}>🎁 Resgatar Prêmio</button>
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: "#ADADB8" }}>Aguarde o streamer habilitar o resgate...</div>
+              )}
+            </div>
+          )}
           {!twitchUser ? (
             <div className="card" style={{ textAlign: "center", padding: "44px 20px" }}>
               <svg width="52" height="52" viewBox="0 0 24 24" fill="#9146FF" style={{ marginBottom: 18 }}><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
@@ -393,7 +440,7 @@ export default function App() {
             </div>
           ) : <>
             <div className="admin-tabs">
-              {[["live","Live"],["ciclo","Ciclo"],["viewers","Viewers"],["historico","Histórico"]].map(([id,label]) => (
+              {[["live","Live"],["ciclo","Ciclo"],["viewers","Viewers"],["premio","Prêmio"],["historico","Histórico"]].map(([id,label]) => (
                 <button key={id} className={`admin-tab${adminTab===id?" active":""}`} onClick={() => setAdminTab(id)}>{label}</button>
               ))}
             </div>
@@ -478,6 +525,49 @@ export default function App() {
               </div>
             </>}
 
+            {/* ADMIN: PRÊMIO */}
+            {adminTab === "premio" && <>
+              <div className="card">
+                <div className="card-title">🎁 Configurar prêmio</div>
+                {state?.prize ? (
+                  <>
+                    <div style={{ background: state.prize.redeemed ? "#00C85315" : state.prize.enabled ? "#9146FF15" : "#26262C", border: `1px solid ${state.prize.redeemed ? "#00C85344" : state.prize.enabled ? "#9146FF44" : "#3D3D47"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{state.prize.display_name}</div>
+                      <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 8 }}>
+                        Código: <span style={{ color: "#9146FF", letterSpacing: 1 }}>{"•".repeat(10)} (oculto)</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <span className={`badge ${state.prize.redeemed ? "badge-ok" : state.prize.enabled ? "badge-ok" : "badge-pend"}`}>
+                          {state.prize.redeemed ? "✓ Resgatado" : state.prize.enabled ? "● Resgate habilitado" : "○ Aguardando habilitação"}
+                        </span>
+                        {state.prize.redeemed && <span style={{ fontSize: 11, color: "#ADADB8" }}>em {new Date(state.prize.redeemedAt).toLocaleDateString("pt-BR")}</span>}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {!state.prize.redeemed && (
+                        <button className={`btn btn-full${state.prize.enabled ? " btn-red" : ""}`} style={!state.prize.enabled ? { background: "#00C853" } : {}} onClick={() => act("toggle_prize")} disabled={acting}>
+                          {state.prize.enabled ? "⏸ Desabilitar resgate" : "▶ Habilitar resgate"}
+                        </button>
+                      )}
+                      <button className="btn-ghost" onClick={() => { if (window.confirm("Remover prêmio atual?")) act("clear_prize"); }} disabled={acting}>Remover</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="label">Vencedor</span>
+                    <select className="inp" style={{ marginBottom: 10, cursor: "pointer" }} value={prizeWinnerId} onChange={e => setPrizeWinnerId(e.target.value)}>
+                      <option value="">Selecione o viewer...</option>
+                      {vList.map(v => <option key={v.twitch_id || v.nick} value={v.twitch_id || v.nick}>{v.display_name || v.nick}</option>)}
+                    </select>
+                    <span className="label">Código do Gift Card</span>
+                    <input className="inp" style={{ marginBottom: 14 }} placeholder="ex: XXXX-XXXX-XXXX-XXXX" value={prizeGiftcard} onChange={e => setPrizeGiftcard(e.target.value)} />
+                    <button className="btn btn-full" onClick={savePrize} disabled={acting}>💾 Salvar prêmio</button>
+                    <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 10, lineHeight: 1.6 }}>O código fica oculto até o viewer resgatar. Você habilita o resgate quando quiser.</div>
+                  </>
+                )}
+              </div>
+            </>}
+
             {/* ADMIN: HISTÓRICO */}
             {adminTab === "historico" && <>
               <div className="card">
@@ -528,11 +618,16 @@ export default function App() {
 }
 
 function ViewerCard({ v, vList }) {
+  const [histTab, setHistTab] = useState("semana");
   const days = uniqueDays(v.sessions).length;
   const mins = calcMins(v.sessions);
   const ok = isEligible(v);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const bestLive = Math.max(0, ...v.sessions.map(s => s.minutes));
+  const history = v.history || [];
+
+  const now = new Date().toISOString().slice(0, 7);
+  const monthHistory = history.filter(h => (h.cycleEnd || "").slice(0, 7) === now);
 
   return (
     <div className="card fade-up" style={{ borderColor: ok ? "#00C85344" : "#9146FF33" }}>
@@ -544,21 +639,83 @@ function ViewerCard({ v, vList }) {
         </div>
         <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "Elegível ✓" : "Pendente"}</span>
       </div>
-      <div className="grid2">
-        <div>
-          <span className="label">melhor live</span>
-          <div style={{ fontWeight: 800, fontSize: 22, color: bestLive >= MIN_MINS_LIVE ? "#00C853" : "#9146FF" }}>{Math.floor(bestLive/60)}h{bestLive%60}m</div>
-          <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.min(100, bestLive/MIN_MINS_LIVE*100)}%`, background: bestLive >= MIN_MINS_LIVE ? "#00C853" : "#9146FF" }} /></div>
-          <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>meta: 1h por live</div>
-        </div>
-        <div>
-          <span className="label">total semana</span>
-          <div style={{ fontWeight: 800, fontSize: 22, color: mins >= MIN_MINS_TOTAL ? "#00C853" : "#9146FF" }}>{Math.floor(mins/60)}h{mins%60}m</div>
-          <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.min(100, mins/MIN_MINS_TOTAL*100)}%`, background: mins >= MIN_MINS_TOTAL ? "#00C853" : "#9146FF" }} /></div>
-          <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>meta: 8h no total</div>
-        </div>
+
+      {/* mini tabs */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+        {[["semana","Semana atual"],["mensal","Este mês"],["historico","Histórico"]].map(([id,lbl]) => (
+          <button key={id} onClick={() => setHistTab(id)} style={{ padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", border: "none", background: histTab===id?"#9146FF":"#26262C", color: histTab===id?"#fff":"#ADADB8" }}>{lbl}</button>
+        ))}
       </div>
-      {ok && <div style={{ marginTop: 14, background: "#00C85315", borderRadius: 10, padding: "10px 14px", color: "#00C853", fontWeight: 700, textAlign: "center", fontSize: 13 }}>🎉 Você está na urna do sorteio!</div>}
+
+      {/* Semana atual */}
+      {histTab === "semana" && <>
+        <div className="grid2" style={{ marginBottom: 12 }}>
+          <div>
+            <span className="label">melhor live</span>
+            <div style={{ fontWeight: 800, fontSize: 22, color: bestLive >= MIN_MINS_LIVE ? "#00C853" : "#9146FF" }}>{Math.floor(bestLive/60)}h{bestLive%60}m</div>
+            <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.min(100, bestLive/MIN_MINS_LIVE*100)}%`, background: bestLive >= MIN_MINS_LIVE ? "#00C853" : "#9146FF" }} /></div>
+            <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>meta: 1h por live</div>
+          </div>
+          <div>
+            <span className="label">total semana</span>
+            <div style={{ fontWeight: 800, fontSize: 22, color: mins >= MIN_MINS_TOTAL ? "#00C853" : "#9146FF" }}>{Math.floor(mins/60)}h{mins%60}m</div>
+            <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.min(100, mins/MIN_MINS_TOTAL*100)}%`, background: mins >= MIN_MINS_TOTAL ? "#00C853" : "#9146FF" }} /></div>
+            <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>meta: 8h no total</div>
+          </div>
+        </div>
+        {v.sessions.length > 0 && (
+          <div style={{ background: "#26262C", borderRadius: 10, padding: "10px 12px" }}>
+            <div style={{ fontSize: 11, color: "#ADADB8", fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: ".5px" }}>Check-ins desta semana</div>
+            {v.sessions.map((s, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 0", borderBottom: i < v.sessions.length-1 ? "1px solid #3D3D4722" : "none" }}>
+                <span style={{ color: "#EFEFF1" }}>📅 {formatDate(s.date)}</span>
+                <span style={{ fontWeight: 700, color: s.minutes >= MIN_MINS_LIVE ? "#00C853" : "#9146FF" }}>{Math.floor(s.minutes/60)}h{s.minutes%60}m {s.minutes >= MIN_MINS_LIVE ? "✓" : ""}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {v.sessions.length === 0 && <div style={{ fontSize: 12, color: "#ADADB8", textAlign: "center", padding: "10px 0" }}>Nenhum check-in nesta semana ainda.</div>}
+        {ok && <div style={{ marginTop: 12, background: "#00C85315", borderRadius: 10, padding: "10px 14px", color: "#00C853", fontWeight: 700, textAlign: "center", fontSize: 13 }}>🎉 Você está na urna do sorteio!</div>}
+      </>}
+
+      {/* Este mês */}
+      {histTab === "mensal" && <>
+        {monthHistory.length === 0 && <div style={{ fontSize: 12, color: "#ADADB8", textAlign: "center", padding: "16px 0" }}>Nenhum ciclo encerrado este mês.</div>}
+        {monthHistory.map((h, i) => <CycleEntry key={i} h={h} />)}
+      </>}
+
+      {/* Histórico completo */}
+      {histTab === "historico" && <>
+        {history.length === 0 && <div style={{ fontSize: 12, color: "#ADADB8", textAlign: "center", padding: "16px 0" }}>Nenhum histórico ainda.<br/><span style={{ fontSize: 11 }}>Disponível após o primeiro ciclo encerrado.</span></div>}
+        {history.map((h, i) => <CycleEntry key={i} h={h} />)}
+        {history.length > 0 && <div style={{ fontSize: 10, color: "#3D3D47", textAlign: "center", marginTop: 10 }}>Histórico mantido por 2 meses</div>}
+      </>}
+    </div>
+  );
+}
+
+function CycleEntry({ h }) {
+  const [open, setOpen] = useState(false);
+  const mins = h.totalMinutes || 0;
+  return (
+    <div style={{ background: "#26262C", borderRadius: 10, padding: "10px 12px", marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setOpen(o => !o)}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700 }}>Ciclo encerrado em {formatDate(h.cycleEnd)}</div>
+          <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 2 }}>{h.lives} live(s) · {Math.floor(mins/60)}h{mins%60}m · {h.eligible ? <span style={{ color: "#00C853" }}>elegível ✓</span> : <span style={{ color: "#ADADB8" }}>não elegível</span>} {h.won ? "· 🏆 Ganhou!" : ""}</div>
+        </div>
+        <span style={{ color: "#ADADB8", fontSize: 14 }}>{open ? "▲" : "▼"}</span>
+      </div>
+      {open && h.sessions?.length > 0 && (
+        <div style={{ marginTop: 10, borderTop: "1px solid #3D3D4744", paddingTop: 10 }}>
+          {h.sessions.map((s, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "4px 0", color: "#ADADB8" }}>
+              <span>📅 {formatDate(s.date)}</span>
+              <span style={{ fontWeight: 700, color: s.minutes >= MIN_MINS_LIVE ? "#00C853" : "#EFEFF1" }}>{Math.floor(s.minutes/60)}h{s.minutes%60}m</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
