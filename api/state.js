@@ -88,12 +88,12 @@ export default async function handler(req, res) {
     }
 
     else if (action === 'open_live') {
-      const { liveTitle } = payload || {};
+      const { liveTitle, testMode } = payload || {};
       Object.keys(state.viewers).forEach(id => { state.viewers[id].checkedInToday = false; });
       state.liveActive = true;
       state.liveDate = new Date().toISOString().slice(0, 10);
       if (!state.cycleStart) state.cycleStart = state.liveDate;
-      notifyDiscordLive(liveTitle).catch(() => {});
+      if (!testMode) notifyDiscordLive(liveTitle).catch(() => {});
     }
 
     else if (action === 'close_live') {

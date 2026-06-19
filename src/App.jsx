@@ -322,6 +322,7 @@ export default function App() {
   const [spinSecs, setSpinSecs] = useState(8);
   const [ircLog, setIrcLog] = useState([]);
   const [liveTitle, setLiveTitle] = useState('');
+  const [liveTestMode, setLiveTestMode] = useState(false);
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -611,8 +612,8 @@ export default function App() {
 
   async function toggleLive() {
     if (!state.liveActive) {
-      const res = await act("open_live", { liveTitle: liveTitle.trim() });
-      if (res.ok) flash("Live aberta! ✅", "#00C853");
+      const res = await act("open_live", { liveTitle: liveTitle.trim(), testMode: liveTestMode });
+      if (res.ok) flash(liveTestMode ? "Live de teste aberta (sem Discord) ✅" : "Live aberta! ✅", "#00C853");
     } else {
       const res = await act("close_live");
       if (res.ok) flash("Live encerrada.");
@@ -1160,10 +1161,26 @@ export default function App() {
                         value={liveTitle}
                         onChange={e => setLiveTitle(e.target.value)}
                       />
+                      <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, cursor: "pointer", userSelect: "none" }}>
+                        <input
+                          type="checkbox"
+                          checked={liveTestMode}
+                          onChange={e => setLiveTestMode(e.target.checked)}
+                          style={{ width: 15, height: 15, accentColor: "#FF9800", cursor: "pointer" }}
+                        />
+                        <span style={{ fontSize: 12, color: liveTestMode ? "#FF9800" : "#ADADB8", fontWeight: liveTestMode ? 700 : 400 }}>
+                          Modo teste — sem notificação no Discord
+                        </span>
+                      </label>
                     </>
                   )}
-                  <button className={`btn btn-full${state?.liveActive?" btn-red":""}`} style={!state?.liveActive?{background:"#00C853"}:{}} onClick={toggleLive} disabled={acting}>
-                    {state?.liveActive ? "⏹ Encerrar live" : "▶ Abrir live"}
+                  <button
+                    className={`btn btn-full${state?.liveActive ? " btn-red" : ""}`}
+                    style={!state?.liveActive ? { background: liveTestMode ? "#FF9800" : "#00C853" } : {}}
+                    onClick={toggleLive}
+                    disabled={acting}
+                  >
+                    {state?.liveActive ? "⏹ Encerrar live" : liveTestMode ? "▶ Abrir live de teste" : "▶ Abrir live"}
                   </button>
                 </div>
                 <div className="card">
