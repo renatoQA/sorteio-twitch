@@ -405,6 +405,35 @@ export default function App() {
     return () => clearInterval(t);
   }, [botActive]);
 
+  // Reconecta bot/IRC quando o usuário volta à aba (browser pausa setInterval em background)
+  useEffect(() => {
+    if (!botActive) return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      // Reagenda o timer com o tempo correto restante
+      clearInterval(botTimerRef.current);
+      clearTimeout(botTimerRef.current);
+      const now = Date.now();
+      const nextAt = nextBotMsgAtRef.current ?? (now + 15 * 60 * 1000);
+      const delay = Math.max(0, nextAt - now);
+      if (delay === 0) {
+        sendBotMessage();
+        botTimerRef.current = setInterval(sendBotMessage, 15 * 60 * 1000);
+      } else {
+        botTimerRef.current = setTimeout(() => {
+          sendBotMessage();
+          botTimerRef.current = setInterval(sendBotMessage, 15 * 60 * 1000);
+        }, delay);
+      }
+      // Reconecta IRC se caiu
+      if (ircReconnectRef.current && (!ircRef.current || ircRef.current.readyState > 1)) {
+        connectIRC(streamerToken, streamerLogin);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [botActive, streamerToken, streamerLogin]);
+
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes("access_token")) {
@@ -479,6 +508,7 @@ export default function App() {
   async function sendBotMessage() {
     if (!streamerToken || !streamerTwitchId) return;
     nextBotMsgAtRef.current = Date.now() + 15 * 60 * 1000;
+    localStorage.setItem('bot_next_msg', String(nextBotMsgAtRef.current));
     try {
       // Open new credit window before sending message
       await fetch(API, {
@@ -593,6 +623,8 @@ export default function App() {
 
   function startBot() {
     nextBotMsgAtRef.current = Date.now() + 15 * 60 * 1000;
+    localStorage.setItem('bot_next_msg', String(nextBotMsgAtRef.current));
+    localStorage.setItem('bot_active', '1');
     botTimerRef.current = setInterval(sendBotMessage, 15 * 60 * 1000);
     setBotActive(true);
     ircReconnectRef.current = true;
@@ -602,7 +634,10 @@ export default function App() {
 
   function stopBot() {
     clearInterval(botTimerRef.current);
+    clearTimeout(botTimerRef.current);
     botTimerRef.current = null;
+    localStorage.removeItem('bot_active');
+    localStorage.removeItem('bot_next_msg');
     setBotActive(false);
     ircReconnectRef.current = false;
     if (ircRef.current) { ircRef.current.close(); ircRef.current = null; }
