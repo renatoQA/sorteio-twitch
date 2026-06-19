@@ -1063,11 +1063,11 @@ export default function App() {
                 <span style={{ background: "#9146FF15", border: "1px solid #9146FF44", borderRadius: 20, padding: "2px 10px", fontSize: 10, color: "#9146FF", fontWeight: 700 }}>Em breve</span>
               </div>
               <div style={{ fontSize: 12, color: "#ADADB8", lineHeight: 1.7, marginBottom: 12 }}>
-                Um ranking competitivo estilo Valorant está chegando. Suba de ELO participando das lives, acumulando dias qualificados e ganhando sorteios.
+                Um ranking competitivo exclusivo da comunidade está chegando. Suba de ELO participando das lives, acumulando dias qualificados e ganhando sorteios.
               </div>
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                {[["Ferro","#9E9E9E"],["Bronze","#CD7F32"],["Prata","#C0C0C0"],["Ouro","#FFD700"],["Platina","#00BCD4"],["Diamante","#00BFFF"],["Ascendente","#7C4DFF"],["Imortal","#FF4747"],["Radiante","#FF9800"]].map(([name, color], i) => (
-                  <span key={i} style={{ background: `${color}15`, border: `1px solid ${color}44`, borderRadius: 20, padding: "3px 10px", fontSize: 10, color, fontWeight: 700, opacity: .8 }}>{name}</span>
+                {[["Sombra","#6D6D7A"],["Caçador","#4CAF50"],["Guerreiro","#00BCD4"],["Conquistador","#2196F3"],["Élite","#9C27B0"],["Campeão","#FF9800"],["Lendário","#FFD700"],["Imortal","#FF4747"],["Lenda do Tailung","#FF2277"]].map(([name, color], i) => (
+                  <span key={i} style={{ background: `${color}15`, border: `1px solid ${color}44`, borderRadius: 20, padding: "3px 10px", fontSize: 10, color, fontWeight: 700 }}>{name}</span>
                 ))}
               </div>
             </div>
