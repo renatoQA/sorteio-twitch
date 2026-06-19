@@ -930,70 +930,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Sistema de Niveis e ELO */}
-          <div className="card">
-            <div className="card-title">🏆 Sistema de Níveis & ELO</div>
-
-            {/* Niveis / XP */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 700, fontSize: 13, color: "#EFEFF1", marginBottom: 10 }}>⭐ Níveis (XP)</div>
-              <div style={{ fontSize: 12, color: "#ADADB8", lineHeight: 1.7, marginBottom: 12 }}>
-                Ganhe XP assistindo as lives do Tailung e suba de nível! Quanto mais você participar, mais rápido evolui.
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-                {[
-                  ["⏱️", "Minutos assistidos", "+XP por hora"],
-                  ["✅", "Check-in feito", "+XP por presença"],
-                  ["★", "Dia qualificado (≥1h)", "Bônus de XP"],
-                  ["🏆", "Ganhar sorteio", "XP extra"],
-                ].map(([icon, lbl, val], i) => (
-                  <div key={i} style={{ background: "#26262C", borderRadius: 10, padding: "10px 12px", display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#EFEFF1" }}>{lbl}</div>
-                      <div style={{ fontSize: 10, color: "#9146FF" }}>{val}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                {[["Novato","#ADADB8"],["Guardião","#00BFFF"],["Elite","#9146FF"],["Épico","#FFD700"],["Mestre","#FF6B35"],["Lenda do Tailung","#FF4747"]].map(([name, color], i) => (
-                  <span key={i} style={{ background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 20, padding: "3px 10px", fontSize: 10, color, fontWeight: 700 }}>{name}</span>
-                ))}
-              </div>
-            </div>
-
-            <div className="divider" />
-
-            {/* ELO */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: "#EFEFF1" }}>🛡️ Sistema de ELO</div>
-                <span style={{ background: "#9146FF15", border: "1px solid #9146FF44", borderRadius: 20, padding: "2px 10px", fontSize: 10, color: "#9146FF", fontWeight: 700 }}>Em breve</span>
-              </div>
-              <div style={{ fontSize: 12, color: "#ADADB8", lineHeight: 1.7, marginBottom: 10 }}>
-                Um ranking competitivo estilo Valorant está chegando. Suba de ELO participando das lives, acumulando dias qualificados e ganhando sorteios.
-              </div>
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                {[["Ferro","#9E9E9E"],["Bronze","#CD7F32"],["Prata","#C0C0C0"],["Ouro","#FFD700"],["Platina","#00BCD4"],["Diamante","#00BFFF"],["Ascendente","#7C4DFF"],["Imortal","#FF4747"],["Radiante","#FF9800"]].map(([name, color], i) => (
-                  <span key={i} style={{ background: `${color}15`, border: `1px solid ${color}44`, borderRadius: 20, padding: "3px 10px", fontSize: 10, color, fontWeight: 700, opacity: .75 }}>{name}</span>
-                ))}
-              </div>
-            </div>
-
-            <div className="divider" />
-
-            {/* Recompensas */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: "#EFEFF1" }}>🎁 Recompensas por Nível</div>
-                <span style={{ background: "#FFD70015", border: "1px solid #FFD70044", borderRadius: 20, padding: "2px 10px", fontSize: 10, color: "#FFD700", fontWeight: 700 }}>Em breve</span>
-              </div>
-              <div style={{ fontSize: 12, color: "#ADADB8", lineHeight: 1.7 }}>
-                Conforme você sobe de nível e ELO, irá desbloquear <strong style={{ color: "#FFD700" }}>recompensas exclusivas</strong> da comunidade do Tailung. Quanto maior o nível, melhores as recompensas!
-              </div>
-            </div>
-          </div>
         </div>}
 
         {/* VIEWER */}
@@ -1080,6 +1016,76 @@ export default function App() {
               {myViewer && <ViewerCard v={myViewer} vList={vList} />}
             </>
           )}
+
+          {/* Sistema de Niveis e ELO */}
+          <div className="card" style={{ marginTop: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#EFEFF1", marginBottom: 18, letterSpacing: .3 }}>Sistema de Níveis & ELO</div>
+
+            {/* Niveis / XP */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <span style={{ fontWeight: 700, fontSize: 13, color: "#EFEFF1" }}>Níveis (XP)</span>
+              </div>
+              <div style={{ fontSize: 12, color: "#ADADB8", lineHeight: 1.7, marginBottom: 12 }}>
+                Ganhe XP assistindo as lives do Tailung e suba de nível. Quanto mais você participar, mais rápido evolui.
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+                {[
+                  [<svg key="c" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9146FF" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, "Minutos assistidos", "+XP por hora"],
+                  [<svg key="k" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00C853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>, "Check-in feito", "+XP por presença"],
+                  [<svg key="s" width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, "Dia qualificado (≥1h)", "Bônus de XP"],
+                  [<svg key="t" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>, "Ganhar sorteio", "XP extra"],
+                ].map(([icon, lbl, val], i) => (
+                  <div key={i} style={{ background: "#26262C", borderRadius: 10, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
+                    {icon}
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#EFEFF1" }}>{lbl}</div>
+                      <div style={{ fontSize: 10, color: "#9146FF" }}>{val}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                {[["Novato","#ADADB8"],["Guardião","#00BFFF"],["Elite","#9146FF"],["Épico","#FFD700"],["Mestre","#FF6B35"],["Lenda do Tailung","#FF4747"]].map(([name, color], i) => (
+                  <span key={i} style={{ background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 20, padding: "3px 10px", fontSize: 10, color, fontWeight: 700 }}>{name}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="divider" />
+
+            {/* ELO */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00BFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span style={{ fontWeight: 700, fontSize: 13, color: "#EFEFF1" }}>Sistema de ELO</span>
+                <span style={{ background: "#9146FF15", border: "1px solid #9146FF44", borderRadius: 20, padding: "2px 10px", fontSize: 10, color: "#9146FF", fontWeight: 700 }}>Em breve</span>
+              </div>
+              <div style={{ fontSize: 12, color: "#ADADB8", lineHeight: 1.7, marginBottom: 12 }}>
+                Um ranking competitivo estilo Valorant está chegando. Suba de ELO participando das lives, acumulando dias qualificados e ganhando sorteios.
+              </div>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                {[["Ferro","#9E9E9E"],["Bronze","#CD7F32"],["Prata","#C0C0C0"],["Ouro","#FFD700"],["Platina","#00BCD4"],["Diamante","#00BFFF"],["Ascendente","#7C4DFF"],["Imortal","#FF4747"],["Radiante","#FF9800"]].map(([name, color], i) => (
+                  <span key={i} style={{ background: `${color}15`, border: `1px solid ${color}44`, borderRadius: 20, padding: "3px 10px", fontSize: 10, color, fontWeight: 700, opacity: .8 }}>{name}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="divider" />
+
+            {/* Recompensas */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                <span style={{ fontWeight: 700, fontSize: 13, color: "#EFEFF1" }}>Recompensas por Nível</span>
+                <span style={{ background: "#FFD70015", border: "1px solid #FFD70044", borderRadius: 20, padding: "2px 10px", fontSize: 10, color: "#FFD700", fontWeight: 700 }}>Em breve</span>
+              </div>
+              <div style={{ fontSize: 12, color: "#ADADB8", lineHeight: 1.7 }}>
+                Conforme você sobe de nível e ELO, irá desbloquear <strong style={{ color: "#FFD700" }}>recompensas exclusivas</strong> da comunidade do Tailung. Quanto maior o nível, melhores as recompensas!
+              </div>
+            </div>
+          </div>
         </div>}
 
         {/* RANKING */}
