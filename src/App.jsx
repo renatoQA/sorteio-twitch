@@ -576,7 +576,6 @@ export default function App() {
   }
 
   function startBot() {
-    sendBotMessage();
     botTimerRef.current = setInterval(sendBotMessage, 15 * 60 * 1000);
     setBotActive(true);
     ircReconnectRef.current = true;
