@@ -317,6 +317,8 @@ export default function App() {
   const [streamerLogin, setStreamerLogin] = useState('');
   const [botActive, setBotActive] = useState(false);
   const botTimerRef = useRef(null);
+  const nextBotMsgAtRef = useRef(null);
+  const [botCountdown, setBotCountdown] = useState('');
   const ircRef = useRef(null);
   const ircReconnectRef = useRef(false);
   const [spinSecs, setSpinSecs] = useState(8);
@@ -391,6 +393,19 @@ export default function App() {
   }, [state?.prize, twitchUser?.id]);
 
   useEffect(() => {
+    if (!botActive) { setBotCountdown(''); return; }
+    const tick = () => {
+      const remaining = nextBotMsgAtRef.current ? Math.max(0, nextBotMsgAtRef.current - Date.now()) : 0;
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      setBotCountdown(`${mins}:${secs.toString().padStart(2, '0')}`);
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [botActive]);
+
+  useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes("access_token")) {
       window.history.replaceState({}, "", "/");
@@ -463,6 +478,7 @@ export default function App() {
 
   async function sendBotMessage() {
     if (!streamerToken || !streamerTwitchId) return;
+    nextBotMsgAtRef.current = Date.now() + 15 * 60 * 1000;
     try {
       // Open new credit window before sending message
       await fetch(API, {
@@ -576,11 +592,12 @@ export default function App() {
   }
 
   function startBot() {
+    nextBotMsgAtRef.current = Date.now() + 15 * 60 * 1000;
     botTimerRef.current = setInterval(sendBotMessage, 15 * 60 * 1000);
     setBotActive(true);
     ircReconnectRef.current = true;
     connectIRC(streamerToken, streamerLogin);
-    flash("Bot iniciado! Mensagem enviada no chat. 🤖", "#00C853");
+    flash("Bot iniciado! Primeira mensagem em 15 minutos. 🤖", "#00C853");
   }
 
   function stopBot() {
@@ -1225,9 +1242,14 @@ export default function App() {
 
               {/* Bot do Chat */}
               <div className="card">
-                <div style={{ fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   🤖 Bot do Chat
                   {botActive && <span style={{ fontSize: 11, color: "#00C853", background: "#00C85318", padding: "2px 8px", borderRadius: 10, fontWeight: 700 }}>● ATIVO</span>}
+                  {botActive && botCountdown && (
+                    <span style={{ marginLeft: "auto", fontSize: 11, color: "#ADADB8", background: "#26262C", padding: "2px 10px", borderRadius: 10, fontFamily: "monospace", fontWeight: 700 }}>
+                      próx. msg <span style={{ color: "#FFD700" }}>{botCountdown}</span>
+                    </span>
+                  )}
                 </div>
                 {!streamerTwitchId ? (
                   <>
