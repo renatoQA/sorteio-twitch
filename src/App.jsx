@@ -97,7 +97,7 @@ function PrizeCarousel({ eligCount, vList }) {
         <div style={{ flex: 1, transition: "opacity .28s", opacity: vis ? 1 : 0, minHeight: 200 }}>
           {slide === 0 && (
             <div style={{ position: "relative" }}>
-              <img src="/premio.png" alt="Prêmio" style={{ width: "100%", maxHeight: 280, objectFit: "cover", display: "block" }} onError={e => { e.target.style.display="none"; }} />
+              <img src="/premio.png" alt="Prêmio" style={{ width: "100%", maxHeight: 300, objectFit: "contain", display: "block", background: "#0d0020" }} onError={e => { e.target.style.display="none"; }} />
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, #0d0020, transparent)", height: 60, pointerEvents: "none" }} />
             </div>
           )}
