@@ -321,6 +321,7 @@ export default function App() {
   const ircReconnectRef = useRef(false);
   const [spinSecs, setSpinSecs] = useState(8);
   const [ircLog, setIrcLog] = useState([]);
+  const [liveTitle, setLiveTitle] = useState('');
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -610,7 +611,7 @@ export default function App() {
 
   async function toggleLive() {
     if (!state.liveActive) {
-      const res = await act("open_live");
+      const res = await act("open_live", { liveTitle: liveTitle.trim() });
       if (res.ok) flash("Live aberta! ✅", "#00C853");
     } else {
       const res = await act("close_live");
@@ -1053,6 +1054,18 @@ export default function App() {
                 <div className="card">
                   <div style={{ fontWeight: 700, marginBottom: 8 }}>Status da live</div>
                   <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14 }}>{state?.liveActive ? `Aberta — ${formatDate(state.liveDate)}` : "Offline"}</div>
+                  {!state?.liveActive && (
+                    <>
+                      <span className="label">Título da live (Discord)</span>
+                      <input
+                        className="inp"
+                        style={{ marginBottom: 10 }}
+                        placeholder="ex: Jogando Valorant — Ranked ao vivo!"
+                        value={liveTitle}
+                        onChange={e => setLiveTitle(e.target.value)}
+                      />
+                    </>
+                  )}
                   <button className={`btn btn-full${state?.liveActive?" btn-red":""}`} style={!state?.liveActive?{background:"#00C853"}:{}} onClick={toggleLive} disabled={acting}>
                     {state?.liveActive ? "⏹ Encerrar live" : "▶ Abrir live"}
                   </button>

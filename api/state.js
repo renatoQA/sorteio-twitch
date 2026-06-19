@@ -7,14 +7,15 @@ const DISCORD_WEBHOOKS = [
   process.env.DISCORD_WEBHOOK_PAPO  || 'https://discord.com/api/webhooks/1517596092932292608/N7oIDJKocnBil92GqxNYXt02mL_-lxgA2QG9qV-ZP9LlqQgwunlec6Md6bYkBJjBE1TD',
 ];
 
-async function notifyDiscordLive() {
+async function notifyDiscordLive(liveTitle) {
+  const titleLine = liveTitle ? `**${liveTitle}**\n\n` : '';
   const body = JSON.stringify({
     username: 'Area do Tailung',
     avatar_url: 'https://area-tailung.vercel.app/favicon.ico',
     embeds: [{
       color: 0x9146FF,
       title: '🔴 oTaiLungg está AO VIVO!',
-      description: '> Corre lá assistir e não perde o sorteio semanal! 🎮🎁',
+      description: `${titleLine}Não se esqueça de fazer o seu checkin na **Area do Tailung** para participar dos sorteios! 🎮🎁`,
       url: 'https://www.twitch.tv/otailungg',
       fields: [{ name: '📺 Assistir agora', value: '[twitch.tv/otailungg](https://www.twitch.tv/otailungg)', inline: true }],
       footer: { text: 'Area do Tailung • Sorteio Semanal' },
@@ -87,11 +88,12 @@ export default async function handler(req, res) {
     }
 
     else if (action === 'open_live') {
+      const { liveTitle } = payload || {};
       Object.keys(state.viewers).forEach(id => { state.viewers[id].checkedInToday = false; });
       state.liveActive = true;
       state.liveDate = new Date().toISOString().slice(0, 10);
       if (!state.cycleStart) state.cycleStart = state.liveDate;
-      notifyDiscordLive().catch(() => {});
+      notifyDiscordLive(liveTitle).catch(() => {});
     }
 
     else if (action === 'close_live') {
