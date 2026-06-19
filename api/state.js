@@ -1,6 +1,32 @@
 import { kv } from '@vercel/kv';
 
 const STATE_KEY = 'sorteio_state';
+
+const DISCORD_WEBHOOKS = [
+  process.env.DISCORD_WEBHOOK_AVISO || 'https://discord.com/api/webhooks/1517596011852206271/KburOkQ3YPZDOd-xbUGjOSpDjgkEu5-cRckfaKDQEmIdoo_9dtNDXpWUjUCMrP8Rg5Bq',
+  process.env.DISCORD_WEBHOOK_PAPO  || 'https://discord.com/api/webhooks/1517596092932292608/N7oIDJKocnBil92GqxNYXt02mL_-lxgA2QG9qV-ZP9LlqQgwunlec6Md6bYkBJjBE1TD',
+];
+
+async function notifyDiscordLive() {
+  const body = JSON.stringify({
+    username: 'Area do Tailung',
+    avatar_url: 'https://area-tailung.vercel.app/favicon.ico',
+    embeds: [{
+      color: 0x9146FF,
+      title: '🔴 oTaiLungg está AO VIVO!',
+      description: '> Corre lá assistir e não perde o sorteio semanal! 🎮🎁',
+      url: 'https://www.twitch.tv/otailungg',
+      fields: [{ name: '📺 Assistir agora', value: '[twitch.tv/otailungg](https://www.twitch.tv/otailungg)', inline: true }],
+      footer: { text: 'Area do Tailung • Sorteio Semanal' },
+      timestamp: new Date().toISOString(),
+    }],
+  });
+  await Promise.all(
+    DISCORD_WEBHOOKS.map(url =>
+      fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).catch(() => {})
+    )
+  );
+}
 const MIN_MINS_LIVE = 60;
 const MIN_MINS_TOTAL = 660;
 const MIN_DAYS = 4;
@@ -65,6 +91,7 @@ export default async function handler(req, res) {
       state.liveActive = true;
       state.liveDate = new Date().toISOString().slice(0, 10);
       if (!state.cycleStart) state.cycleStart = state.liveDate;
+      notifyDiscordLive().catch(() => {});
     }
 
     else if (action === 'close_live') {
