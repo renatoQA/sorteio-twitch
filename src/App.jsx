@@ -971,28 +971,46 @@ export default function App() {
             </div>
           ) : (
             <>
-              <div className="card">
-                <div className="row" style={{ marginBottom: 16 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#9146FF22", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#9146FF", fontSize: 20, flexShrink: 0 }}>{twitchUser.display_name[0].toUpperCase()}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 800, fontSize: 16 }}>{twitchUser.display_name}</div>
-                    <div style={{ fontSize: 11, color: "#00C853", marginTop: 1 }}>✓ Twitch verificado · @{twitchUser.login}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginBottom: 12 }}>
+                {/* Card nick + check-in */}
+                <div className="card" style={{ marginBottom: 0 }}>
+                  <div className="row" style={{ marginBottom: 16 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#9146FF22", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#9146FF", fontSize: 20, flexShrink: 0 }}>{twitchUser.display_name[0].toUpperCase()}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: 16 }}>{twitchUser.display_name}</div>
+                      <div style={{ fontSize: 11, color: "#00C853", marginTop: 1 }}>✓ Twitch verificado · @{twitchUser.login}</div>
+                    </div>
+                    <button className="btn-ghost" style={{ padding: "7px 12px", fontSize: 12 }} onClick={() => { setTwitchUser(null); localStorage.removeItem('twitch_user'); }}>Sair</button>
                   </div>
-                  <button className="btn-ghost" style={{ padding: "7px 12px", fontSize: 12 }} onClick={() => { setTwitchUser(null); localStorage.removeItem('twitch_user'); }}>Sair</button>
+                  <div className="divider" />
+                  <span className="label">check-in na live de hoje</span>
+                  <div style={{ fontSize: 12, color: state?.liveActive ? "#00C853" : "#ADADB8", marginBottom: 12, fontWeight: 600 }}>
+                    {state?.liveActive ? "● Live ativa agora!" : "○ Nenhuma live ativa no momento"}
+                  </div>
+                  <button
+                    className={`btn btn-full${myViewer?.checkedInToday ? "" : " btn-green"}`}
+                    style={myViewer?.checkedInToday ? { background: "#26262C", color: "#ADADB8", cursor: "default" } : {}}
+                    onClick={doCheckin}
+                    disabled={acting || !state?.liveActive || myViewer?.checkedInToday}
+                  >
+                    {myViewer?.checkedInToday ? "✓ Check-in feito hoje" : "Fazer Check-in"}
+                  </button>
                 </div>
-                <div className="divider" />
-                <span className="label">check-in na live de hoje</span>
-                <div style={{ fontSize: 12, color: state?.liveActive ? "#00C853" : "#ADADB8", marginBottom: 12, fontWeight: 600 }}>
-                  {state?.liveActive ? "● Live ativa agora!" : "○ Nenhuma live ativa no momento"}
+
+                {/* Card ELO */}
+                <div className="card" style={{ marginBottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "28px 20px" }}>
+                  {/* Brasão placeholder */}
+                  <div style={{ position: "relative", marginBottom: 14 }}>
+                    <svg width="88" height="100" viewBox="0 0 88 100" fill="none">
+                      <path d="M44 4L80 20V52C80 72 64 86 44 96C24 86 8 72 8 52V20L44 4Z" fill="#1a1a1e" stroke="#3D3D4788" strokeWidth="2"/>
+                      <path d="M44 14L72 27V52C72 68 59 80 44 88C29 80 16 68 16 52V27L44 14Z" fill="#26262C" stroke="#3D3D4744" strokeWidth="1.5"/>
+                      <text x="44" y="60" textAnchor="middle" fill="#3D3D47" fontSize="32" fontWeight="900" fontFamily="Inter,system-ui,sans-serif">?</text>
+                    </svg>
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: "#ADADB8", letterSpacing: .5, marginBottom: 4 }}>ELO</div>
+                  <div style={{ fontSize: 11, color: "#3D3D47", marginBottom: 12 }}>Sistema em desenvolvimento</div>
+                  <span style={{ background: "#9146FF15", border: "1px solid #9146FF44", borderRadius: 20, padding: "4px 14px", fontSize: 11, color: "#9146FF", fontWeight: 700 }}>Em breve</span>
                 </div>
-                <button
-                  className={`btn btn-full${myViewer?.checkedInToday ? "" : " btn-green"}`}
-                  style={myViewer?.checkedInToday ? { background: "#26262C", color: "#ADADB8", cursor: "default" } : {}}
-                  onClick={doCheckin}
-                  disabled={acting || !state?.liveActive || myViewer?.checkedInToday}
-                >
-                  {myViewer?.checkedInToday ? "✓ Check-in feito hoje" : "Fazer Check-in"}
-                </button>
               </div>
               {myViewer && <ViewerCard v={myViewer} vList={vList} />}
             </>
@@ -1008,6 +1026,7 @@ export default function App() {
               const score = totalScore(v);
               const maxScore = totalScore(vList[0]) || 1;
               const ok = isEligible(v);
+              const qDays = qualifiedDays(v.sessions);
               const li = getLevelInfo(calcXP(v));
               const medals = ["🥇","🥈","🥉"];
               return (
@@ -1015,11 +1034,17 @@ export default function App() {
                   <div style={{ width: 26, textAlign: "center", fontWeight: 700, color: i < 3 ? ["#FFD700","#C0C0C0","#CD7F32"][i] : "#ADADB8", fontSize: i < 3 ? 18 : 13 }}>{i < 3 ? medals[i] : `#${i+1}`}</div>
                   <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#9146FF22", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#9146FF", fontSize: 14, flexShrink: 0 }}>{(v.display_name || v.nick)[0].toUpperCase()}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
                       <span style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</span>
-                      <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "elegível" : "pendente"}</span>
-                      {v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4" }}>★ sub</span>}
-                      <span style={{ marginLeft: "auto", fontSize: 10, background: "rgba(0,0,0,0.35)", border: `1px solid ${li.color}44`, borderRadius: 6, padding: "2px 7px", color: li.color, fontWeight: 700, flexShrink: 0 }}>LV{li.lv} {li.name}</span>
+                      <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "elegível ✓" : "pendente"}</span>
+                      {v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4" }}>sub</span>}
+                      {/* Estrelas de dias qualificados */}
+                      <span style={{ display: "flex", gap: 2, marginLeft: 2 }}>
+                        {Array.from({length: MIN_DAYS}, (_, idx) => (
+                          <span key={idx} style={{ fontSize: 12, color: idx < qDays ? "#FFD700" : "#3D3D47" }}>★</span>
+                        ))}
+                      </span>
+                      <span style={{ marginLeft: "auto", fontSize: 10, background: "rgba(0,0,0,0.35)", border: `1px solid ${li.color}44`, borderRadius: 6, padding: "2px 7px", color: li.color, fontWeight: 700, flexShrink: 0 }}>LV{li.lv}</span>
                     </div>
                     <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 4 }}>{uniqueDays(v.sessions).length} lives · {Math.floor(calcMins(v.sessions)/60)}h{calcMins(v.sessions)%60}m · <strong style={{ color: "#9146FF" }}>{score} pts</strong></div>
                     <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.round(score/maxScore*100)}%`, background: i === 0 ? "#FFD700" : "#9146FF" }} /></div>
@@ -1333,6 +1358,10 @@ function ViewerCard({ v, vList }) {
   const ok = isEligible(v);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const history = v.history || [];
+  const qDays = qualifiedDays(v.sessions);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todaySession = v.sessions.find(s => s.date === todayStr);
+  const todayGoalMet = (todaySession?.minutes || 0) >= MIN_MINS_LIVE;
 
   const now = new Date().toISOString().slice(0, 7);
   const monthHistory = history.filter(h => (h.cycleEnd || "").slice(0, 7) === now);
@@ -1384,12 +1413,27 @@ function ViewerCard({ v, vList }) {
 
       {/* Semana atual */}
       {histTab === "semana" && <>
+        {/* Daily goal callout */}
+        {todayGoalMet && (
+          <div style={{ background: "#FFD70010", border: "1px solid #FFD70033", borderRadius: 10, padding: "9px 13px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 22, lineHeight: 1 }}>★</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 12, color: "#FFD700" }}>Meta diária atingida!</div>
+              <div style={{ fontSize: 11, color: "#ADADB8" }}>Você assistiu 1h+ hoje — +1 dia qualificado nesta semana</div>
+            </div>
+          </div>
+        )}
         <div className="grid2" style={{ marginBottom: 12 }}>
           <div>
             <span className="label">dias qualificados</span>
-            <div style={{ fontWeight: 800, fontSize: 22, color: qualifiedDays(v.sessions) >= MIN_DAYS ? "#00C853" : "#9146FF" }}>{qualifiedDays(v.sessions)}<span style={{ fontSize: 14, fontWeight: 400, color: "#ADADB8" }}>/{MIN_DAYS}</span></div>
-            <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.min(100, qualifiedDays(v.sessions)/MIN_DAYS*100)}%`, background: qualifiedDays(v.sessions) >= MIN_DAYS ? "#00C853" : "#9146FF" }} /></div>
-            <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>meta: 4 dias com ≥1h</div>
+            <div style={{ display: "flex", gap: 5, margin: "6px 0" }}>
+              {Array.from({length: MIN_DAYS}, (_, idx) => (
+                <div key={idx} style={{ width: 30, height: 30, borderRadius: 8, background: idx < qDays ? "#FFD70018" : "#1a1a1e", border: `1.5px solid ${idx < qDays ? "#FFD700" : "#3D3D47"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 15, color: idx < qDays ? "#FFD700" : "#3D3D47" }}>★</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 10, color: "#ADADB8" }}>{qDays}/{MIN_DAYS} dias · meta: 4 dias com ≥1h</div>
           </div>
           <div>
             <span className="label">total acumulado</span>
@@ -1404,7 +1448,7 @@ function ViewerCard({ v, vList }) {
             {v.sessions.map((s, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 0", borderBottom: i < v.sessions.length-1 ? "1px solid #3D3D4722" : "none" }}>
                 <span style={{ color: "#EFEFF1" }}>📅 {formatDate(s.date)}</span>
-                <span style={{ fontWeight: 700, color: s.minutes >= MIN_MINS_LIVE ? "#00C853" : "#9146FF" }}>{Math.floor(s.minutes/60)}h{s.minutes%60}m {s.minutes >= MIN_MINS_LIVE ? "✓" : ""}</span>
+                <span style={{ fontWeight: 700, color: s.minutes >= MIN_MINS_LIVE ? "#FFD700" : "#9146FF" }}>{Math.floor(s.minutes/60)}h{s.minutes%60}m {s.minutes >= MIN_MINS_LIVE ? "★" : ""}</span>
               </div>
             ))}
           </div>
