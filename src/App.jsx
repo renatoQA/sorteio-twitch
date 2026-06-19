@@ -17,6 +17,43 @@ function isEligible(v) {
 }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
 
+// XP / Level system (MMO RPG style)
+const LEVEL_THRESHOLDS = [0,200,500,1000,1700,2600,3800,5200,7000,9500,13000,17500,23000,30000,40000];
+const LEVEL_NAMES = ["Novato","Espectador","Fã Fiel","Veterano","Guardião","Herói","Elite","Lendário","Épico","Imortal","Mestre","Grão-Mestre","Transcendente","Lenda do Tailung","Lenda do Tailung"];
+const LEVEL_COLORS = ["#ADADB8","#ADADB8","#00C853","#00C853","#00BFFF","#00BFFF","#9146FF","#9146FF","#FFD700","#FFD700","#FF6B35","#FF6B35","#FF4747","#FF4747","#FF4747"];
+
+function calcXP(v) {
+  let xp = 0;
+  for (const s of v.sessions || []) {
+    xp += (s.minutes||0) + 20;
+    if ((s.minutes||0) >= MIN_MINS_LIVE) xp += 50;
+  }
+  for (const h of v.history || []) {
+    xp += (h.totalMinutes||0) + (h.lives||0) * 20;
+    for (const s of h.sessions || []) {
+      if ((s.minutes||0) >= MIN_MINS_LIVE) xp += 50;
+    }
+    if (h.eligible) xp += 100;
+    if (h.won) xp += 500;
+  }
+  return xp;
+}
+function getLevel(xp) {
+  let lv = 1;
+  for (let i = 1; i < LEVEL_THRESHOLDS.length; i++) { if (xp >= LEVEL_THRESHOLDS[i]) lv = i+1; else break; }
+  return Math.min(lv, LEVEL_THRESHOLDS.length);
+}
+function getLevelInfo(xp) {
+  const lv = getLevel(xp);
+  const idx = lv - 1;
+  const curr = LEVEL_THRESHOLDS[idx]||0;
+  const next = LEVEL_THRESHOLDS[idx+1];
+  const name = LEVEL_NAMES[idx];
+  const color = LEVEL_COLORS[idx];
+  if (!next) return { lv, name, color, pct: 100, xpIn: 0, xpNeed: 0 };
+  return { lv, name, color, pct: Math.round((xp-curr)/(next-curr)*100), xpIn: xp-curr, xpNeed: next-curr };
+}
+
 function formatDate(d) {
   if (!d) return "—";
   const [y, m, day] = d.split("-");
@@ -27,6 +64,122 @@ function monthLabel(d) {
   const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
   const [y, m] = d.split("-");
   return `${months[parseInt(m)-1]} ${y}`;
+}
+
+function PrizeCarousel({ eligCount, vList }) {
+  const [slide, setSlide] = useState(0);
+  const [vis, setVis] = useState(true);
+  const total = 3;
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setVis(false);
+      setTimeout(() => { setSlide(s => (s+1)%total); setVis(true); }, 280);
+    }, 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  function goTo(i) { setVis(false); setTimeout(() => { setSlide(i); setVis(true); }, 280); }
+
+  return (
+    <div style={{ position: "relative", background: "linear-gradient(145deg, #0d0020 0%, #1a0533 55%, #0d001a 100%)", borderRadius: 14, overflow: "hidden", border: "1.5px solid #9146FF44", display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 110%, #9146FF20 0%, transparent 65%)", pointerEvents: "none", zIndex: 0 }} />
+      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", flex: 1 }}>
+        <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #9146FF22" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 2, textTransform: "uppercase" }}>🎁 Prêmio Semanal</div>
+          <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+            {Array.from({length: total}).map((_,i) => (
+              <div key={i} onClick={() => goTo(i)}
+                style={{ width: i===slide?20:7, height: 7, borderRadius: 4, background: i===slide?"#9146FF":"#3D3D47", cursor: "pointer", transition: "all .3s ease" }} />
+            ))}
+          </div>
+        </div>
+        <div style={{ flex: 1, transition: "opacity .28s", opacity: vis ? 1 : 0, minHeight: 200 }}>
+          {slide === 0 && (
+            <div style={{ position: "relative" }}>
+              <img src="/premio.png" alt="Prêmio" style={{ width: "100%", maxHeight: 280, objectFit: "cover", display: "block" }} onError={e => { e.target.style.display="none"; }} />
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, #0d0020, transparent)", height: 60, pointerEvents: "none" }} />
+            </div>
+          )}
+          {slide === 1 && (
+            <div style={{ padding: "24px 20px 28px", textAlign: "center" }}>
+              <div style={{ fontSize: 38, marginBottom: 12 }}>🏆</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: "#EFEFF1", marginBottom: 18 }}>Como ganhar</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>⏱</span>
+                  <span><strong style={{ color: "#fff" }}>11h</strong> de live acumuladas na semana</span>
+                </div>
+                <div style={{ fontSize: 11, color: "#9146FF", fontWeight: 700, textAlign: "center" }}>— OU —</div>
+                <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>📅</span>
+                  <span><strong style={{ color: "#fff" }}>4 dias</strong> de check-in com pelo menos 1h cada</span>
+                </div>
+              </div>
+            </div>
+          )}
+          {slide === 2 && (
+            <div style={{ padding: "24px 20px 28px", textAlign: "center" }}>
+              <div style={{ fontSize: 38, marginBottom: 12 }}>🎲</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: "#EFEFF1", marginBottom: 18 }}>Sorteio desta semana</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 12, padding: "16px 8px" }}>
+                  <div style={{ fontSize: 32, fontWeight: 900, color: "#9146FF" }}>{eligCount}</div>
+                  <div style={{ fontSize: 10, color: "#ADADB8", textTransform: "uppercase", letterSpacing: .5, marginTop: 4 }}>elegíveis</div>
+                </div>
+                <div style={{ background: "#FFB34718", border: "1px solid #FFB34733", borderRadius: 12, padding: "16px 8px" }}>
+                  <div style={{ fontSize: 32, fontWeight: 900, color: "#FFB347" }}>{vList.length}</div>
+                  <div style={{ fontSize: 10, color: "#ADADB8", textTransform: "uppercase", letterSpacing: .5, marginTop: 4 }}>participantes</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SocialBanners() {
+  const socials = [
+    {
+      name: "Instagram", handle: "@otailung", url: "https://www.instagram.com/otailung",
+      grad: "linear-gradient(135deg, #6a11cb 0%, #c7007a 60%, #fcb045 100%)", glow: "#c7007a",
+      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none"/></svg>),
+    },
+    {
+      name: "TikTok", handle: "@otailungg", url: "https://www.tiktok.com/@otailungg",
+      grad: "linear-gradient(135deg, #010101 0%, #1a1a2e 50%, #16213e 100%)", glow: "#69C9D0",
+      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.69a8.18 8.18 0 004.76 1.52V6.76a4.85 4.85 0 01-1-.07z"/></svg>),
+    },
+    {
+      name: "YouTube", handle: "@otailungg", url: "https://www.youtube.com/@otailungg",
+      grad: "linear-gradient(135deg, #1a0000 0%, #8b0000 55%, #cc0000 100%)", glow: "#FF0000",
+      icon: (<svg width="20" height="20" viewBox="0 0 24 24"><path fill="white" d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58z"/><polygon fill="#cc0000" points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>),
+    },
+    {
+      name: "Discord", handle: "Entrar no Server", url: "https://discord.gg/5mM5WyPFjr",
+      grad: "linear-gradient(135deg, #1a1d2e 0%, #2c3260 55%, #5865F2 100%)", glow: "#5865F2",
+      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>),
+    },
+  ];
+  return (
+    <div className="social-grid">
+      {socials.map(s => (
+        <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="social-card"
+          style={{ background: s.grad, border: "1px solid rgba(255,255,255,0.08)" }}
+          onMouseEnter={e => { e.currentTarget.style.transform="translateY(-3px)"; e.currentTarget.style.boxShadow=`0 10px 30px ${s.glow}55`; }}
+          onMouseLeave={e => { e.currentTarget.style.transform=""; e.currentTarget.style.boxShadow=""; }}>
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{s.icon}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 13, color: "#fff" }}>{s.name}</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.handle}</div>
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, flexShrink: 0 }}>↗</div>
+        </a>
+      ))}
+    </div>
+  );
 }
 
 function SpinWheel({ eligible, spinSecs, onDone }) {
@@ -224,6 +377,16 @@ export default function App() {
     const code = localStorage.getItem('redeemed_code');
     if (code) setRedeemedCode(code);
   }, []);
+
+  useEffect(() => {
+    if (!twitchUser || !state) return;
+    const prize = state.prize;
+    // Clear stale local code if prize is gone or belongs to someone else
+    if ((!prize || prize.twitch_id !== twitchUser.id) && redeemedCode) {
+      setRedeemedCode(null);
+      localStorage.removeItem('redeemed_code');
+    }
+  }, [state?.prize, twitchUser?.id]);
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -628,6 +791,22 @@ export default function App() {
         @media (min-width: 768px) {
           .prize-img { max-height: 480px; object-fit: contain; background: #1a0533; }
         }
+        /* Home layout grid */
+        .home-main { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
+        .home-live-col { order: 2; }
+        .home-prize-col { order: 1; }
+        @media (min-width: 768px) {
+          .home-main { grid-template-columns: 5fr 6fr; align-items: stretch; }
+          .home-live-col { order: 1; }
+          .home-prize-col { order: 2; }
+        }
+        /* Social banners */
+        .social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        @media (min-width: 640px) { .social-grid { grid-template-columns: repeat(4, 1fr); } }
+        .social-card { text-decoration: none; display: flex; align-items: center; gap: 10px; border-radius: 14px; padding: 13px 12px; transition: transform .15s, box-shadow .15s; }
+        /* Level XP bar */
+        @keyframes lvGlow { 0%,100%{opacity:.7} 50%{opacity:1} }
+        .lv-bar-fill { animation: lvGlow 2.5s ease-in-out infinite; }
       `}</style>
 
       {/* Navbar */}
@@ -695,43 +874,42 @@ export default function App() {
             </div>
           </div>
 
-          {/* Twitch Player */}
-          <div className="card" style={{ padding: 0, overflow: "hidden", borderColor: state?.liveActive ? "#FF474744" : "#26262C" }}>
-            <div style={{ background: "linear-gradient(135deg, #18181B, #26262C)", padding: "10px 14px", borderBottom: "1px solid #26262C", display: "flex", alignItems: "center", gap: 8 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#EFEFF1" }}>{CHANNEL}</span>
-              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: state?.liveActive ? "#FF4747" : "#ADADB8" }}>
-                <div className="live-dot" style={{ background: state?.liveActive ? "#FF4747" : "#3D3D47", animation: state?.liveActive ? "pulse 1.5s infinite" : "none" }} />
-                {state?.liveActive ? "AO VIVO" : "OFFLINE"}
+          {/* Live + Prize Carousel lado a lado */}
+          <div className="home-main">
+            {/* Prêmio em destaque — aparece primeiro no mobile */}
+            <div className="home-prize-col">
+              <PrizeCarousel eligCount={eligCount} vList={vList} />
+            </div>
+            {/* Live menor, ao lado */}
+            <div className="home-live-col">
+              <div style={{ background: "#18181B", border: `1px solid ${state?.liveActive ? "#FF474744" : "#26262C"}`, borderRadius: 12, overflow: "hidden", height: "100%", display: "flex", flexDirection: "column" }}>
+                <div style={{ background: "linear-gradient(135deg, #18181B, #26262C)", padding: "10px 14px", borderBottom: "1px solid #26262C", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#EFEFF1" }}>{CHANNEL}</span>
+                  <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: state?.liveActive ? "#FF4747" : "#ADADB8" }}>
+                    <div className="live-dot" style={{ background: state?.liveActive ? "#FF4747" : "#3D3D47", animation: state?.liveActive ? "pulse 1.5s infinite" : "none" }} />
+                    {state?.liveActive ? "AO VIVO" : "OFFLINE"}
+                  </div>
+                </div>
+                <div style={{ position: "relative", paddingTop: "56.25%", background: "#0E0E10", flex: 1, minHeight: 160 }}>
+                  <iframe
+                    src={`https://player.twitch.tv/?channel=${CHANNEL}&parent=area-tailung.vercel.app&autoplay=false&muted=false`}
+                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                    allowFullScreen
+                    title="oTaiLungg Live"
+                  />
+                </div>
+                {state?.liveActive && (
+                  <div style={{ padding: "10px 14px", fontSize: 12, color: "#ADADB8", borderTop: "1px solid #26262C", flexShrink: 0 }}>
+                    🔴 Live rolando! <strong style={{ color: "#9146FF", cursor: "pointer" }} onClick={() => setTab("viewer")}>Participar →</strong>
+                  </div>
+                )}
               </div>
             </div>
-            <div style={{ position: "relative", paddingTop: "56.25%", background: "#0E0E10" }}>
-              <iframe
-                src={`https://player.twitch.tv/?channel=${CHANNEL}&parent=area-tailung.vercel.app&autoplay=false&muted=false`}
-                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
-                allowFullScreen
-                title="oTaiLungg Live"
-              />
-            </div>
-            {state?.liveActive && (
-              <div style={{ padding: "10px 14px", fontSize: 12, color: "#ADADB8", borderTop: "1px solid #26262C" }}>
-                🔴 Live rolando agora! Vai na aba <strong style={{ color: "#9146FF", cursor: "pointer" }} onClick={() => setTab("viewer")}>Participar</strong> e faz seu check-in!
-              </div>
-            )}
           </div>
 
-          <div className="card" style={{ padding: 0, overflow: "hidden", borderColor: "#9146FF55" }}>
-            <div style={{ background: "linear-gradient(135deg, #1a0533 0%, #2d1060 100%)", padding: "14px 16px 10px", borderBottom: "1px solid #9146FF33" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>🎁 Prêmio Semanal</div>
-            </div>
-            <img
-              src="/premio.png"
-              alt="Prêmio Semanal"
-              className="prize-img"
-              style={{ width: "100%", height: "auto", display: "block" }}
-              onError={e => { e.target.style.display = "none"; }}
-            />
-          </div>
+          {/* Redes Sociais */}
+          <SocialBanners />
 
           <div className="card">
             <div className="card-title">Como participar</div>
@@ -759,7 +937,7 @@ export default function App() {
             <div style={{ background: "#9146FF18", border: "2px solid #9146FF", borderRadius: 12, padding: "16px", marginBottom: 12, textAlign: "center" }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>🎁</div>
               <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>Você ganhou um prêmio!</div>
-              {redeemedCode ? (
+              {(redeemedCode && state.prize.redeemed) ? (
                 <div>
                   <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 10 }}>Seu código gift card:</div>
                   <div style={{ background: "#26262C", borderRadius: 8, padding: "12px 16px", fontSize: 18, fontWeight: 800, color: "#9146FF", letterSpacing: 2, wordBreak: "break-all", marginBottom: 10 }}>{redeemedCode}</div>
@@ -829,6 +1007,7 @@ export default function App() {
               const score = totalScore(v);
               const maxScore = totalScore(vList[0]) || 1;
               const ok = isEligible(v);
+              const li = getLevelInfo(calcXP(v));
               const medals = ["🥇","🥈","🥉"];
               return (
                 <div key={v.twitch_id || v.nick} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: i < vList.length-1 ? "1px solid #26262C22" : "none", alignItems: "center" }}>
@@ -839,6 +1018,7 @@ export default function App() {
                       <span style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</span>
                       <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "elegível" : "pendente"}</span>
                       {v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4" }}>★ sub</span>}
+                      <span style={{ marginLeft: "auto", fontSize: 10, background: "rgba(0,0,0,0.35)", border: `1px solid ${li.color}44`, borderRadius: 6, padding: "2px 7px", color: li.color, fontWeight: 700, flexShrink: 0 }}>LV{li.lv} {li.name}</span>
                     </div>
                     <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 4 }}>{uniqueDays(v.sessions).length} lives · {Math.floor(calcMins(v.sessions)/60)}h{calcMins(v.sessions)%60}m · <strong style={{ color: "#9146FF" }}>{score} pts</strong></div>
                     <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.round(score/maxScore*100)}%`, background: i === 0 ? "#FFD700" : "#9146FF" }} /></div>
@@ -1032,48 +1212,55 @@ export default function App() {
 
             {/* ADMIN: PRÊMIO */}
             {adminTab === "premio" && <>
+              {/* Prêmio ativo — mostrado como histórico, não bloqueia novo */}
+              {state?.prize && (
+                <div className="card" style={{ borderColor: state.prize.redeemed ? "#00C85344" : state.prize.enabled ? "#9146FF44" : "#3D3D47" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Prêmio atual</div>
+                  <div style={{ background: state.prize.redeemed ? "#00C85315" : state.prize.enabled ? "#9146FF15" : "#26262C", border: `1px solid ${state.prize.redeemed ? "#00C85344" : state.prize.enabled ? "#9146FF44" : "#3D3D47"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{state.prize.display_name}</div>
+                    <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      Código:&nbsp;
+                      {adminPrizeCode
+                        ? <span style={{ background: "#26262C", borderRadius: 6, padding: "3px 10px", color: "#9146FF", fontWeight: 800, letterSpacing: 1, wordBreak: "break-all", whiteSpace: "pre-line" }}>{adminPrizeCode}</span>
+                        : <button onClick={fetchPrizeCode} disabled={acting} style={{ background: "none", border: "1px solid #9146FF44", borderRadius: 6, padding: "3px 10px", color: "#9146FF", fontSize: 12, cursor: "pointer" }}>👁 Ver código</button>
+                      }
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <span className={`badge ${state.prize.redeemed ? "badge-ok" : state.prize.enabled ? "badge-ok" : "badge-pend"}`}>
+                        {state.prize.redeemed ? "✓ Resgatado" : state.prize.enabled ? "● Resgate habilitado" : "○ Aguardando habilitação"}
+                      </span>
+                      {state.prize.redeemed && <span style={{ fontSize: 11, color: "#ADADB8" }}>em {new Date(state.prize.redeemedAt).toLocaleDateString("pt-BR")}</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {!state.prize.redeemed && (
+                      <button className={`btn btn-full${state.prize.enabled ? " btn-red" : ""}`} style={!state.prize.enabled ? { background: "#00C853" } : {}} onClick={() => act("toggle_prize")} disabled={acting}>
+                        {state.prize.enabled ? "⏸ Desabilitar resgate" : "▶ Habilitar resgate"}
+                      </button>
+                    )}
+                    <button className="btn-ghost" onClick={() => { if (window.confirm("Remover prêmio atual?")) act("clear_prize"); }} disabled={acting}>Remover</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Formulário sempre disponível para dar novo prêmio */}
               <div className="card">
-                <div className="card-title">🎁 Configurar prêmio</div>
-                {state?.prize ? (
-                  <>
-                    <div style={{ background: state.prize.redeemed ? "#00C85315" : state.prize.enabled ? "#9146FF15" : "#26262C", border: `1px solid ${state.prize.redeemed ? "#00C85344" : state.prize.enabled ? "#9146FF44" : "#3D3D47"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{state.prize.display_name}</div>
-                      <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        Código:&nbsp;
-                        {adminPrizeCode
-                          ? <span style={{ background: "#26262C", borderRadius: 6, padding: "3px 10px", color: "#9146FF", fontWeight: 800, letterSpacing: 1, wordBreak: "break-all" }}>{adminPrizeCode}</span>
-                          : <button onClick={fetchPrizeCode} disabled={acting} style={{ background: "none", border: "1px solid #9146FF44", borderRadius: 6, padding: "3px 10px", color: "#9146FF", fontSize: 12, cursor: "pointer" }}>👁 Ver código</button>
-                        }
-                      </div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                        <span className={`badge ${state.prize.redeemed ? "badge-ok" : state.prize.enabled ? "badge-ok" : "badge-pend"}`}>
-                          {state.prize.redeemed ? "✓ Resgatado" : state.prize.enabled ? "● Resgate habilitado" : "○ Aguardando habilitação"}
-                        </span>
-                        {state.prize.redeemed && <span style={{ fontSize: 11, color: "#ADADB8" }}>em {new Date(state.prize.redeemedAt).toLocaleDateString("pt-BR")}</span>}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {!state.prize.redeemed && (
-                        <button className={`btn btn-full${state.prize.enabled ? " btn-red" : ""}`} style={!state.prize.enabled ? { background: "#00C853" } : {}} onClick={() => act("toggle_prize")} disabled={acting}>
-                          {state.prize.enabled ? "⏸ Desabilitar resgate" : "▶ Habilitar resgate"}
-                        </button>
-                      )}
-                      <button className="btn-ghost" onClick={() => { if (window.confirm("Remover prêmio atual?")) act("clear_prize"); }} disabled={acting}>Remover</button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <span className="label">Vencedor</span>
-                    <select className="inp" style={{ marginBottom: 10, cursor: "pointer" }} value={prizeWinnerId} onChange={e => setPrizeWinnerId(e.target.value)}>
-                      <option value="">Selecione o viewer...</option>
-                      {vList.map(v => <option key={v.twitch_id || v.nick} value={v.twitch_id || v.nick}>{v.display_name || v.nick}</option>)}
-                    </select>
-                    <span className="label">Código do Gift Card</span>
-                    <input className="inp" style={{ marginBottom: 14 }} placeholder="ex: XXXX-XXXX-XXXX-XXXX" value={prizeGiftcard} onChange={e => setPrizeGiftcard(e.target.value)} />
-                    <button className="btn btn-full" onClick={savePrize} disabled={acting}>💾 Salvar prêmio</button>
-                    <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 10, lineHeight: 1.6 }}>O código fica oculto até o viewer resgatar. Você habilita o resgate quando quiser.</div>
-                  </>
-                )}
+                <div className="card-title">🎁 {state?.prize ? "Dar prêmio para outro viewer" : "Configurar prêmio"}</div>
+                <span className="label">Vencedor</span>
+                <select className="inp" style={{ marginBottom: 10, cursor: "pointer" }} value={prizeWinnerId} onChange={e => setPrizeWinnerId(e.target.value)}>
+                  <option value="">Selecione o viewer...</option>
+                  {vList.map(v => <option key={v.twitch_id || v.nick} value={v.twitch_id || v.nick}>{v.display_name || v.nick}</option>)}
+                </select>
+                <span className="label">Código(s) do Gift Card</span>
+                <textarea
+                  className="inp"
+                  style={{ marginBottom: 14, minHeight: 80, resize: "vertical", lineHeight: 1.7, fontFamily: "monospace", whiteSpace: "pre" }}
+                  placeholder={"ex: XXXX-XXXX-XXXX-XXXX\n(Alt+Enter para múltiplos códigos)"}
+                  value={prizeGiftcard}
+                  onChange={e => setPrizeGiftcard(e.target.value)}
+                />
+                <button className="btn btn-full" onClick={savePrize} disabled={acting}>💾 Salvar prêmio</button>
+                <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 10, lineHeight: 1.6 }}>O código fica oculto até o viewer resgatar. Você habilita o resgate quando quiser.</div>
               </div>
             </>}
 
@@ -1136,6 +1323,8 @@ function ViewerCard({ v, vList }) {
 
   const now = new Date().toISOString().slice(0, 7);
   const monthHistory = history.filter(h => (h.cycleEnd || "").slice(0, 7) === now);
+  const xp = calcXP(v);
+  const li = getLevelInfo(xp);
 
   return (
     <div className="card fade-up" style={{ borderColor: ok ? "#00C85344" : "#9146FF33" }}>
@@ -1149,6 +1338,28 @@ function ViewerCard({ v, vList }) {
           <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "Elegível ✓" : "Pendente"}</span>
           {v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4" }}>★ Inscrito</span>}
         </div>
+      </div>
+
+      {/* Level / XP Badge */}
+      <div style={{ background: `${li.color}10`, border: `1px solid ${li.color}33`, borderRadius: 12, padding: "10px 14px", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${li.color}55`, borderRadius: 7, padding: "3px 9px", fontWeight: 800, fontSize: 12, color: li.color, letterSpacing: .5 }}>LV {li.lv}</div>
+            <span style={{ fontWeight: 700, fontSize: 12, color: li.color }}>{li.name}</span>
+          </div>
+          <span style={{ fontSize: 10, color: "#ADADB8" }}>{xp} XP total</span>
+        </div>
+        <div style={{ background: "#1a1a1e", borderRadius: 20, height: 9, overflow: "hidden" }}>
+          <div className="lv-bar-fill" style={{ width: `${li.pct}%`, height: "100%", background: `linear-gradient(90deg, ${li.color}55, ${li.color})`, borderRadius: 20, transition: "width .6s ease" }} />
+        </div>
+        {li.xpNeed > 0 ? (
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#ADADB8", marginTop: 5 }}>
+            <span>{li.xpIn} / {li.xpNeed} XP</span>
+            <span>faltam {li.xpNeed - li.xpIn} XP para o próx. nível</span>
+          </div>
+        ) : (
+          <div style={{ fontSize: 10, color: li.color, fontWeight: 700, textAlign: "center", marginTop: 5 }}>✦ Nível máximo atingido!</div>
+        )}
       </div>
 
       {/* mini tabs */}

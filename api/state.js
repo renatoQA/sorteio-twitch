@@ -166,6 +166,7 @@ export default async function handler(req, res) {
       state.liveActive = false;
       state.liveDate = null;
       state.winner = null;
+      state.prize = null;
       state.cycleStart = endDate;
     }
 
