@@ -896,7 +896,7 @@ export default function App() {
     </div>
   );
 
-  const vList = state ? Object.values(state.viewers).sort((a, b) => totalScore(b) - totalScore(a)) : [];
+  const vList = state ? Object.values(state.viewers).sort((a, b) => calcXP(b) - calcXP(a)) : [];
   const eligCount = vList.filter(isEligible).length;
   const myViewer = twitchUser ? state?.viewers?.[twitchUser.id] : null;
   const history = state?.cycleHistory || [];
@@ -1312,8 +1312,8 @@ export default function App() {
             <div className="card-title">Ranking semanal</div>
             {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum viewer ainda.</div>}
             {vList.map((v, i) => {
-              const score = totalScore(v);
-              const maxScore = totalScore(vList[0]) || 1;
+              const score = calcXP(v);
+              const maxScore = calcXP(vList[0]) || 1;
               const ok = isEligible(v);
               const qDays = qualifiedDays(v.sessions);
               const li = getLevelInfo(calcXP(v));
@@ -1339,7 +1339,7 @@ export default function App() {
                       </span>
                       <span style={{ marginLeft: "auto", fontSize: 10, background: "rgba(0,0,0,0.35)", border: `1px solid ${li.color}44`, borderRadius: 6, padding: "2px 7px", color: li.color, fontWeight: 700, flexShrink: 0 }}>LV{li.lv}</span>
                     </div>
-                    <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 4 }}>{uniqueDays(v.sessions).length} lives · {Math.floor(calcMins(v.sessions)/60)}h{calcMins(v.sessions)%60}m · <strong style={{ color: "#9146FF" }}>{score} pts</strong></div>
+                    <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 4 }}>{uniqueDays(v.sessions).length} lives · {Math.floor(calcMins(v.sessions)/60)}h{calcMins(v.sessions)%60}m · <strong style={{ color: "#9146FF" }}>{score} XP</strong></div>
                     <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.round(score/maxScore*100)}%`, background: i === 0 ? "#FFD700" : "#9146FF" }} /></div>
                   </div>
                 </div>
@@ -1761,7 +1761,7 @@ function ViewerCard({ v, vList }) {
         <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#9146FF22", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#9146FF", fontSize: 16 }}>{(v.display_name || v.nick)[0].toUpperCase()}</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 15 }}>{v.display_name || v.nick}</div>
-          <div style={{ fontSize: 11, color: "#ADADB8" }}>#{rank} no ranking · {totalScore(v)} pts · código: <strong style={{ color: "#9146FF" }}>{v.code}</strong></div>
+          <div style={{ fontSize: 11, color: "#ADADB8" }}>#{rank} no ranking · {calcXP(v)} XP · código: <strong style={{ color: "#9146FF" }}>{v.code}</strong></div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
           <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "Elegível ✓" : "Pendente"}</span>
