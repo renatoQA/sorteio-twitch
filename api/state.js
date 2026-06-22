@@ -193,7 +193,7 @@ export default async function handler(req, res) {
         // accumulate XP from entries about to be purged into permanentXP
         const toPurge = state.viewers[id].history.filter(h => h.cycleEnd < cutoffStr);
         const purgedXP = toPurge.reduce((acc, h) => {
-          let xp = (h.totalMinutes || 0) + (h.lives || 0) * 20;
+          let xp = (h.totalMinutes || 0) + (h.lives || 0) * 25;
           for (const s of h.sessions || []) { if ((s.minutes || 0) >= MIN_MINS_LIVE) xp += 50; }
           if (h.eligible) xp += 100;
           if (h.won) xp += 500;

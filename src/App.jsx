@@ -25,11 +25,11 @@ const LEVEL_COLORS = ["#ADADB8","#ADADB8","#00C853","#00C853","#00BFFF","#00BFFF
 function calcXP(v) {
   let xp = v.permanentXP || 0; // XP acumulado de ciclos purgados (permanente)
   for (const s of v.sessions || []) {
-    xp += (s.minutes||0) + 20;
+    xp += (s.minutes||0) + 25;
     if ((s.minutes||0) >= MIN_MINS_LIVE) xp += 50;
   }
   for (const h of v.history || []) {
-    xp += (h.totalMinutes||0) + (h.lives||0) * 20;
+    xp += (h.totalMinutes||0) + (h.lives||0) * 25;
     for (const s of h.sessions || []) {
       if ((s.minutes||0) >= MIN_MINS_LIVE) xp += 50;
     }
