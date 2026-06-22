@@ -179,7 +179,7 @@ export default async function handler(req, res) {
         if (!state.viewers[id].history) state.viewers[id].history = [];
 
         // save this cycle to viewer personal history
-        state.viewers[id].history.unshift({
+        const cycleEntry = {
           cycleEnd: endDate,
           cycleStart: state.cycleStart,
           sessions: v.sessions,
@@ -187,9 +187,21 @@ export default async function handler(req, res) {
           lives: new Set(v.sessions.map(s => s.date)).size,
           eligible: isEligible(v),
           won: winnerId === id,
-        });
+        };
+        state.viewers[id].history.unshift(cycleEntry);
 
-        // purge entries older than 2 months
+        // accumulate XP from entries about to be purged into permanentXP
+        const toPurge = state.viewers[id].history.filter(h => h.cycleEnd < cutoffStr);
+        const purgedXP = toPurge.reduce((acc, h) => {
+          let xp = (h.totalMinutes || 0) + (h.lives || 0) * 20;
+          for (const s of h.sessions || []) { if ((s.minutes || 0) >= MIN_MINS_LIVE) xp += 50; }
+          if (h.eligible) xp += 100;
+          if (h.won) xp += 500;
+          return acc + xp;
+        }, 0);
+        state.viewers[id].permanentXP = (state.viewers[id].permanentXP || 0) + purgedXP;
+
+        // purge entries older than 2 months (XP preserved in permanentXP)
         state.viewers[id].history = state.viewers[id].history.filter(h => h.cycleEnd >= cutoffStr);
 
         state.viewers[id].sessions = [];

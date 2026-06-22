@@ -23,7 +23,7 @@ const LEVEL_NAMES = ["Novato","Espectador","Fã Fiel","Veterano","Guardião","He
 const LEVEL_COLORS = ["#ADADB8","#ADADB8","#00C853","#00C853","#00BFFF","#00BFFF","#9146FF","#9146FF","#FFD700","#FFD700","#FF6B35","#FF6B35","#FF4747","#FF4747","#FF4747"];
 
 function calcXP(v) {
-  let xp = 0;
+  let xp = v.permanentXP || 0; // XP acumulado de ciclos purgados (permanente)
   for (const s of v.sessions || []) {
     xp += (s.minutes||0) + 20;
     if ((s.minutes||0) >= MIN_MINS_LIVE) xp += 50;
@@ -896,7 +896,13 @@ export default function App() {
     </div>
   );
 
-  const vList = state ? Object.values(state.viewers).sort((a, b) => calcXP(b) - calcXP(a)) : [];
+  const vList = state ? Object.values(state.viewers).sort((a, b) => {
+    const ma = monthlyEligibleCycles(a), mb = monthlyEligibleCycles(b);
+    if (mb !== ma) return mb - ma;
+    const sa = qualifiedDays(a.sessions), sb = qualifiedDays(b.sessions);
+    if (sb !== sa) return sb - sa;
+    return calcXP(b) - calcXP(a);
+  }) : [];
   const eligCount = vList.filter(isEligible).length;
   const myViewer = twitchUser ? state?.viewers?.[twitchUser.id] : null;
   const history = state?.cycleHistory || [];
@@ -1308,43 +1314,70 @@ export default function App() {
 
         {/* RANKING */}
         {tab === "ranking" && <div className="fade-up">
-          <div className="card">
-            <div className="card-title">Ranking semanal</div>
-            {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum viewer ainda.</div>}
+          {/* Header do mês */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 18, color: "#EFEFF1" }}>Ranking Mensal</div>
+              <div style={{ fontSize: 12, color: "#ADADB8", marginTop: 2 }}>{monthLabel(new Date().toISOString().slice(0,10))} · reseta todo mês</div>
+            </div>
+            <div style={{ background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 10, padding: "6px 12px", fontSize: 11, color: "#C9A7FF", textAlign: "right" }}>
+              <div style={{ fontWeight: 700 }}>{eligCount} elegíveis</div>
+              <div style={{ color: "#ADADB8" }}>esta semana</div>
+            </div>
+          </div>
+
+          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+            {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum participante ainda.</div>}
             {vList.map((v, i) => {
-              const score = calcXP(v);
-              const maxScore = calcXP(vList[0]) || 1;
               const ok = isEligible(v);
               const qDays = qualifiedDays(v.sessions);
               const li = getLevelInfo(calcXP(v));
               const monthlyOk = isMonthlyEligible(v);
               const monthCycles = monthlyEligibleCycles(v);
               const medals = ["🥇","🥈","🥉"];
+              const rowBg = i % 2 === 0 ? "transparent" : "#26262C18";
               return (
-                <div key={v.twitch_id || v.nick} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: i < vList.length-1 ? "1px solid #26262C22" : "none", alignItems: "center", cursor: "pointer" }}
+                <div key={v.twitch_id || v.nick}
+                  style={{ display: "flex", gap: 10, padding: "12px 16px", background: rowBg, borderBottom: i < vList.length-1 ? "1px solid #26262C22" : "none", alignItems: "center", cursor: "pointer", transition: "background .15s" }}
+                  onMouseEnter={e => e.currentTarget.style.background="#9146FF0A"}
+                  onMouseLeave={e => e.currentTarget.style.background=rowBg}
                   onClick={() => setProfileViewer(v)}>
-                  <div style={{ width: 26, textAlign: "center", fontWeight: 700, color: i < 3 ? ["#FFD700","#C0C0C0","#CD7F32"][i] : "#ADADB8", fontSize: i < 3 ? 18 : 13 }}>{i < 3 ? medals[i] : `#${i+1}`}</div>
-                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: `${li.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: li.color, fontSize: 14, flexShrink: 0, border: `1.5px solid ${li.color}44` }}>{(v.display_name || v.nick)[0].toUpperCase()}</div>
+                  {/* Posição */}
+                  <div style={{ width: 28, textAlign: "center", fontWeight: 800, color: i < 3 ? ["#FFD700","#C0C0C0","#CD7F32"][i] : "#ADADB8", fontSize: i < 3 ? 18 : 13, flexShrink: 0 }}>{i < 3 ? medals[i] : `#${i+1}`}</div>
+                  {/* Avatar */}
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: `${li.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: li.color, fontSize: 15, flexShrink: 0, border: `2px solid ${li.color}44` }}>{(v.display_name || v.nick)[0].toUpperCase()}</div>
+                  {/* Info principal */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <span style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</span>
-                      <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "elegível ✓" : "pendente"}</span>
-                      {monthlyOk && <span style={{ background: "#FFD70020", color: "#FFD700", borderRadius: 20, padding: "2px 7px", fontSize: 10, fontWeight: 700, border: "1px solid #FFD70044" }}>🏅 mensal</span>}
-                      {!monthlyOk && monthCycles > 0 && <span style={{ background: "#FFD70010", color: "#FFD70099", borderRadius: 20, padding: "2px 7px", fontSize: 10, fontWeight: 600, border: "1px solid #FFD70022" }}>{monthCycles}/3</span>}
-                      {v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4" }}>sub</span>}
-                      <span style={{ display: "flex", gap: 2, marginLeft: 2 }}>
-                        {Array.from({length: MIN_DAYS}, (_, idx) => (
-                          <span key={idx} style={{ fontSize: 12, color: idx < qDays ? "#FFD700" : "#3D3D47" }}>★</span>
-                        ))}
-                      </span>
-                      <span style={{ marginLeft: "auto", fontSize: 10, background: "rgba(0,0,0,0.35)", border: `1px solid ${li.color}44`, borderRadius: 6, padding: "2px 7px", color: li.color, fontWeight: 700, flexShrink: 0 }}>LV{li.lv}</span>
+                      <span style={{ fontSize: 10, background: "rgba(0,0,0,0.3)", border: `1px solid ${li.color}44`, borderRadius: 6, padding: "1px 6px", color: li.color, fontWeight: 700, flexShrink: 0 }}>LV{li.lv}</span>
+                      {v.hasSub && <span style={{ background: "#FF69B415", color: "#FF69B4", borderRadius: 20, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>⭐ sub</span>}
                     </div>
-                    <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 4 }}>{uniqueDays(v.sessions).length} lives · {Math.floor(calcMins(v.sessions)/60)}h{calcMins(v.sessions)%60}m · <strong style={{ color: "#9146FF" }}>{score} XP</strong></div>
-                    <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.round(score/maxScore*100)}%`, background: i === 0 ? "#FFD700" : "#9146FF" }} /></div>
+                    {/* Estrelas da semana */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
+                      <div style={{ display: "flex", gap: 2 }}>
+                        {Array.from({length: MIN_DAYS}, (_, idx) => (
+                          <span key={idx} style={{ fontSize: 13, color: idx < qDays ? "#FFD700" : "#3D3D47", filter: idx < qDays ? "drop-shadow(0 0 3px #FFD70066)" : "none" }}>★</span>
+                        ))}
+                      </div>
+                      <span style={{ fontSize: 10, color: "#ADADB8" }}>{ok ? <span style={{ color: "#00C853", fontWeight: 700 }}>✓ elegível</span> : `${Math.floor(calcMins(v.sessions)/60)}h${calcMins(v.sessions)%60}m`}</span>
+                    </div>
+                  </div>
+                  {/* Progresso mensal */}
+                  <div style={{ flexShrink: 0, textAlign: "center", minWidth: 52 }}>
+                    <div style={{ display: "flex", gap: 3, justifyContent: "center", marginBottom: 3 }}>
+                      {[0,1,2].map(idx => (
+                        <div key={idx} style={{ width: 12, height: 12, borderRadius: "50%", background: idx < monthCycles ? (monthlyOk ? "#FFD700" : "#FFB347") : "#3D3D47", border: `1.5px solid ${idx < monthCycles ? (monthlyOk ? "#FFD70066" : "#FFB34766") : "#26262C"}`, transition: "all .3s" }} />
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 9, color: monthlyOk ? "#FFD700" : "#ADADB8", fontWeight: 700, letterSpacing: .3 }}>{monthlyOk ? "🏅 mensal" : `${monthCycles}/3`}</div>
                   </div>
                 </div>
               );
             })}
+          </div>
+          <div style={{ fontSize: 11, color: "#3D3D47", textAlign: "center", marginTop: 8 }}>
+            ★ = dias qualificados nesta semana · ●●● = semanas elegíveis neste mês
           </div>
         </div>}
 
