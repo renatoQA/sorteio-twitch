@@ -66,10 +66,162 @@ function monthLabel(d) {
   return `${months[parseInt(m)-1]} ${y}`;
 }
 
+function monthlyEligibleCycles(v) {
+  const now = new Date().toISOString().slice(0, 7);
+  return (v.history || []).filter(h => h.eligible && (h.cycleEnd || "").slice(0, 7) === now).length;
+}
+function isMonthlyEligible(v) { return monthlyEligibleCycles(v) >= 3; }
+
+const ACHIEVEMENTS = [
+  { id: "first_step",       icon: "🎮", name: "Primeiros Passos",  desc: "Fez o primeiro check-in",                 check: v => v.sessions?.length > 0 || (v.history||[]).some(h => h.sessions?.length > 0) },
+  { id: "eligible",         icon: "✅", name: "Na Urna",           desc: "Ficou elegível em um sorteio",             check: v => isEligible(v) || (v.history||[]).some(h => h.eligible) },
+  { id: "champion",         icon: "🏆", name: "Campeão",           desc: "Ganhou um sorteio semanal",                check: v => (v.history||[]).some(h => h.won) },
+  { id: "subscriber",       icon: "⭐", name: "Inscrito",          desc: "É inscrito do canal",                      check: v => !!v.hasSub },
+  { id: "monthly_eligible", icon: "🏅", name: "Elegível Mensal",   desc: "3+ semanas elegíveis no mesmo mês",        check: v => isMonthlyEligible(v) },
+  { id: "marathon",         icon: "⏱", name: "Maratonista",        desc: "Acumulou 11h em uma única semana",         check: v => calcMins(v.sessions) >= 660 || (v.history||[]).some(h => h.totalMinutes >= 660) },
+  { id: "dedicated",        icon: "📅", name: "Dedicado",           desc: "4+ dias qualificados em uma semana",       check: v => qualifiedDays(v.sessions) >= 4 || (v.history||[]).some(h => qualifiedDays(h.sessions||[]) >= 4) },
+  { id: "veteran",          icon: "🎖", name: "Veterano",           desc: "Participou de 5 ou mais ciclos",           check: v => (v.history?.length||0) >= 5 },
+  { id: "legend",           icon: "🌟", name: "Lenda da Área",      desc: "Participou de 10 ou mais ciclos",          check: v => (v.history?.length||0) >= 10 },
+  { id: "perfect_month",    icon: "💎", name: "Mês Perfeito",       desc: "4 semanas elegíveis em um mesmo mês",      check: v => { const m = {}; for (const h of v.history||[]) { if (!h.eligible) continue; const k=(h.cycleEnd||"").slice(0,7); if (!k) continue; m[k]=(m[k]||0)+1; if(m[k]>=4) return true; } return false; } },
+];
+
+function ProfileModal({ v, vList, onClose }) {
+  const xp = calcXP(v);
+  const li = getLevelInfo(xp);
+  const ok = isEligible(v);
+  const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
+  const monthCycles = monthlyEligibleCycles(v);
+  const monthlyOk = isMonthlyEligible(v);
+  const qDays = qualifiedDays(v.sessions);
+  const mins = calcMins(v.sessions);
+  const days = uniqueDays(v.sessions).length;
+  const history = v.history || [];
+  const achievements = ACHIEVEMENTS.map(a => ({ ...a, unlocked: a.check(v) }));
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000000BB", zIndex: 9000, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ background: "#18181B", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 620, maxHeight: "92dvh", overflowY: "auto", paddingBottom: 32 }} onClick={e => e.stopPropagation()}>
+        {/* Handle */}
+        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: "#3D3D47" }} />
+        </div>
+
+        {/* Header */}
+        <div style={{ padding: "14px 20px 20px", background: `linear-gradient(180deg, ${li.color}15 0%, transparent 100%)`, borderBottom: "1px solid #26262C" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 58, height: 58, borderRadius: "50%", background: `${li.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: li.color, fontSize: 26, border: `2px solid ${li.color}55`, flexShrink: 0 }}>
+              {(v.display_name || v.nick)[0].toUpperCase()}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 900, fontSize: 19, color: "#EFEFF1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</div>
+              <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 5, flexWrap: "wrap" }}>
+                <span style={{ background: `${li.color}22`, border: `1px solid ${li.color}55`, borderRadius: 6, padding: "2px 8px", fontSize: 11, color: li.color, fontWeight: 700 }}>LV {li.lv} · {li.name}</span>
+                <span style={{ fontSize: 11, color: "#ADADB8" }}>#{rank} ranking</span>
+                {v.hasSub && <span style={{ background: "#FF69B415", color: "#FF69B4", borderRadius: 20, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>⭐ sub</span>}
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background: "#26262C", border: "none", borderRadius: "50%", width: 34, height: 34, color: "#ADADB8", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
+          </div>
+          {/* XP Bar */}
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#ADADB8", marginBottom: 5 }}>
+              <span>{xp} XP total</span>
+              {li.xpNeed > 0 && <span>faltam {li.xpNeed - li.xpIn} XP → LV{li.lv + 1}</span>}
+            </div>
+            <div style={{ background: "#26262C", borderRadius: 20, height: 8, overflow: "hidden" }}>
+              <div style={{ width: `${li.pct}%`, height: "100%", background: `linear-gradient(90deg, ${li.color}77, ${li.color})`, borderRadius: 20 }} />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: "16px 20px 0" }}>
+          {/* Status Semanal + Mensal */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+            <div style={{ background: ok ? "#00C85318" : "#1a1a1e", border: `1.5px solid ${ok ? "#00C85355" : "#3D3D47"}`, borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
+              <div style={{ fontSize: 24, marginBottom: 4 }}>{ok ? "✅" : "⏳"}</div>
+              <div style={{ fontWeight: 800, fontSize: 13, color: ok ? "#00C853" : "#ADADB8" }}>{ok ? "Elegível" : "Pendente"}</div>
+              <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>Sorteio semanal</div>
+            </div>
+            <div style={{ background: monthlyOk ? "#FFD70018" : "#1a1a1e", border: `1.5px solid ${monthlyOk ? "#FFD70055" : "#3D3D47"}`, borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
+              <div style={{ fontSize: 24, marginBottom: 4 }}>{monthlyOk ? "🏅" : monthCycles > 0 ? "🔓" : "🔒"}</div>
+              <div style={{ fontWeight: 800, fontSize: 13, color: monthlyOk ? "#FFD700" : monthCycles > 0 ? "#C9A7FF" : "#ADADB8" }}>{monthCycles}/3 semanas</div>
+              <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>Sorteio mensal</div>
+              {/* mini progress dots */}
+              <div style={{ display: "flex", gap: 4, justifyContent: "center", marginTop: 6 }}>
+                {[0,1,2].map(i => <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: i < monthCycles ? "#FFD700" : "#3D3D47", transition: "background .3s" }} />)}
+              </div>
+            </div>
+          </div>
+
+          {/* Semana atual */}
+          <div style={{ background: "#26262C", borderRadius: 14, padding: "14px", marginBottom: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 12 }}>📊 Semana Atual</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
+              {[["#9146FF", days, "lives"],["#00C853", `${Math.floor(mins/60)}h${mins%60}m`, "tempo"],["#FFD700", qDays, "dias qualif."]].map(([color, val, lbl]) => (
+                <div key={lbl} style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color }}>{val}</div>
+                  <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>{lbl}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 5, justifyContent: "center" }}>
+              {Array.from({length: 4}, (_,i) => (
+                <span key={i} style={{ fontSize: 20, color: i < qDays ? "#FFD700" : "#3D3D47", filter: i < qDays ? "drop-shadow(0 0 4px #FFD70088)" : "none", transition: "all .3s" }}>★</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Conquistas */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", letterSpacing: 1.5, textTransform: "uppercase" }}>🏅 Conquistas</div>
+              <span style={{ fontSize: 11, color: "#9146FF", fontWeight: 700 }}>{unlockedCount}/{achievements.length}</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
+              {achievements.map(a => (
+                <div key={a.id} style={{ background: a.unlocked ? "#9146FF12" : "#1a1a1e", border: `1px solid ${a.unlocked ? "#9146FF44" : "#26262C"}`, borderRadius: 10, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, opacity: a.unlocked ? 1 : 0.4, transition: "opacity .2s" }}>
+                  <span style={{ fontSize: 22, flexShrink: 0, filter: a.unlocked ? "none" : "grayscale(1) brightness(.5)" }}>{a.icon}</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: a.unlocked ? "#EFEFF1" : "#ADADB8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
+                    <div style={{ fontSize: 10, color: "#ADADB8", lineHeight: 1.4 }}>{a.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Histórico */}
+          {history.length > 0 && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }}>📁 Histórico ({history.length} ciclo{history.length !== 1 ? "s" : ""})</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {history.slice(0, 8).map((h, i) => (
+                  <div key={i} style={{ background: "#26262C", borderRadius: 10, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>{h.won ? "🏆" : h.eligible ? "✅" : "⏳"}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#EFEFF1" }}>{formatDate(h.cycleEnd)}</div>
+                      <div style={{ fontSize: 10, color: "#ADADB8" }}>
+                        {h.lives} live(s) · {Math.floor(h.totalMinutes/60)}h{h.totalMinutes%60}m · <span style={{ color: h.eligible ? "#00C853" : "#ADADB8" }}>{h.eligible ? "elegível" : "não elegível"}</span>{h.won ? " · 🏆 ganhou!" : ""}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PrizeCarousel({ eligCount, vList }) {
   const [slide, setSlide] = useState(0);
   const [vis, setVis] = useState(true);
-  const total = 3;
+  const total = 2;
+
+  const SLIDE_LABELS = ["🎁 Prêmios Semanais", "🏅 Prêmio Mensal"];
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -86,7 +238,7 @@ function PrizeCarousel({ eligCount, vList }) {
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 110%, #9146FF20 0%, transparent 65%)", pointerEvents: "none", zIndex: 0 }} />
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", flex: 1 }}>
         <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #9146FF22" }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 2, textTransform: "uppercase" }}>🎁 Prêmio Semanal</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 2, textTransform: "uppercase", transition: "opacity .28s", opacity: vis ? 1 : 0 }}>{SLIDE_LABELS[slide]}</div>
           <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
             {Array.from({length: total}).map((_,i) => (
               <div key={i} onClick={() => goTo(i)}
@@ -96,40 +248,36 @@ function PrizeCarousel({ eligCount, vList }) {
         </div>
         <div style={{ flex: 1, transition: "opacity .28s", opacity: vis ? 1 : 0, minHeight: 200 }}>
           {slide === 0 && (
-            <div style={{ position: "relative" }}>
-              <img src="/premio.png" alt="Prêmio" style={{ width: "100%", maxHeight: 300, objectFit: "contain", display: "block", background: "#0d0020" }} onError={e => { e.target.style.display="none"; }} />
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, #0d0020, transparent)", height: 60, pointerEvents: "none" }} />
-            </div>
-          )}
-          {slide === 1 && (
-            <div style={{ padding: "24px 20px 28px", textAlign: "center" }}>
-              <div style={{ fontSize: 38, marginBottom: 12 }}>🏆</div>
-              <div style={{ fontWeight: 800, fontSize: 15, color: "#EFEFF1", marginBottom: 18 }}>Como ganhar</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 22, flexShrink: 0 }}>⏱</span>
+            <div style={{ padding: "20px 20px 24px", textAlign: "center" }}>
+              <div style={{ position: "relative", marginBottom: 16 }}>
+                <img src="/premio.png" alt="Prêmio Semanal" style={{ width: "100%", maxHeight: 200, objectFit: "contain", display: "block", background: "transparent", borderRadius: 10 }} onError={e => { e.target.style.display="none"; }} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 20, flexShrink: 0 }}>⏱</span>
                   <span><strong style={{ color: "#fff" }}>11h</strong> de live acumuladas na semana</span>
                 </div>
                 <div style={{ fontSize: 11, color: "#9146FF", fontWeight: 700, textAlign: "center" }}>— OU —</div>
-                <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 22, flexShrink: 0 }}>📅</span>
+                <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 20, flexShrink: 0 }}>📅</span>
                   <span><strong style={{ color: "#fff" }}>4 dias</strong> de check-in com pelo menos 1h cada</span>
                 </div>
               </div>
             </div>
           )}
-          {slide === 2 && (
-            <div style={{ padding: "24px 20px 28px", textAlign: "center" }}>
-              <div style={{ fontSize: 38, marginBottom: 12 }}>🎲</div>
-              <div style={{ fontWeight: 800, fontSize: 15, color: "#EFEFF1", marginBottom: 18 }}>Sorteio desta semana</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div style={{ background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 12, padding: "16px 8px" }}>
-                  <div style={{ fontSize: 32, fontWeight: 900, color: "#9146FF" }}>{eligCount}</div>
-                  <div style={{ fontSize: 10, color: "#ADADB8", textTransform: "uppercase", letterSpacing: .5, marginTop: 4 }}>elegíveis</div>
-                </div>
-                <div style={{ background: "#FFB34718", border: "1px solid #FFB34733", borderRadius: 12, padding: "16px 8px" }}>
-                  <div style={{ fontSize: 32, fontWeight: 900, color: "#FFB347" }}>{vList.length}</div>
-                  <div style={{ fontSize: 10, color: "#ADADB8", textTransform: "uppercase", letterSpacing: .5, marginTop: 4 }}>participantes</div>
+          {slide === 1 && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ position: "relative" }}>
+                <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", maxHeight: 220, objectFit: "contain", display: "block", background: "#0d0020" }} onError={e => { e.target.style.display="none"; }} />
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, #0d0020, transparent)", height: 50, pointerEvents: "none" }} />
+              </div>
+              <div style={{ padding: "12px 18px 18px" }}>
+                <div style={{ background: "#FFD70018", border: "1px solid #FFD70044", borderRadius: 12, padding: "12px 16px", textAlign: "left" }}>
+                  <div style={{ fontSize: 11, color: "#FFD700", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>🏆 Como se qualificar</div>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#C9A7FF", lineHeight: 1.6 }}>
+                    <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>📆</span>
+                    <span>Ter completado pelo menos <strong style={{ color: "#FFD700" }}>3 semanas elegíveis</strong> no mês</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -325,6 +473,7 @@ export default function App() {
   const [ircLog, setIrcLog] = useState([]);
   const [liveTitle, setLiveTitle] = useState('');
   const [liveTestMode, setLiveTestMode] = useState(false);
+  const [profileViewer, setProfileViewer] = useState(null);
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -878,7 +1027,7 @@ export default function App() {
 
           {/* Nav inline — desktop only */}
           <nav className="navbar-nav">
-            {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["streamer","Streamer"]].map(([id,label]) => (
+            {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["parceiros","Parceiros"],["streamer","Streamer"]].map(([id,label]) => (
               <button key={id} className={`nav-item${tab===id?" active":""}`} onClick={() => setTab(id)}>{label}</button>
             ))}
           </nav>
@@ -900,7 +1049,7 @@ export default function App() {
 
         {/* Tabs row — mobile only */}
         <div className="navbar-tabs">
-          {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["streamer","Streamer"]].map(([id,label]) => (
+          {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["parceiros","Parceiros"],["streamer","Streamer"]].map(([id,label]) => (
             <button key={id} className={`nav-tab${tab===id?" active":""}`} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
@@ -974,11 +1123,21 @@ export default function App() {
             ))}
           </div>
 
-          <div className="card" style={{ background: "#9146FF10", borderColor: "#9146FF33" }}>
-            <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.7 }}>
-              <strong style={{ color: "#9146FF" }}>Regra do sorteio:</strong> Para ser elegível você precisa cumprir <strong>uma</strong> das condições abaixo:<br />
-              <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ <strong>11 horas de live</strong> acumuladas no total</span>
-              <span style={{ paddingLeft: 8, display: "block", marginTop: 2 }}>✅ <strong>4 dias de check-in</strong> com no mínimo 1h em cada dia (incluindo o dia do sorteio)</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="card" style={{ background: "#9146FF10", borderColor: "#9146FF33", marginBottom: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#9146FF", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>🎁 Sorteio Semanal</div>
+              <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.7 }}>
+                Para ser elegível você precisa cumprir <strong>uma</strong> das condições abaixo:<br />
+                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ <strong>11 horas de live</strong> acumuladas no total na semana</span>
+                <span style={{ paddingLeft: 8, display: "block", marginTop: 2 }}>✅ <strong>4 dias de check-in</strong> com no mínimo 1h em cada dia (incluindo o dia do sorteio)</span>
+              </div>
+            </div>
+            <div className="card" style={{ background: "#FFD70010", borderColor: "#FFD70033", marginBottom: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#FFD700", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>🏅 Sorteio Mensal</div>
+              <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.7 }}>
+                Para se qualificar ao prêmio mensal:<br />
+                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ Ter completado pelo menos <strong>3 semanas elegíveis</strong> no mês</span>
+              </div>
             </div>
           </div>
 
@@ -1151,17 +1310,21 @@ export default function App() {
               const ok = isEligible(v);
               const qDays = qualifiedDays(v.sessions);
               const li = getLevelInfo(calcXP(v));
+              const monthlyOk = isMonthlyEligible(v);
+              const monthCycles = monthlyEligibleCycles(v);
               const medals = ["🥇","🥈","🥉"];
               return (
-                <div key={v.twitch_id || v.nick} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: i < vList.length-1 ? "1px solid #26262C22" : "none", alignItems: "center" }}>
+                <div key={v.twitch_id || v.nick} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: i < vList.length-1 ? "1px solid #26262C22" : "none", alignItems: "center", cursor: "pointer" }}
+                  onClick={() => setProfileViewer(v)}>
                   <div style={{ width: 26, textAlign: "center", fontWeight: 700, color: i < 3 ? ["#FFD700","#C0C0C0","#CD7F32"][i] : "#ADADB8", fontSize: i < 3 ? 18 : 13 }}>{i < 3 ? medals[i] : `#${i+1}`}</div>
-                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#9146FF22", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#9146FF", fontSize: 14, flexShrink: 0 }}>{(v.display_name || v.nick)[0].toUpperCase()}</div>
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: `${li.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: li.color, fontSize: 14, flexShrink: 0, border: `1.5px solid ${li.color}44` }}>{(v.display_name || v.nick)[0].toUpperCase()}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
                       <span style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</span>
                       <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "elegível ✓" : "pendente"}</span>
+                      {monthlyOk && <span style={{ background: "#FFD70020", color: "#FFD700", borderRadius: 20, padding: "2px 7px", fontSize: 10, fontWeight: 700, border: "1px solid #FFD70044" }}>🏅 mensal</span>}
+                      {!monthlyOk && monthCycles > 0 && <span style={{ background: "#FFD70010", color: "#FFD70099", borderRadius: 20, padding: "2px 7px", fontSize: 10, fontWeight: 600, border: "1px solid #FFD70022" }}>{monthCycles}/3</span>}
                       {v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4" }}>sub</span>}
-                      {/* Estrelas de dias qualificados */}
                       <span style={{ display: "flex", gap: 2, marginLeft: 2 }}>
                         {Array.from({length: MIN_DAYS}, (_, idx) => (
                           <span key={idx} style={{ fontSize: 12, color: idx < qDays ? "#FFD700" : "#3D3D47" }}>★</span>
@@ -1369,14 +1532,21 @@ export default function App() {
                   const days = uniqueDays(v.sessions).length;
                   const mins = calcMins(v.sessions);
                   const ok = isEligible(v);
+                  const monthlyOk = isMonthlyEligible(v);
+                  const monthCycles = monthlyEligibleCycles(v);
                   const hasToday = v.sessions.some(s => s.date === state?.liveDate);
                   return (
                     <div key={v.twitch_id || v.nick} className="viewer-row">
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</span>
+                          {monthlyOk && <span style={{ background: "#FFD70020", color: "#FFD700", borderRadius: 20, padding: "1px 7px", fontSize: 10, fontWeight: 700, border: "1px solid #FFD70044", flexShrink: 0 }}>🏅 mensal</span>}
+                          {!monthlyOk && monthCycles > 0 && <span style={{ background: "#FFD70010", color: "#FFD70099", borderRadius: 20, padding: "1px 6px", fontSize: 10, fontWeight: 600, flexShrink: 0 }}>{monthCycles}/3 🏅</span>}
+                        </div>
                         <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 2 }}>{days} lives · {Math.floor(mins/60)}h{mins%60}m · <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok?"elegível":"pendente"}</span>{v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4", marginLeft: 4 }}>★ sub</span>}</div>
                       </div>
-                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                      <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
+                        <button onClick={() => setProfileViewer(v)} style={{ background: "#9146FF22", border: "1px solid #9146FF44", borderRadius: 8, padding: "4px 8px", fontSize: 13, cursor: "pointer", color: "#9146FF", lineHeight: 1 }} title="Ver perfil">👁</button>
                         {hasToday ? [15,30,60].map(m => (
                           <button key={m} className="btn-ghost" style={{ padding: "4px 8px", fontSize: 11, borderRadius: 8 }} onClick={() => addTime(v.twitch_id, m)} disabled={acting}>+{m}</button>
                         )) : <span style={{ color: "#3D3D47", fontSize: 11 }}>{state?.liveActive ? "sem checkin" : "—"}</span>}
@@ -1484,7 +1654,57 @@ export default function App() {
             </>}
           </>}
         </div>}
+
+        {/* PARCEIROS */}
+        {tab === "parceiros" && <div className="fade-up">
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontWeight: 900, fontSize: 22, color: "#EFEFF1", marginBottom: 4 }}>Parceiros</div>
+            <div style={{ fontSize: 13, color: "#ADADB8" }}>Plataformas e comunidades parceiras do Tailung</div>
+          </div>
+
+          {/* Mentora Card */}
+          <a href="https://copa.mentora.gg/" target="_blank" rel="noopener noreferrer"
+            style={{ display: "block", textDecoration: "none", borderRadius: 18, overflow: "hidden", marginBottom: 14, background: "linear-gradient(145deg, #071a0e 0%, #0d3320 55%, #0a2218 100%)", border: "1.5px solid #00C85333", transition: "transform .15s, box-shadow .15s" }}
+            onMouseEnter={e => { e.currentTarget.style.transform="translateY(-3px)"; e.currentTarget.style.boxShadow="0 12px 40px #00C85340"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform=""; e.currentTarget.style.boxShadow=""; }}>
+            {/* Banner top */}
+            <div style={{ background: "linear-gradient(135deg, #00C85318 0%, #00ff6618 100%)", padding: "28px 24px 20px", display: "flex", alignItems: "center", gap: 20 }}>
+              {/* Logo Mentora */}
+              <div style={{ width: 72, height: 72, borderRadius: 18, background: "linear-gradient(135deg, #00C853 0%, #00a844 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 24px #00C85366" }}>
+                <svg width="42" height="42" viewBox="0 0 42 42" fill="none">
+                  <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="28" fontWeight="900" fontFamily="Inter,system-ui,sans-serif">M</text>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 900, fontSize: 22, color: "#fff", letterSpacing: -.5, marginBottom: 3 }}>Mentora</div>
+                <div style={{ fontSize: 12, color: "#00C853", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Parceiro Oficial</div>
+              </div>
+              <div style={{ background: "#00C85322", border: "1px solid #00C85355", borderRadius: 20, padding: "6px 16px", fontSize: 12, fontWeight: 700, color: "#00C853", flexShrink: 0 }}>Visitar ↗</div>
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: "18px 24px 24px" }}>
+              <p style={{ fontSize: 14, color: "#C9FFC9", lineHeight: 1.75, marginBottom: 18 }}>
+                A Mentora é a grande parceira do Tailung onde rola <strong style={{ color: "#fff" }}>lobby</strong> e <strong style={{ color: "#fff" }}>campeonatos</strong> em parceria com a comunidade. Crie já sua conta e participe!
+              </p>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {["🎮 Lobbys exclusivos","🏆 Campeonatos","🤝 Comunidade parceira"].map(tag => (
+                  <span key={tag} style={{ background: "#00C85315", border: "1px solid #00C85333", borderRadius: 20, padding: "5px 13px", fontSize: 12, color: "#00C853", fontWeight: 600 }}>{tag}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA bottom */}
+            <div style={{ background: "#00C85312", borderTop: "1px solid #00C85322", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12, color: "#ADADB8" }}>copa.mentora.gg</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#00C853" }}>Criar conta grátis →</span>
+            </div>
+          </a>
+        </div>}
+
       </div>
+
+      {profileViewer && <ProfileModal v={profileViewer} vList={vList} onClose={() => setProfileViewer(null)} />}
 
       {flashMsg && (
         <div style={{ position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", background: flashColor, color: "#fff", padding: "11px 22px", borderRadius: 10, fontWeight: 700, fontSize: 13, zIndex: 9999, pointerEvents: "none", whiteSpace: "nowrap", boxShadow: "0 4px 20px #0008" }}>
@@ -1509,6 +1729,8 @@ function ViewerCard({ v, vList }) {
 
   const now = new Date().toISOString().slice(0, 7);
   const monthHistory = history.filter(h => (h.cycleEnd || "").slice(0, 7) === now);
+  const monthCycles = monthlyEligibleCycles(v);
+  const monthlyOk = isMonthlyEligible(v);
   const xp = calcXP(v);
   const li = getLevelInfo(xp);
 
@@ -1522,6 +1744,8 @@ function ViewerCard({ v, vList }) {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
           <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "Elegível ✓" : "Pendente"}</span>
+          {monthlyOk && <span style={{ background: "#FFD70020", color: "#FFD700", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "1px solid #FFD70044" }}>🏅 Mensal</span>}
+          {!monthlyOk && monthCycles > 0 && <span style={{ background: "#FFD70010", color: "#FFD70099", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 600 }}>{monthCycles}/3 🏅</span>}
           {v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4" }}>★ Inscrito</span>}
         </div>
       </div>
@@ -1603,7 +1827,22 @@ function ViewerCard({ v, vList }) {
 
       {/* Este mês */}
       {histTab === "mensal" && <>
-        {monthHistory.length === 0 && <div style={{ fontSize: 12, color: "#ADADB8", textAlign: "center", padding: "16px 0" }}>Nenhum ciclo encerrado este mês.</div>}
+        {/* Progresso mensal */}
+        <div style={{ background: monthlyOk ? "#FFD70015" : "#1a1a1e", border: `1.5px solid ${monthlyOk ? "#FFD70055" : "#3D3D47"}`, borderRadius: 14, padding: "14px 16px", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <div style={{ fontWeight: 800, fontSize: 13, color: monthlyOk ? "#FFD700" : "#ADADB8" }}>{monthlyOk ? "🏅 Elegível Mensal!" : "Progresso Mensal"}</div>
+            <span style={{ fontSize: 12, fontWeight: 700, color: monthlyOk ? "#FFD700" : "#C9A7FF" }}>{monthCycles}/3 semanas</span>
+          </div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{ flex: 1, height: 10, borderRadius: 20, background: i < monthCycles ? "linear-gradient(90deg, #FFB30088, #FFD700)" : "#26262C", transition: "background .4s", border: `1px solid ${i < monthCycles ? "#FFD70044" : "#3D3D47"}` }} />
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: "#ADADB8" }}>
+            {monthlyOk ? "Você está qualificado para o sorteio mensal! 🎉" : `Faltam ${3 - monthCycles} semana(s) elegível(is) para o sorteio mensal`}
+          </div>
+        </div>
+        {monthHistory.length === 0 && <div style={{ fontSize: 12, color: "#ADADB8", textAlign: "center", padding: "10px 0" }}>Nenhum ciclo encerrado este mês.</div>}
         {monthHistory.map((h, i) => <CycleEntry key={i} h={h} />)}
       </>}
 

@@ -10,6 +10,7 @@ const DISCORD_WEBHOOKS = [
 async function notifyDiscordLive(liveTitle) {
   const titleLine = liveTitle ? `**${liveTitle}**\n\n` : '';
   const body = JSON.stringify({
+    content: '@everyone',
     username: 'Area do Tailung',
     avatar_url: 'https://area-tailung.vercel.app/favicon.ico',
     embeds: [{
@@ -17,7 +18,10 @@ async function notifyDiscordLive(liveTitle) {
       title: '🔴 oTaiLungg está AO VIVO!',
       description: `${titleLine}Não se esqueça de fazer o seu checkin na **Area do Tailung** para participar dos sorteios! 🎮🎁`,
       url: 'https://www.twitch.tv/otailungg',
-      fields: [{ name: '📺 Assistir agora', value: '[twitch.tv/otailungg](https://www.twitch.tv/otailungg)', inline: true }],
+      fields: [
+        { name: '📺 Assistir agora', value: '[twitch.tv/otailungg](https://www.twitch.tv/otailungg)', inline: true },
+        { name: '🌐 Area do Tailung', value: '[area-tailung.vercel.app](https://area-tailung.vercel.app)', inline: true },
+      ],
       footer: { text: 'Area do Tailung • Sorteio Semanal' },
       timestamp: new Date().toISOString(),
     }],
