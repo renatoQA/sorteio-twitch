@@ -467,6 +467,8 @@ export default function App() {
   const botTimerRef = useRef(null);
   const nextBotMsgAtRef = useRef(null);
   const [botCountdown, setBotCountdown] = useState('');
+  const [botIntervalMins, setBotIntervalMins] = useState(() => Number(localStorage.getItem('bot_interval_mins')) || 7);
+  const botIntervalRef = useRef(Number(localStorage.getItem('bot_interval_mins')) || 7);
   const ircRef = useRef(null);
   const ircReconnectRef = useRef(false);
   const [spinSecs, setSpinSecs] = useState(8);
@@ -563,15 +565,15 @@ export default function App() {
       clearInterval(botTimerRef.current);
       clearTimeout(botTimerRef.current);
       const now = Date.now();
-      const nextAt = nextBotMsgAtRef.current ?? (now + 15 * 60 * 1000);
+      const nextAt = nextBotMsgAtRef.current ?? (now + botIntervalRef.current * 60 * 1000);
       const delay = Math.max(0, nextAt - now);
       if (delay === 0) {
         sendBotMessage();
-        botTimerRef.current = setInterval(sendBotMessage, 15 * 60 * 1000);
+        botTimerRef.current = setInterval(sendBotMessage, botIntervalRef.current * 60 * 1000);
       } else {
         botTimerRef.current = setTimeout(() => {
           sendBotMessage();
-          botTimerRef.current = setInterval(sendBotMessage, 15 * 60 * 1000);
+          botTimerRef.current = setInterval(sendBotMessage, botIntervalRef.current * 60 * 1000);
         }, delay);
       }
       // Reconecta IRC se caiu
@@ -656,7 +658,7 @@ export default function App() {
 
   async function sendBotMessage() {
     if (!streamerToken || !streamerTwitchId) return;
-    nextBotMsgAtRef.current = Date.now() + 15 * 60 * 1000;
+    nextBotMsgAtRef.current = Date.now() + botIntervalRef.current * 60 * 1000;
     localStorage.setItem('bot_next_msg', String(nextBotMsgAtRef.current));
     try {
       // Open new credit window before sending message
@@ -771,14 +773,14 @@ export default function App() {
   }
 
   function startBot() {
-    nextBotMsgAtRef.current = Date.now() + 15 * 60 * 1000;
+    nextBotMsgAtRef.current = Date.now() + botIntervalRef.current * 60 * 1000;
     localStorage.setItem('bot_next_msg', String(nextBotMsgAtRef.current));
     localStorage.setItem('bot_active', '1');
-    botTimerRef.current = setInterval(sendBotMessage, 15 * 60 * 1000);
+    botTimerRef.current = setInterval(sendBotMessage, botIntervalRef.current * 60 * 1000);
     setBotActive(true);
     ircReconnectRef.current = true;
     connectIRC(streamerToken, streamerLogin);
-    flash("Bot iniciado! Primeira mensagem em 15 minutos. 🤖", "#00C853");
+    flash(`Bot iniciado! Primeira mensagem em ${botIntervalRef.current} minutos. 🤖`, "#00C853");
   }
 
   function stopBot() {
@@ -1492,7 +1494,7 @@ export default function App() {
                 {!streamerTwitchId ? (
                   <>
                     <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 12, lineHeight: 1.7 }}>
-                      Conecte sua conta Twitch para o bot postar <strong style={{ color: "#EFEFF1" }}>#tailung</strong> no chat a cada 15min. Viewers que responderem ganham +15min automaticamente.
+                      Conecte sua conta Twitch para o bot postar <strong style={{ color: "#EFEFF1" }}>#tailung</strong> no chat a cada {botIntervalMins}min. Viewers que responderem ganham +15min automaticamente.
                     </div>
                     <button className="btn btn-full" onClick={loginStreamerBot}>
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
@@ -1504,8 +1506,23 @@ export default function App() {
                     <div style={{ fontSize: 12, color: "#00C853", marginBottom: 10 }}>✓ Twitch conectado</div>
                     <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 12, lineHeight: 1.7 }}>
                       {botActive
-                        ? "Bot ativo: postando #tailung no chat a cada 15min e somando tempo automaticamente."
-                        : "Bot pronto. Inicie para postar no chat a cada 15min e capturar as respostas dos viewers."}
+                        ? `Bot ativo: postando #tailung no chat a cada ${botIntervalMins}min e somando tempo automaticamente.`
+                        : `Bot pronto. Inicie para postar no chat a cada ${botIntervalMins}min e capturar as respostas dos viewers.`}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                      <label style={{ fontSize: 12, color: "#ADADB8", whiteSpace: "nowrap" }}>Intervalo (min):</label>
+                      <input
+                        type="number" min={1} max={60}
+                        value={botIntervalMins}
+                        disabled={botActive}
+                        onChange={e => {
+                          const v = Math.max(1, Math.min(60, Number(e.target.value) || 7));
+                          setBotIntervalMins(v);
+                          botIntervalRef.current = v;
+                          localStorage.setItem('bot_interval_mins', String(v));
+                        }}
+                        style={{ width: 60, background: "#18181B", border: "1px solid #3D3D47", borderRadius: 6, color: "#EFEFF1", padding: "4px 8px", fontSize: 13, opacity: botActive ? 0.5 : 1 }}
+                      />
                     </div>
                     <div className="row">
                       {!botActive
