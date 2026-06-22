@@ -938,14 +938,20 @@ export default function App() {
         .nav-tab { flex: 1; min-width: 72px; padding: 11px 8px; font-size: 12px; font-weight: 700; color: #ADADB8; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: color .15s; letter-spacing: .3px; }
         .nav-tab.active { color: #9146FF; border-bottom-color: #9146FF; }
         @media (min-width: 768px) {
-          .navbar-top { padding: 0 32px; height: 62px; max-width: 1100px; margin: 0 auto; }
+          .navbar-top { padding: 0 32px; height: 62px; max-width: 1400px; margin: 0 auto; }
           .navbar-nav { display: flex; align-items: center; gap: 4px; margin-left: 24px; flex: 1; }
           .navbar-tabs { display: none; }
           .navbar > .navbar-top { max-width: unset; }
         }
-        .body { padding: 14px; max-width: 600px; margin: 0 auto; padding-bottom: 32px; }
-        @media (min-width: 768px) { .body { max-width: 900px; padding: 24px 32px 48px; } }
-        @media (min-width: 1200px) { .body { max-width: 1100px; } }
+        /* Page layout — single col mobile, main+sidebar desktop */
+        .page-layout { display: grid; grid-template-columns: 1fr; max-width: 1400px; margin: 0 auto; }
+        .body { padding: 14px; padding-bottom: 32px; min-width: 0; }
+        .sidebar { display: none; }
+        @media (min-width: 1100px) {
+          .page-layout { grid-template-columns: 1fr 300px; align-items: start; padding: 0 32px; }
+          .body { padding: 24px 20px 48px 0; }
+          .sidebar { display: flex; flex-direction: column; gap: 12px; padding: 24px 0 48px 4px; position: sticky; top: 72px; align-self: start; }
+        }
         .card { background: #18181B; border: 1px solid #26262C; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
         .card-title { font-weight: 700; font-size: 15px; margin-bottom: 14px; }
         .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1027,7 +1033,7 @@ export default function App() {
 
           {/* Nav inline — desktop only */}
           <nav className="navbar-nav">
-            {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["parceiros","Parceiros"],["streamer","Streamer"]].map(([id,label]) => (
+            {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["streamer","Streamer"]].map(([id,label]) => (
               <button key={id} className={`nav-item${tab===id?" active":""}`} onClick={() => setTab(id)}>{label}</button>
             ))}
           </nav>
@@ -1049,12 +1055,13 @@ export default function App() {
 
         {/* Tabs row — mobile only */}
         <div className="navbar-tabs">
-          {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["parceiros","Parceiros"],["streamer","Streamer"]].map(([id,label]) => (
+          {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["streamer","Streamer"]].map(([id,label]) => (
             <button key={id} className={`nav-tab${tab===id?" active":""}`} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
       </div>
 
+      <div className="page-layout">
       <div className="body">
 
         {/* HOME */}
@@ -1655,54 +1662,68 @@ export default function App() {
           </>}
         </div>}
 
-        {/* PARCEIROS */}
-        {tab === "parceiros" && <div className="fade-up">
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontWeight: 900, fontSize: 22, color: "#EFEFF1", marginBottom: 4 }}>Parceiros</div>
-            <div style={{ fontSize: 13, color: "#ADADB8" }}>Plataformas e comunidades parceiras do Tailung</div>
+      </div>{/* end .body */}
+
+        {/* SIDEBAR — visível só em desktop (≥1100px via CSS) */}
+        <aside className="sidebar">
+          {/* Stats rápidos */}
+          <div style={{ background: "#18181B", border: "1px solid #26262C", borderRadius: 12, padding: "14px 16px" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 12 }}>📊 Status da semana</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: "#ADADB8" }}>Participantes</span>
+                <span style={{ fontWeight: 800, fontSize: 14, color: "#9146FF" }}>{vList.length}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: "#ADADB8" }}>Elegíveis</span>
+                <span style={{ fontWeight: 800, fontSize: 14, color: "#00C853" }}>{eligCount}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: "#ADADB8" }}>Horas acumuladas</span>
+                <span style={{ fontWeight: 800, fontSize: 14, color: "#FFB347" }}>{Math.floor(vList.reduce((a,v)=>a+calcMins(v.sessions),0)/60)}h</span>
+              </div>
+              <div style={{ height: 1, background: "#26262C", margin: "4px 0" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: "#ADADB8" }}>Live</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 5, fontWeight: 700, fontSize: 12, color: state?.liveActive ? "#FF4747" : "#ADADB8" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: state?.liveActive ? "#FF4747" : "#3D3D47", display: "inline-block", animation: state?.liveActive ? "pulse 1.5s infinite" : "none" }} />
+                  {state?.liveActive ? "Ao vivo" : "Offline"}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Mentora Card */}
-          <a href="https://copa.mentora.gg/" target="_blank" rel="noopener noreferrer"
-            style={{ display: "block", textDecoration: "none", borderRadius: 18, overflow: "hidden", marginBottom: 14, background: "linear-gradient(145deg, #071a0e 0%, #0d3320 55%, #0a2218 100%)", border: "1.5px solid #00C85333", transition: "transform .15s, box-shadow .15s" }}
-            onMouseEnter={e => { e.currentTarget.style.transform="translateY(-3px)"; e.currentTarget.style.boxShadow="0 12px 40px #00C85340"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform=""; e.currentTarget.style.boxShadow=""; }}>
-            {/* Banner top */}
-            <div style={{ background: "linear-gradient(135deg, #00C85318 0%, #00ff6618 100%)", padding: "28px 24px 20px", display: "flex", alignItems: "center", gap: 20 }}>
-              {/* Logo Mentora */}
-              <div style={{ width: 72, height: 72, borderRadius: 18, background: "linear-gradient(135deg, #00C853 0%, #00a844 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 24px #00C85366" }}>
-                <svg width="42" height="42" viewBox="0 0 42 42" fill="none">
-                  <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="28" fontWeight="900" fontFamily="Inter,system-ui,sans-serif">M</text>
-                </svg>
+          {/* Parceiros */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10, paddingLeft: 2 }}>🤝 Parceiros</div>
+            <a href="https://copa.mentora.gg/" target="_blank" rel="noopener noreferrer"
+              style={{ display: "block", textDecoration: "none", background: "linear-gradient(145deg, #071a0e 0%, #0d3320 60%, #0a2218 100%)", border: "1.5px solid #00C85333", borderRadius: 14, overflow: "hidden", transition: "transform .15s, box-shadow .15s" }}
+              onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px #00C85335"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform=""; e.currentTarget.style.boxShadow=""; }}>
+              <div style={{ padding: "16px", display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg, #00C853, #00a844)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 14px #00C85355" }}>
+                  <svg width="26" height="26" viewBox="0 0 42 42" fill="none">
+                    <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="28" fontWeight="900" fontFamily="Inter,system-ui,sans-serif">M</text>
+                  </svg>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: "#fff", marginBottom: 2 }}>Mentora</div>
+                  <div style={{ fontSize: 10, color: "#00C853", fontWeight: 700, letterSpacing: .8, textTransform: "uppercase" }}>Parceiro Oficial</div>
+                </div>
+                <span style={{ color: "#00C85399", fontSize: 16 }}>↗</span>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 900, fontSize: 22, color: "#fff", letterSpacing: -.5, marginBottom: 3 }}>Mentora</div>
-                <div style={{ fontSize: 12, color: "#00C853", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Parceiro Oficial</div>
+              <div style={{ padding: "0 16px 12px", fontSize: 12, color: "#99DDAA", lineHeight: 1.6 }}>
+                Lobbys e campeonatos em parceria com a comunidade do Tailung.
               </div>
-              <div style={{ background: "#00C85322", border: "1px solid #00C85355", borderRadius: 20, padding: "6px 16px", fontSize: 12, fontWeight: 700, color: "#00C853", flexShrink: 0 }}>Visitar ↗</div>
-            </div>
-
-            {/* Content */}
-            <div style={{ padding: "18px 24px 24px" }}>
-              <p style={{ fontSize: 14, color: "#C9FFC9", lineHeight: 1.75, marginBottom: 18 }}>
-                A Mentora é a grande parceira do Tailung onde rola <strong style={{ color: "#fff" }}>lobby</strong> e <strong style={{ color: "#fff" }}>campeonatos</strong> em parceria com a comunidade. Crie já sua conta e participe!
-              </p>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {["🎮 Lobbys exclusivos","🏆 Campeonatos","🤝 Comunidade parceira"].map(tag => (
-                  <span key={tag} style={{ background: "#00C85315", border: "1px solid #00C85333", borderRadius: 20, padding: "5px 13px", fontSize: 12, color: "#00C853", fontWeight: 600 }}>{tag}</span>
-                ))}
+              <div style={{ background: "#00C85310", borderTop: "1px solid #00C85322", padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#ADADB8" }}>copa.mentora.gg</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#00C853" }}>Criar conta →</span>
               </div>
-            </div>
+            </a>
+          </div>
+        </aside>
 
-            {/* CTA bottom */}
-            <div style={{ background: "#00C85312", borderTop: "1px solid #00C85322", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 12, color: "#ADADB8" }}>copa.mentora.gg</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#00C853" }}>Criar conta grátis →</span>
-            </div>
-          </a>
-        </div>}
-
-      </div>
+      </div>{/* end .page-layout */}
 
       {profileViewer && <ProfileModal v={profileViewer} vList={vList} onClose={() => setProfileViewer(null)} />}
 
