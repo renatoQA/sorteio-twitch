@@ -936,7 +936,7 @@ export default function App() {
         .splash { min-height: 100dvh; background: #0E0E10; display: flex; align-items: center; justify-content: center; color: #9146FF; gap: 12px; font-size: 16px; font-family: system-ui; }
         .navbar { background: #18181B; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 0 #9146FF44, 0 4px 32px rgba(145,70,255,0.12); }
         .navbar-top { display: flex; align-items: center; padding: 0 16px; height: 56px; gap: 12px; }
-        .logo-badge { background: linear-gradient(135deg, #9146FF 0%, #5B1A99 100%); border-radius: 9px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 0 12px #9146FF55; }
+        .logo-badge { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .logo-text { line-height: 1; }
         .logo-name { font-weight: 900; font-size: 15px; color: #EFEFF1; letter-spacing: -.3px; }
         .logo-sub { font-size: 9px; color: #9146FF; letter-spacing: 1.8px; text-transform: uppercase; font-weight: 700; margin-top: 2px; }
@@ -1035,7 +1035,7 @@ export default function App() {
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             <div className="logo-badge">
-              <img src="/logo.png" alt="Tailung" style={{ width: 28, height: 28, objectFit: "contain", display: "block" }} />
+              <img src="/logo.png" alt="Tailung" style={{ width: 36, height: 36, objectFit: "contain", display: "block" }} />
             </div>
             <div className="logo-text">
               <div className="logo-name">Area do Tailung</div>
