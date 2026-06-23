@@ -3,9 +3,9 @@ import { kv } from '@vercel/kv';
 const STATE_KEY = 'sorteio_state';
 
 const DISCORD_WEBHOOKS = [
-  process.env.DISCORD_WEBHOOK_AVISO || 'https://discord.com/api/webhooks/1517596011852206271/KburOkQ3YPZDOd-xbUGjOSpDjgkEu5-cRckfaKDQEmIdoo_9dtNDXpWUjUCMrP8Rg5Bq',
-  process.env.DISCORD_WEBHOOK_PAPO  || 'https://discord.com/api/webhooks/1517596092932292608/N7oIDJKocnBil92GqxNYXt02mL_-lxgA2QG9qV-ZP9LlqQgwunlec6Md6bYkBJjBE1TD',
-];
+  process.env.DISCORD_WEBHOOK_AVISO,
+  process.env.DISCORD_WEBHOOK_PAPO,
+].filter(Boolean);
 
 async function notifyDiscordLive(liveTitle) {
   const titleLine = liveTitle ? `**${liveTitle}**\n\n` : '';
