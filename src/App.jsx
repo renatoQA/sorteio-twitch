@@ -309,13 +309,14 @@ function PrizeCarousel({ eligCount, vList }) {
 
   function goTo(i) { setVis(false); setTimeout(() => { setSlide(i); setVis(true); }, 280); }
 
-  const CAROUSEL_H = 460;
+  const CAROUSEL_H = 380;
+  const IMG_H = 205;
   return (
     <div style={{ position: "relative", background: "linear-gradient(145deg, #0d0020 0%, #1a0533 55%, #0d001a 100%)", borderRadius: 14, overflow: "hidden", border: "1.5px solid #9146FF44", height: CAROUSEL_H }}>
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 110%, #9146FF20 0%, transparent 65%)", pointerEvents: "none", zIndex: 0 }} />
       <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column" }}>
         {/* Header */}
-        <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #9146FF22", flexShrink: 0 }}>
+        <div style={{ padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #9146FF22", flexShrink: 0 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 2, textTransform: "uppercase", transition: "opacity .28s", opacity: vis ? 1 : 0 }}>{SLIDE_LABELS[slide]}</div>
           <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
             {Array.from({length: total}).map((_,i) => (
@@ -326,32 +327,32 @@ function PrizeCarousel({ eligCount, vList }) {
         {/* Slides — fixed inner height, no resize */}
         <div style={{ flex: 1, overflow: "hidden", transition: "opacity .28s", opacity: vis ? 1 : 0 }}>
           {/* Slide 0: Semanal */}
-          <div style={{ display: slide === 0 ? "flex" : "none", flexDirection: "column", height: "100%", padding: "10px 12px 14px" }}>
-            <div style={{ height: 280, flexShrink: 0, marginBottom: 12 }}>
+          <div style={{ display: slide === 0 ? "flex" : "none", flexDirection: "column", height: "100%", padding: "8px 12px 10px" }}>
+            <div style={{ height: IMG_H, flexShrink: 0, marginBottom: 8 }}>
               <img src="/premio.png" alt="Prêmio Semanal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", borderRadius: 10 }} onError={e => { e.target.style.display="none"; }} />
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 20, flexShrink: 0 }}>⏱</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 10, padding: "8px 12px", fontSize: 12, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>⏱</span>
                 <span><strong style={{ color: "#fff" }}>11h</strong> de live acumuladas na semana</span>
               </div>
-              <div style={{ fontSize: 11, color: "#9146FF", fontWeight: 700, textAlign: "center" }}>— OU —</div>
-              <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 20, flexShrink: 0 }}>📅</span>
+              <div style={{ fontSize: 10, color: "#9146FF", fontWeight: 700, textAlign: "center" }}>— OU —</div>
+              <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 10, padding: "8px 12px", fontSize: 12, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>📅</span>
                 <span><strong style={{ color: "#fff" }}>4 dias</strong> de check-in com pelo menos 1h cada</span>
               </div>
             </div>
           </div>
           {/* Slide 1: Mensal */}
-          <div style={{ display: slide === 1 ? "flex" : "none", flexDirection: "column", height: "100%", padding: "10px 12px 14px" }}>
-            <div style={{ height: 280, flexShrink: 0, marginBottom: 12, position: "relative" }}>
+          <div style={{ display: slide === 1 ? "flex" : "none", flexDirection: "column", height: "100%", padding: "8px 12px 10px" }}>
+            <div style={{ height: IMG_H, flexShrink: 0, marginBottom: 8, position: "relative" }}>
               <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} onError={e => { e.target.style.display="none"; }} />
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, #0d0020, transparent)", height: 40, pointerEvents: "none" }} />
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, #0d0020, transparent)", height: 30, pointerEvents: "none" }} />
             </div>
-            <div style={{ background: "#FFD70018", border: "1px solid #FFD70044", borderRadius: 12, padding: "14px 16px" }}>
-              <div style={{ fontSize: 11, color: "#FFD700", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>🏆 Como se qualificar</div>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#C9A7FF", lineHeight: 1.6 }}>
-                <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>📆</span>
+            <div style={{ background: "#FFD70018", border: "1px solid #FFD70044", borderRadius: 10, padding: "10px 14px" }}>
+              <div style={{ fontSize: 10, color: "#FFD700", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>🏆 Como se qualificar</div>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "#C9A7FF", lineHeight: 1.5 }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>📆</span>
                 <span>Ter completado pelo menos <strong style={{ color: "#FFD700" }}>3 semanas elegíveis</strong> no mês</span>
               </div>
             </div>
@@ -1094,9 +1095,9 @@ export default function App() {
         /* Home layout */
         .home-live-row { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; height: auto; }
         .home-player-col { flex: 1; }
-        .home-chat-col { height: 260px; }
+        .home-chat-col { height: 300px; }
         @media (min-width: 768px) {
-          .home-live-row { flex-direction: row; height: 300px; }
+          .home-live-row { flex-direction: row; height: 320px; }
           .home-player-col { flex: 3; }
           .home-chat-col { flex: 2; height: auto; }
         }
@@ -1212,11 +1213,14 @@ export default function App() {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9146FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                   <span style={{ fontSize: 11, fontWeight: 700, color: "#EFEFF1" }}>Chat</span>
                 </div>
-                <iframe
-                  src={`https://www.twitch.tv/embed/${CHANNEL}/chat?parent=area-tailung.vercel.app&darkpopout`}
-                  style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
-                  title="Chat oTaiLungg"
-                />
+                {/* zoom-out via transform so more chat fits in the frame */}
+                <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+                  <iframe
+                    src={`https://www.twitch.tv/embed/${CHANNEL}/chat?parent=area-tailung.vercel.app&darkpopout`}
+                    style={{ position: "absolute", top: 0, left: 0, width: "125%", height: "125%", transform: "scale(0.8)", transformOrigin: "top left", border: "none" }}
+                    title="Chat oTaiLungg"
+                  />
+                </div>
               </div>
             </div>
           </div>
