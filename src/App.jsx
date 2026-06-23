@@ -332,11 +332,11 @@ function PrizeCarousel({ eligCount, vList }) {
           <div style={{ padding: "7px 12px", borderBottom: "1px solid #FFD70022", flexShrink: 0 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: "#FFD700", letterSpacing: 2, textTransform: "uppercase" }}>🏅 Prêmio Mensal</span>
           </div>
-          <div style={{ height: IMG_H, flexShrink: 0, padding: "8px 10px 0", position: "relative" }}>
+          <div style={{ height: 262, flexShrink: 0, padding: "8px 10px 0", position: "relative" }}>
             <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", borderRadius: 8 }} onError={e => { e.target.style.display="none"; }} />
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 28, background: "linear-gradient(to top,#1a1000,transparent)", pointerEvents: "none" }} />
           </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "8px 10px 10px" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "5px 10px 8px" }}>
             <div style={{ background: "#FFD70015", border: "1px solid #FFD70044", borderRadius: 9, padding: "9px 12px", width: "100%" }}>
               <div style={{ fontSize: 10, color: "#FFD700", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>🏆 Como se qualificar</div>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 7, fontSize: 11, color: "#C9A7FF", lineHeight: 1.5 }}>
