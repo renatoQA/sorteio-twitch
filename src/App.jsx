@@ -1366,7 +1366,10 @@ export default function App() {
                           <span key={idx} style={{ fontSize: 13, color: idx < qDays ? "#FFD700" : "#3D3D47", filter: idx < qDays ? "drop-shadow(0 0 3px #FFD70066)" : "none" }}>★</span>
                         ))}
                       </div>
-                      <span style={{ fontSize: 10, color: "#ADADB8" }}>{ok ? <span style={{ color: "#00C853", fontWeight: 700 }}>✓ elegível</span> : `${Math.floor(calcMins(v.sessions)/60)}h${calcMins(v.sessions)%60}m`}</span>
+                      <span style={{ fontSize: 10, color: "#ADADB8" }}>
+                        {ok && <span style={{ color: "#00C853", fontWeight: 700 }}>✓ elegível · </span>}
+                        {`${Math.floor(calcMins(v.sessions)/60)}h${calcMins(v.sessions)%60}m`}
+                      </span>
                     </div>
                   </div>
                   {/* Progresso mensal */}
