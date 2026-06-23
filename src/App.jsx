@@ -458,6 +458,8 @@ export default function App() {
   const [historyFilter, setHistoryFilter] = useState("all");
   const [prizeWinnerId, setPrizeWinnerId] = useState("");
   const [prizeGiftcard, setPrizeGiftcard] = useState("");
+  const [xpTarget, setXpTarget] = useState("");
+  const [xpAmount, setXpAmount] = useState(500);
   const [redeemedCode, setRedeemedCode] = useState(null);
   const [adminPrizeCode, setAdminPrizeCode] = useState(null);
   const [streamerToken, setStreamerToken] = useState('');
@@ -1573,6 +1575,47 @@ export default function App() {
 
             {/* ADMIN: VIEWERS */}
             {adminTab === "viewers" && <>
+              <div className="card" style={{ borderColor: "#FF630022" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 15 }}>🔧</span>
+                  <span style={{ fontWeight: 700, fontSize: 14 }}>Adicionar XP</span>
+                  <span style={{ fontSize: 11, color: "#ADADB8", background: "#26262C", borderRadius: 6, padding: "2px 8px" }}>debug</span>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <select
+                    value={xpTarget}
+                    onChange={e => setXpTarget(e.target.value)}
+                    style={{ flex: 2, minWidth: 140, background: "#26262C", border: "1.5px solid #3D3D47", borderRadius: 10, color: "#EFEFF1", padding: "10px 12px", fontSize: 13, outline: "none" }}>
+                    <option value="">Selecionar viewer...</option>
+                    {vList.map(v => (
+                      <option key={v.twitch_id} value={v.twitch_id}>
+                        {v.display_name || v.nick} — {calcXP(v)} XP (Lv{getLevelInfo(calcXP(v)).lv})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    value={xpAmount}
+                    onChange={e => setXpAmount(Number(e.target.value))}
+                    min={-99999} max={99999}
+                    style={{ width: 90, background: "#26262C", border: "1.5px solid #3D3D47", borderRadius: 10, color: "#EFEFF1", padding: "10px 12px", fontSize: 13, outline: "none" }}
+                  />
+                  <button
+                    className="btn"
+                    style={{ background: "#FF6300", flexShrink: 0 }}
+                    disabled={acting || !xpTarget || !xpAmount}
+                    onClick={() => {
+                      const v = vList.find(v => v.twitch_id === xpTarget);
+                      const label = v ? (v.display_name || v.nick) : xpTarget;
+                      if (window.confirm(`Adicionar ${xpAmount} XP para ${label}?`))
+                        act("add_xp", { twitch_id: xpTarget, xp: xpAmount });
+                    }}>
+                    Aplicar XP
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 8 }}>XP negativo remove. Vai para permanentXP, não reseta no ciclo.</div>
+              </div>
+
               <div className="card">
                 <div className="card-title">Viewers cadastrados</div>
                 {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "20px 0", fontSize: 13 }}>Nenhum viewer ainda.</div>}

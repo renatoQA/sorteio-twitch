@@ -129,6 +129,14 @@ export default async function handler(req, res) {
       if (state.viewers[twitch_id]) state.viewers[twitch_id].hasSub = true;
     }
 
+    else if (action === 'add_xp') {
+      const { twitch_id, xp } = payload;
+      const amount = parseInt(xp);
+      if (!state.viewers[twitch_id]) return res.status(404).json({ error: 'Viewer não encontrado' });
+      if (!amount || isNaN(amount)) return res.status(400).json({ error: 'XP inválido' });
+      state.viewers[twitch_id].permanentXP = (state.viewers[twitch_id].permanentXP || 0) + amount;
+    }
+
     else if (action === 'draw_specific') {
       const { twitch_id } = payload;
       const v = state.viewers[twitch_id];
