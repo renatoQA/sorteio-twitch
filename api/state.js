@@ -261,6 +261,20 @@ export default async function handler(req, res) {
       return res.status(200).json({ giftcard, redeemedAt: state.prize.redeemedAt });
     }
 
+    else if (action === 'add_schedule') {
+      const { title, date, time } = payload;
+      if (!title || !date || !time) return res.status(400).json({ error: 'Preencha todos os campos.' });
+      if (!state.schedule) state.schedule = [];
+      state.schedule.push({ id: Date.now().toString(), title, date, time });
+      state.schedule.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    }
+
+    else if (action === 'remove_schedule') {
+      const { id } = payload;
+      if (!state.schedule) state.schedule = [];
+      state.schedule = state.schedule.filter(e => e.id !== id);
+    }
+
     else if (action === 'reset') {
       state = { ...defaultState, cycleHistory: [] };
     }

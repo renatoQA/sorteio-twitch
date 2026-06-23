@@ -536,6 +536,9 @@ export default function App() {
   const [prizeGiftcard, setPrizeGiftcard] = useState("");
   const [xpTarget, setXpTarget] = useState("");
   const [xpAmount, setXpAmount] = useState(500);
+  const [schedTitle, setSchedTitle] = useState('');
+  const [schedDate, setSchedDate] = useState('');
+  const [schedTime, setSchedTime] = useState('20:00');
   const [redeemedCode, setRedeemedCode] = useState(null);
   const [adminPrizeCode, setAdminPrizeCode] = useState(null);
   const [streamerToken, setStreamerToken] = useState('');
@@ -1124,7 +1127,7 @@ export default function App() {
 
           {/* Nav inline — desktop only */}
           <nav className="navbar-nav">
-            {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["streamer","Streamer"]].map(([id,label]) => (
+            {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["cronograma","Cronograma"],["streamer","Streamer"]].map(([id,label]) => (
               <button key={id} className={`nav-item${tab===id?" active":""}`} onClick={() => setTab(id)}>{label}</button>
             ))}
           </nav>
@@ -1146,7 +1149,7 @@ export default function App() {
 
         {/* Tabs row — mobile only */}
         <div className="navbar-tabs">
-          {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["streamer","Streamer"]].map(([id,label]) => (
+          {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["cronograma","Cronograma"],["streamer","Streamer"]].map(([id,label]) => (
             <button key={id} className={`nav-tab${tab===id?" active":""}`} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
@@ -1188,6 +1191,22 @@ export default function App() {
                     🔴 Live rolando! <strong style={{ color: "#9146FF", cursor: "pointer" }} onClick={() => setTab("viewer")}>Participar →</strong>
                   </div>
                 )}
+                {/* Próxima live */}
+                {(() => {
+                  const schedule = (state?.schedule || []).filter(e => new Date(`${e.date}T${e.time}`) > new Date()).sort((a, b) => (a.date+a.time).localeCompare(b.date+b.time));
+                  const next = schedule[0];
+                  if (!next) return null;
+                  const dt = new Date(`${next.date}T${next.time}`);
+                  const dayName = dt.toLocaleDateString('pt-BR', { weekday: 'long' });
+                  const dayFmt = dt.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
+                  return (
+                    <div style={{ padding: "10px 14px", borderTop: "1px solid #26262C", flexShrink: 0, cursor: "pointer" }} onClick={() => setTab("cronograma")}>
+                      <div style={{ fontSize: 10, color: "#ADADB8", marginBottom: 3, textTransform: "uppercase", letterSpacing: .6, fontWeight: 700 }}>📅 Próxima live</div>
+                      <div style={{ fontWeight: 800, fontSize: 13, color: "#EFEFF1" }}>{next.title}</div>
+                      <div style={{ fontSize: 11, color: "#9146FF", marginTop: 2 }}>{dayName} · {dayFmt} · {next.time}</div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -1479,6 +1498,57 @@ export default function App() {
           </div>
         </div>}
 
+        {/* CRONOGRAMA */}
+        {tab === "cronograma" && <div className="fade-up">
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 800, fontSize: 18, color: "#EFEFF1", marginBottom: 4 }}>Cronograma de Lives</div>
+            <div style={{ fontSize: 12, color: "#ADADB8" }}>Fique por dentro das próximas lives do oTaiLungg</div>
+          </div>
+          {(() => {
+            const now = new Date();
+            const all = (state?.schedule || []).slice().sort((a, b) => (a.date+a.time).localeCompare(b.date+b.time));
+            const upcoming = all.filter(e => new Date(`${e.date}T${e.time}`) > now);
+            const past = all.filter(e => new Date(`${e.date}T${e.time}`) <= now);
+            if (!all.length) return (
+              <div className="card" style={{ textAlign: "center", padding: "40px 20px", color: "#ADADB8" }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>📅</div>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>Nenhuma live agendada</div>
+                <div style={{ fontSize: 12 }}>Em breve novas datas serão anunciadas!</div>
+              </div>
+            );
+            const renderEntry = (e, isPast) => {
+              const dt = new Date(`${e.date}T${e.time}`);
+              const dayName = dt.toLocaleDateString('pt-BR', { weekday: 'long' });
+              const dayFmt = dt.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+              const isToday = e.date === now.toISOString().slice(0,10);
+              return (
+                <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", borderRadius: 12, background: isPast ? "#18181B" : isToday ? "#9146FF18" : "#1E1E22", border: `1px solid ${isPast ? "#26262C" : isToday ? "#9146FF55" : "#26262C"}`, opacity: isPast ? 0.5 : 1, marginBottom: 8 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 10, background: isPast ? "#26262C" : isToday ? "#9146FF22" : "#26262C", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: isPast ? "#3D3D47" : isToday ? "#9146FF" : "#EFEFF1", lineHeight: 1 }}>{dt.getDate()}</div>
+                    <div style={{ fontSize: 9, color: "#ADADB8", textTransform: "uppercase", letterSpacing: .5 }}>{dt.toLocaleDateString('pt-BR', { month: 'short' })}</div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: isPast ? "#ADADB8" : "#EFEFF1", marginBottom: 2 }}>{e.title}</div>
+                    <div style={{ fontSize: 11, color: "#ADADB8" }}>{dayName} · {e.time}</div>
+                  </div>
+                  {isToday && <span style={{ background: "#FF474711", border: "1px solid #FF474744", borderRadius: 20, padding: "3px 10px", fontSize: 10, color: "#FF4747", fontWeight: 700, flexShrink: 0 }}>HOJE</span>}
+                  {!isPast && !isToday && <span style={{ background: "#9146FF11", border: "1px solid #9146FF33", borderRadius: 20, padding: "3px 10px", fontSize: 10, color: "#9146FF", fontWeight: 700, flexShrink: 0 }}>{e.time}</span>}
+                </div>
+              );
+            };
+            return <>
+              {upcoming.length > 0 && <>
+                <div style={{ fontWeight: 700, fontSize: 12, color: "#ADADB8", textTransform: "uppercase", letterSpacing: .8, marginBottom: 10 }}>Próximas</div>
+                {upcoming.map(e => renderEntry(e, false))}
+              </>}
+              {past.length > 0 && <>
+                <div style={{ fontWeight: 700, fontSize: 12, color: "#3D3D47", textTransform: "uppercase", letterSpacing: .8, margin: "16px 0 10px" }}>Encerradas</div>
+                {past.map(e => renderEntry(e, true))}
+              </>}
+            </>;
+          })()}
+        </div>}
+
         {/* STREAMER */}
         {tab === "streamer" && <div className="fade-up">
           {!streamerUnlocked ? (
@@ -1492,7 +1562,7 @@ export default function App() {
             </div>
           ) : <>
             <div className="admin-tabs">
-              {[["live","Live"],["ciclo","Ciclo"],["viewers","Viewers"],["premio","Prêmio"],["historico","Histórico"]].map(([id,label]) => (
+              {[["live","Live"],["ciclo","Ciclo"],["viewers","Viewers"],["premio","Prêmio"],["historico","Histórico"],["cronograma","Cronograma"]].map(([id,label]) => (
                 <button key={id} className={`admin-tab${adminTab===id?" active":""}`} onClick={() => setAdminTab(id)}>{label}</button>
               ))}
             </div>
@@ -1846,6 +1916,53 @@ export default function App() {
                 ))}
               </div>
             </>}
+
+            {/* ADMIN: CRONOGRAMA */}
+            {adminTab === "cronograma" && <>
+              <div className="card">
+                <div className="card-title">Adicionar live</div>
+                <span className="label">Título / Jogo</span>
+                <input className="inp" style={{ marginBottom: 10 }} placeholder="ex: Minecraft, Just Chatting..." value={schedTitle} onChange={e => setSchedTitle(e.target.value)} />
+                <div className="grid2" style={{ marginBottom: 10 }}>
+                  <div>
+                    <span className="label">Data</span>
+                    <input className="inp" type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <span className="label">Horário</span>
+                    <input className="inp" type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)} />
+                  </div>
+                </div>
+                <button className="btn btn-full" onClick={async () => {
+                  if (!schedTitle || !schedDate || !schedTime) { flash("Preencha todos os campos.", "#FF4747"); return; }
+                  await act("add_schedule", { title: schedTitle, date: schedDate, time: schedTime });
+                  setSchedTitle(''); setSchedDate(''); setSchedTime('20:00');
+                }}>Adicionar</button>
+              </div>
+              <div className="card">
+                <div className="card-title">Cronograma atual</div>
+                {!state?.schedule?.length ? (
+                  <div style={{ color: "#ADADB8", textAlign: "center", padding: "20px 0", fontSize: 12 }}>Nenhuma live agendada.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {(state.schedule || []).map(e => {
+                      const dt = new Date(`${e.date}T${e.time}`);
+                      const isPast = dt < new Date();
+                      return (
+                        <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: isPast ? "#26262C" : "#9146FF11", border: `1px solid ${isPast ? "#3D3D47" : "#9146FF33"}`, opacity: isPast ? 0.5 : 1 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: isPast ? "#ADADB8" : "#EFEFF1" }}>{e.title}</div>
+                            <div style={{ fontSize: 11, color: "#ADADB8" }}>{dt.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })} · {e.time}</div>
+                          </div>
+                          <button onClick={() => act("remove_schedule", { id: e.id })} style={{ background: "#FF474711", border: "1px solid #FF474733", color: "#FF4747", borderRadius: 6, padding: "3px 10px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>✕</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>}
+
           </>}
         </div>}
 
