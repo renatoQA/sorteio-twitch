@@ -12,8 +12,13 @@ const MIN_DAYS = 4;
 function calcMins(sessions) { return sessions.reduce((a, s) => a + (s.minutes || 0), 0); }
 function uniqueDays(sessions) { return [...new Set(sessions.map(s => s.date))]; }
 function qualifiedDays(sessions) { return sessions.filter(s => s.minutes >= MIN_MINS_LIVE).length; }
+// Stars redistribute excess minutes across days: 2h on one day + 30min on another = 2 stars
+function calcStars(sessions) {
+  const total = sessions.reduce((a, s) => a + (s.minutes || 0), 0);
+  return Math.min(Math.floor(total / MIN_MINS_LIVE), sessions.length);
+}
 function isEligible(v) {
-  return calcMins(v.sessions) >= MIN_MINS_TOTAL || qualifiedDays(v.sessions) >= MIN_DAYS;
+  return calcMins(v.sessions) >= MIN_MINS_TOTAL || calcStars(v.sessions) >= MIN_DAYS;
 }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
 
@@ -150,7 +155,7 @@ const ACHIEVEMENTS = [
   { id: "subscriber",       icon: "⭐", name: "Inscrito",          desc: "É inscrito do canal",                      check: v => !!v.hasSub },
   { id: "monthly_eligible", icon: "🏅", name: "Elegível Mensal",   desc: "3+ semanas elegíveis no mesmo mês",        check: v => isMonthlyEligible(v) },
   { id: "marathon",         icon: "⏱", name: "Maratonista",        desc: "Acumulou 11h em uma única semana",         check: v => calcMins(v.sessions) >= 660 || (v.history||[]).some(h => h.totalMinutes >= 660) },
-  { id: "dedicated",        icon: "📅", name: "Dedicado",           desc: "4+ dias qualificados em uma semana",       check: v => qualifiedDays(v.sessions) >= 4 || (v.history||[]).some(h => qualifiedDays(h.sessions||[]) >= 4) },
+  { id: "dedicated",        icon: "📅", name: "Dedicado",           desc: "4+ estrelas em uma semana",                check: v => calcStars(v.sessions) >= 4 || (v.history||[]).some(h => calcStars(h.sessions||[]) >= 4) },
   { id: "veteran",          icon: "🎖", name: "Veterano",           desc: "Participou de 5 ou mais ciclos",           check: v => (v.history?.length||0) >= 5 },
   { id: "legend",           icon: "🌟", name: "Lenda da Área",      desc: "Participou de 10 ou mais ciclos",          check: v => (v.history?.length||0) >= 10 },
   { id: "perfect_month",    icon: "💎", name: "Mês Perfeito",       desc: "4 semanas elegíveis em um mesmo mês",      check: v => { const m = {}; for (const h of v.history||[]) { if (!h.eligible) continue; const k=(h.cycleEnd||"").slice(0,7); if (!k) continue; m[k]=(m[k]||0)+1; if(m[k]>=4) return true; } return false; } },
@@ -164,7 +169,7 @@ function ProfileModal({ v, vList, onClose }) {
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const monthCycles = monthlyEligibleCycles(v);
   const monthlyOk = isMonthlyEligible(v);
-  const qDays = qualifiedDays(v.sessions);
+  const qDays = calcStars(v.sessions);
   const mins = calcMins(v.sessions);
   const days = uniqueDays(v.sessions).length;
   const history = v.history || [];
@@ -974,7 +979,7 @@ export default function App() {
   const vList = state ? Object.values(state.viewers).sort((a, b) => {
     const ma = monthlyEligibleCycles(a), mb = monthlyEligibleCycles(b);
     if (mb !== ma) return mb - ma;
-    const sa = qualifiedDays(a.sessions), sb = qualifiedDays(b.sessions);
+    const sa = calcStars(a.sessions), sb = calcStars(b.sessions);
     if (sb !== sa) return sb - sa;
     const xa = calcXP(a), xb = calcXP(b);
     if (xb !== xa) return xb - xa;
@@ -1418,7 +1423,7 @@ export default function App() {
             {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum participante ainda.</div>}
             {vList.map((v, i) => {
               const ok = isEligible(v);
-              const qDays = qualifiedDays(v.sessions);
+              const qDays = calcStars(v.sessions);
               const monthlyOk = isMonthlyEligible(v);
               const monthCycles = monthlyEligibleCycles(v);
               const medals = ["🥇","🥈","🥉"];
@@ -1923,7 +1928,7 @@ function ViewerCard({ v, vList }) {
   const ok = isEligible(v);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const history = v.history || [];
-  const qDays = qualifiedDays(v.sessions);
+  const qDays = calcStars(v.sessions);
   const todayStr = new Date().toISOString().slice(0, 10);
   const todaySession = v.sessions.find(s => s.date === todayStr);
   const todayGoalMet = (todaySession?.minutes || 0) >= MIN_MINS_LIVE;
@@ -1996,7 +2001,7 @@ function ViewerCard({ v, vList }) {
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 10, color: "#ADADB8" }}>{qDays}/{MIN_DAYS} dias · meta: 4 dias com ≥1h</div>
+            <div style={{ fontSize: 10, color: "#ADADB8" }}>{qDays}/{MIN_DAYS} estrelas · meta: 4 estrelas (minutos acumulados ÷ 60)</div>
           </div>
           <div>
             <span className="label">total acumulado</span>

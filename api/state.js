@@ -47,10 +47,13 @@ const defaultState = {
   botCycle: 0,
 };
 
+function calcStars(sessions) {
+  const total = sessions.reduce((a, s) => a + (s.minutes || 0), 0);
+  return Math.min(Math.floor(total / MIN_MINS_LIVE), sessions.length);
+}
 function isEligible(v) {
   const totalMins = v.sessions.reduce((a, s) => a + (s.minutes || 0), 0);
-  const qualifiedDays = v.sessions.filter(s => s.minutes >= MIN_MINS_LIVE).length;
-  return totalMins >= MIN_MINS_TOTAL || qualifiedDays >= MIN_DAYS;
+  return totalMins >= MIN_MINS_TOTAL || calcStars(v.sessions) >= MIN_DAYS;
 }
 
 export default async function handler(req, res) {
