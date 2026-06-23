@@ -903,7 +903,11 @@ export default function App() {
     if (mb !== ma) return mb - ma;
     const sa = qualifiedDays(a.sessions), sb = qualifiedDays(b.sessions);
     if (sb !== sa) return sb - sa;
-    return calcXP(b) - calcXP(a);
+    const xa = calcXP(a), xb = calcXP(b);
+    if (xb !== xa) return xb - xa;
+    const minA = calcMins(a.sessions), minB = calcMins(b.sessions);
+    if (minB !== minA) return minB - minA;
+    return Number(a.twitch_id) - Number(b.twitch_id);
   }) : [];
   const eligCount = vList.filter(isEligible).length;
   const myViewer = twitchUser ? state?.viewers?.[twitchUser.id] : null;
