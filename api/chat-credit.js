@@ -22,15 +22,15 @@ export default async function handler(req, res) {
     const idx = v.sessions.findLastIndex(s => s.date === state.liveDate);
     if (idx === -1) return res.status(200).json({ ok: false, reason: 'no_session' });
 
-    // Only one credit per bot message cycle
-    const currentCycle = state.botCycle || 0;
-    if (currentCycle === 0) return res.status(200).json({ ok: false, reason: 'bot_not_started' });
-    if ((v.lastCreditedCycle ?? -1) >= currentCycle) {
+    // Sliding window: one credit per botIntervalMins (personal cooldown per viewer)
+    const intervalMs = (state.botIntervalMins || 7) * 60 * 1000;
+    const now = Date.now();
+    if ((v.lastCreditedAt || 0) + intervalMs > now) {
       return res.status(200).json({ ok: false, reason: 'cooldown' });
     }
 
     state.viewers[viewer_id].sessions[idx].minutes += 15;
-    state.viewers[viewer_id].lastCreditedCycle = currentCycle;
+    state.viewers[viewer_id].lastCreditedAt = now;
     await kv.set(STATE_KEY, state);
 
     return res.status(200).json({ ok: true, viewer: v.display_name || v.nick });

@@ -121,6 +121,7 @@ export default async function handler(req, res) {
 
     else if (action === 'tick_cycle') {
       state.botCycle = (state.botCycle || 0) + 1;
+      if (payload?.botIntervalMins) state.botIntervalMins = payload.botIntervalMins;
     }
 
     else if (action === 'set_sub') {

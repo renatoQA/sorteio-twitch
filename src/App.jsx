@@ -665,7 +665,7 @@ export default function App() {
       await fetch(API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "tick_cycle", payload: {} }),
+        body: JSON.stringify({ action: "tick_cycle", payload: { botIntervalMins: botIntervalRef.current } }),
       });
       await fetch("/api/bot-send", {
         method: "POST",
