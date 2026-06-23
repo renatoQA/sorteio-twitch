@@ -17,7 +17,9 @@ function isEligible(v) {
 }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
 
-// ELO system
+// ELO system — set to true to go live
+const ELO_ENABLED = false;
+
 const ELO_RANKS = [
   { name: "Sombra",            color: "#9CA3AF", bg: "#1C1C22", xpMin: 0     },
   { name: "Caçador",           color: "#4ADE80", bg: "#071A0C", xpMin: 500   },
@@ -1275,7 +1277,7 @@ export default function App() {
                 </div>
 
                 {/* Card ELO */}
-                {(() => {
+                {ELO_ENABLED ? (() => {
                   const eloXp = myViewer ? calcXP(myViewer) : 0;
                   const eloIdx = getElo(eloXp);
                   const elo = ELO_RANKS[eloIdx];
@@ -1296,7 +1298,18 @@ export default function App() {
                       )}
                     </div>
                   );
-                })()}
+                })() : (
+                  <div className="card" style={{ marginBottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "28px 20px" }}>
+                    <svg width="88" height="100" viewBox="0 0 88 100" fill="none">
+                      <path d="M44 4L80 20V52C80 72 64 86 44 96C24 86 8 72 8 52V20L44 4Z" fill="#1a1a1e" stroke="#3D3D4788" strokeWidth="2"/>
+                      <path d="M44 14L72 27V52C72 68 59 80 44 88C29 80 16 68 16 52V27L44 14Z" fill="#26262C" stroke="#3D3D4744" strokeWidth="1.5"/>
+                      <text x="44" y="60" textAnchor="middle" fill="#3D3D47" fontSize="32" fontWeight="900" fontFamily="Inter,system-ui,sans-serif">?</text>
+                    </svg>
+                    <div style={{ fontWeight: 800, fontSize: 15, color: "#ADADB8", letterSpacing: .5, marginTop: 14, marginBottom: 4 }}>ELO</div>
+                    <div style={{ fontSize: 11, color: "#3D3D47", marginBottom: 12 }}>Sistema em desenvolvimento</div>
+                    <span style={{ background: "#9146FF15", border: "1px solid #9146FF44", borderRadius: 20, padding: "4px 14px", fontSize: 11, color: "#9146FF", fontWeight: 700 }}>Em breve</span>
+                  </div>
+                )}
               </div>
               {myViewer && <ViewerCard v={myViewer} vList={vList} />}
             </>
@@ -1340,18 +1353,25 @@ export default function App() {
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00BFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 <span style={{ fontWeight: 700, fontSize: 13, color: "#EFEFF1" }}>Sistema de ELO</span>
+                {!ELO_ENABLED && <span style={{ background: "#9146FF15", border: "1px solid #9146FF44", borderRadius: 20, padding: "2px 10px", fontSize: 10, color: "#9146FF", fontWeight: 700 }}>Em breve</span>}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {ELO_RANKS.map((elo, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: `${elo.color}08`, border: `1px solid ${elo.color}22` }}>
-                    <EloBadge xp={elo.xpMin} size={32}/>
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontWeight: 700, fontSize: 13, color: elo.color }}>{elo.name}</span>
+              {ELO_ENABLED ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {ELO_RANKS.map((elo, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: `${elo.color}08`, border: `1px solid ${elo.color}22` }}>
+                      <EloBadge xp={elo.xpMin} size={32}/>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: elo.color }}>{elo.name}</span>
+                      </div>
+                      <span style={{ fontSize: 11, color: "#ADADB8", fontFamily: "'Orbitron',sans-serif" }}>{elo.xpMin.toLocaleString()} XP</span>
                     </div>
-                    <span style={{ fontSize: 11, color: "#ADADB8", fontFamily: "'Orbitron',sans-serif" }}>{elo.xpMin.toLocaleString()} XP</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: "#ADADB8", lineHeight: 1.7 }}>
+                  Sistema de elos em desenvolvimento. Em breve você poderá visualizar seu rank e competir com outros espectadores.
+                </div>
+              )}
             </div>
 
             <div className="divider" />
@@ -1402,9 +1422,11 @@ export default function App() {
                   {/* Posição */}
                   <div style={{ width: 28, textAlign: "center", fontWeight: 800, color: i < 3 ? ["#FFD700","#C0C0C0","#CD7F32"][i] : "#ADADB8", fontSize: i < 3 ? 18 : 13, flexShrink: 0 }}>{i < 3 ? medals[i] : `#${i+1}`}</div>
                   {/* ELO badge */}
-                  <div style={{ flexShrink: 0 }} title={ELO_RANKS[getElo(calcXP(v))].name}>
-                    <EloBadge xp={calcXP(v)} size={36}/>
-                  </div>
+                  {ELO_ENABLED && (
+                    <div style={{ flexShrink: 0 }} title={ELO_RANKS[getElo(calcXP(v))].name}>
+                      <EloBadge xp={calcXP(v)} size={36}/>
+                    </div>
+                  )}
                   {/* Info principal */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
