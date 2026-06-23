@@ -309,55 +309,53 @@ function PrizeCarousel({ eligCount, vList }) {
 
   function goTo(i) { setVis(false); setTimeout(() => { setSlide(i); setVis(true); }, 280); }
 
+  const CAROUSEL_H = 460;
   return (
-    <div style={{ position: "relative", background: "linear-gradient(145deg, #0d0020 0%, #1a0533 55%, #0d001a 100%)", borderRadius: 14, overflow: "hidden", border: "1.5px solid #9146FF44", display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ position: "relative", background: "linear-gradient(145deg, #0d0020 0%, #1a0533 55%, #0d001a 100%)", borderRadius: 14, overflow: "hidden", border: "1.5px solid #9146FF44", height: CAROUSEL_H }}>
       <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 110%, #9146FF20 0%, transparent 65%)", pointerEvents: "none", zIndex: 0 }} />
-      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", flex: 1 }}>
-        <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #9146FF22" }}>
+      <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column" }}>
+        {/* Header */}
+        <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #9146FF22", flexShrink: 0 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 2, textTransform: "uppercase", transition: "opacity .28s", opacity: vis ? 1 : 0 }}>{SLIDE_LABELS[slide]}</div>
           <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
             {Array.from({length: total}).map((_,i) => (
-              <div key={i} onClick={() => goTo(i)}
-                style={{ width: i===slide?20:7, height: 7, borderRadius: 4, background: i===slide?"#9146FF":"#3D3D47", cursor: "pointer", transition: "all .3s ease" }} />
+              <div key={i} onClick={() => goTo(i)} style={{ width: i===slide?20:7, height: 7, borderRadius: 4, background: i===slide?"#9146FF":"#3D3D47", cursor: "pointer", transition: "all .3s ease" }} />
             ))}
           </div>
         </div>
-        <div style={{ flex: 1, transition: "opacity .28s", opacity: vis ? 1 : 0, display: "flex", flexDirection: "column" }}>
-          {slide === 0 && (
-            <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "10px 12px 16px", textAlign: "center" }}>
-              <div style={{ position: "relative", marginBottom: 12, height: 280 }}>
-                <img src="/premio.png" alt="Prêmio Semanal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", background: "transparent", borderRadius: 10 }} onError={e => { e.target.style.display="none"; }} />
+        {/* Slides — fixed inner height, no resize */}
+        <div style={{ flex: 1, overflow: "hidden", transition: "opacity .28s", opacity: vis ? 1 : 0 }}>
+          {/* Slide 0: Semanal */}
+          <div style={{ display: slide === 0 ? "flex" : "none", flexDirection: "column", height: "100%", padding: "10px 12px 14px" }}>
+            <div style={{ height: 280, flexShrink: 0, marginBottom: 12 }}>
+              <img src="/premio.png" alt="Prêmio Semanal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", borderRadius: 10 }} onError={e => { e.target.style.display="none"; }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 20, flexShrink: 0 }}>⏱</span>
+                <span><strong style={{ color: "#fff" }}>11h</strong> de live acumuladas na semana</span>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, justifyContent: "center" }}>
-                <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 20, flexShrink: 0 }}>⏱</span>
-                  <span><strong style={{ color: "#fff" }}>11h</strong> de live acumuladas na semana</span>
-                </div>
-                <div style={{ fontSize: 11, color: "#9146FF", fontWeight: 700, textAlign: "center" }}>— OU —</div>
-                <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 20, flexShrink: 0 }}>📅</span>
-                  <span><strong style={{ color: "#fff" }}>4 dias</strong> de check-in com pelo menos 1h cada</span>
-                </div>
+              <div style={{ fontSize: 11, color: "#9146FF", fontWeight: 700, textAlign: "center" }}>— OU —</div>
+              <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 20, flexShrink: 0 }}>📅</span>
+                <span><strong style={{ color: "#fff" }}>4 dias</strong> de check-in com pelo menos 1h cada</span>
               </div>
             </div>
-          )}
-          {slide === 1 && (
-            <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-              <div style={{ position: "relative", height: 280, flexShrink: 0 }}>
-                <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", background: "#0d0020" }} onError={e => { e.target.style.display="none"; }} />
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, #0d0020, transparent)", height: 50, pointerEvents: "none" }} />
-              </div>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "14px 18px 18px" }}>
-                <div style={{ background: "#FFD70018", border: "1px solid #FFD70044", borderRadius: 12, padding: "14px 16px", textAlign: "left", width: "100%" }}>
-                  <div style={{ fontSize: 11, color: "#FFD700", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>🏆 Como se qualificar</div>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#C9A7FF", lineHeight: 1.6 }}>
-                    <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>📆</span>
-                    <span>Ter completado pelo menos <strong style={{ color: "#FFD700" }}>3 semanas elegíveis</strong> no mês</span>
-                  </div>
-                </div>
+          </div>
+          {/* Slide 1: Mensal */}
+          <div style={{ display: slide === 1 ? "flex" : "none", flexDirection: "column", height: "100%", padding: "10px 12px 14px" }}>
+            <div style={{ height: 280, flexShrink: 0, marginBottom: 12, position: "relative" }}>
+              <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} onError={e => { e.target.style.display="none"; }} />
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, #0d0020, transparent)", height: 40, pointerEvents: "none" }} />
+            </div>
+            <div style={{ background: "#FFD70018", border: "1px solid #FFD70044", borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ fontSize: 11, color: "#FFD700", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>🏆 Como se qualificar</div>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#C9A7FF", lineHeight: 1.6 }}>
+                <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>📆</span>
+                <span>Ter completado pelo menos <strong style={{ color: "#FFD700" }}>3 semanas elegíveis</strong> no mês</span>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
@@ -1093,14 +1091,14 @@ export default function App() {
         @media (min-width: 768px) {
           .prize-img { max-height: 480px; object-fit: contain; background: #1a0533; }
         }
-        /* Home layout grid */
-        .home-main { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
-        .home-live-col { order: 2; }
-        .home-prize-col { order: 1; }
+        /* Home layout */
+        .home-live-row { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; height: auto; }
+        .home-player-col { flex: 1; }
+        .home-chat-col { height: 260px; }
         @media (min-width: 768px) {
-          .home-main { grid-template-columns: 5fr 6fr; align-items: stretch; }
-          .home-live-col { order: 1; }
-          .home-prize-col { order: 2; }
+          .home-live-row { flex-direction: row; height: 300px; }
+          .home-player-col { flex: 3; }
+          .home-chat-col { flex: 2; height: auto; }
         }
         /* Social banners */
         .social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
@@ -1161,24 +1159,25 @@ export default function App() {
         {/* HOME */}
         {tab === "home" && <div className="fade-up">
 
-          {/* Live + Prize Carousel lado a lado */}
-          <div className="home-main">
-            {/* Prêmio em destaque — aparece primeiro no mobile */}
-            <div className="home-prize-col">
-              <PrizeCarousel eligCount={eligCount} vList={vList} />
-            </div>
-            {/* Live menor, ao lado */}
-            <div className="home-live-col">
+          {/* Prize Carousel — largura total, altura fixa */}
+          <div style={{ marginBottom: 12 }}>
+            <PrizeCarousel eligCount={eligCount} vList={vList} />
+          </div>
+
+          {/* Live + Chat — numa row */}
+          <div className="home-live-row">
+            {/* Player */}
+            <div className="home-player-col">
               <div style={{ background: "#18181B", border: `1px solid ${state?.liveActive ? "#FF474744" : "#26262C"}`, borderRadius: 12, overflow: "hidden", height: "100%", display: "flex", flexDirection: "column" }}>
-                <div style={{ background: "linear-gradient(135deg, #18181B, #26262C)", padding: "10px 14px", borderBottom: "1px solid #26262C", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#EFEFF1" }}>{CHANNEL}</span>
-                  <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: state?.liveActive ? "#FF4747" : "#ADADB8" }}>
+                <div style={{ background: "linear-gradient(135deg, #18181B, #26262C)", padding: "8px 12px", borderBottom: "1px solid #26262C", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#EFEFF1" }}>{CHANNEL}</span>
+                  <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 700, color: state?.liveActive ? "#FF4747" : "#ADADB8" }}>
                     <div className="live-dot" style={{ background: state?.liveActive ? "#FF4747" : "#3D3D47", animation: state?.liveActive ? "pulse 1.5s infinite" : "none" }} />
                     {state?.liveActive ? "AO VIVO" : "OFFLINE"}
                   </div>
                 </div>
-                <div style={{ position: "relative", paddingTop: "56.25%", background: "#0E0E10", flex: 1, minHeight: 160 }}>
+                <div style={{ flex: 1, position: "relative", background: "#0E0E10" }}>
                   <iframe
                     src={`https://player.twitch.tv/?channel=${CHANNEL}&parent=area-tailung.vercel.app&autoplay=false&muted=false`}
                     style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
@@ -1186,27 +1185,38 @@ export default function App() {
                     title="oTaiLungg Live"
                   />
                 </div>
-                {state?.liveActive && (
-                  <div style={{ padding: "10px 14px", fontSize: 12, color: "#ADADB8", borderTop: "1px solid #26262C", flexShrink: 0 }}>
+                {/* Footer: participar ou próxima live */}
+                {state?.liveActive ? (
+                  <div style={{ padding: "8px 12px", fontSize: 11, color: "#ADADB8", borderTop: "1px solid #26262C", flexShrink: 0 }}>
                     🔴 Live rolando! <strong style={{ color: "#9146FF", cursor: "pointer" }} onClick={() => setTab("viewer")}>Participar →</strong>
                   </div>
-                )}
-                {/* Próxima live */}
-                {(() => {
-                  const schedule = (state?.schedule || []).filter(e => new Date(`${e.date}T${e.time}`) > new Date()).sort((a, b) => (a.date+a.time).localeCompare(b.date+b.time));
-                  const next = schedule[0];
+                ) : (() => {
+                  const next = (state?.schedule || []).filter(e => new Date(`${e.date}T${e.time}`) > new Date()).sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time))[0];
                   if (!next) return null;
                   const dt = new Date(`${next.date}T${next.time}`);
-                  const dayName = dt.toLocaleDateString('pt-BR', { weekday: 'long' });
-                  const dayFmt = dt.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
                   return (
-                    <div style={{ padding: "10px 14px", borderTop: "1px solid #26262C", flexShrink: 0, cursor: "pointer" }} onClick={() => setTab("cronograma")}>
-                      <div style={{ fontSize: 10, color: "#ADADB8", marginBottom: 3, textTransform: "uppercase", letterSpacing: .6, fontWeight: 700 }}>📅 Próxima live</div>
-                      <div style={{ fontWeight: 800, fontSize: 13, color: "#EFEFF1" }}>{next.title}</div>
-                      <div style={{ fontSize: 11, color: "#9146FF", marginTop: 2 }}>{dayName} · {dayFmt} · {next.time}</div>
+                    <div style={{ padding: "8px 12px", borderTop: "1px solid #26262C", flexShrink: 0, cursor: "pointer" }} onClick={() => setTab("cronograma")}>
+                      <div style={{ fontSize: 9, color: "#ADADB8", marginBottom: 2, textTransform: "uppercase", letterSpacing: .6, fontWeight: 700 }}>📅 Próxima live</div>
+                      <div style={{ fontWeight: 800, fontSize: 12, color: "#EFEFF1" }}>{next.title}</div>
+                      <div style={{ fontSize: 10, color: "#9146FF" }}>{dt.toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'})} · {next.time}</div>
                     </div>
                   );
                 })()}
+              </div>
+            </div>
+
+            {/* Chat */}
+            <div className="home-chat-col">
+              <div style={{ background: "#18181B", border: "1px solid #26262C", borderRadius: 12, overflow: "hidden", height: "100%", display: "flex", flexDirection: "column" }}>
+                <div style={{ padding: "8px 12px", borderBottom: "1px solid #26262C", display: "flex", alignItems: "center", gap: 8, flexShrink: 0, background: "linear-gradient(135deg,#18181B,#26262C)" }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9146FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#EFEFF1" }}>Chat</span>
+                </div>
+                <iframe
+                  src={`https://www.twitch.tv/embed/${CHANNEL}/chat?parent=area-tailung.vercel.app&darkpopout`}
+                  style={{ flex: 1, border: "none", width: "100%", height: "100%" }}
+                  title="Chat oTaiLungg"
+                />
               </div>
             </div>
           </div>
