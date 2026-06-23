@@ -65,6 +65,15 @@ function getLevelInfo(xp) {
   return { pct: Math.round((xp - curr) / (next - curr) * 100), xpIn: xp - curr, xpNeed: next - curr };
 }
 
+function eloFrameStyle(xp) {
+  if (!ELO_ENABLED) return { border: "2px solid #9146FF55" };
+  const idx = getElo(xp);
+  const { color } = ELO_RANKS[idx];
+  if (idx >= 6) return { border: `3px solid ${color}`, boxShadow: `0 0 0 1px ${color}66, 0 0 16px ${color}AA` };
+  if (idx >= 4) return { border: `2.5px solid ${color}`, boxShadow: `0 0 0 1px ${color}44, 0 0 10px ${color}77` };
+  return { border: `2px solid ${color}`, boxShadow: `0 0 0 1px ${color}22` };
+}
+
 function EloBadge({ xp, size = 40 }) {
   const idx = getElo(xp);
   const { color, bg } = ELO_RANKS[idx];
@@ -173,7 +182,7 @@ function ProfileModal({ v, vList, onClose }) {
         {/* Header */}
         <div style={{ padding: "14px 20px 20px", background: `linear-gradient(180deg, ${eloColor}15 0%, transparent 100%)`, borderBottom: "1px solid #26262C" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 58, height: 58, borderRadius: "50%", background: `${eloColor}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: eloColor, fontSize: 26, border: `2px solid ${eloColor}55`, flexShrink: 0 }}>
+            <div style={{ width: 58, height: 58, borderRadius: "50%", background: `${eloColor}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: eloColor, fontSize: 26, flexShrink: 0, ...eloFrameStyle(xp) }}>
               {(v.display_name || v.nick)[0].toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1092,6 +1101,7 @@ export default function App() {
         /* Level XP bar */
         @keyframes lvGlow { 0%,100%{opacity:.7} 50%{opacity:1} }
         .lv-bar-fill { animation: lvGlow 2.5s ease-in-out infinite; }
+        @keyframes eloFramePulse { 0%,100%{box-shadow:0 0 0 1px var(--ef-c,#fff3) ,0 0 10px var(--ef-c,#fff4)} 50%{box-shadow:0 0 0 2px var(--ef-c,#fff5),0 0 20px var(--ef-c,#fff6)} }
       `}</style>
 
       {/* Navbar */}
@@ -1254,7 +1264,7 @@ export default function App() {
                 {/* Card nick + check-in */}
                 <div className="card" style={{ marginBottom: 0 }}>
                   <div className="row" style={{ marginBottom: 16 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#9146FF22", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#9146FF", fontSize: 20, flexShrink: 0 }}>{twitchUser.display_name[0].toUpperCase()}</div>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#9146FF22", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#9146FF", fontSize: 20, flexShrink: 0, ...eloFrameStyle(myViewer ? calcXP(myViewer) : 0) }}>{twitchUser.display_name[0].toUpperCase()}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 800, fontSize: 16 }}>{twitchUser.display_name}</div>
                       <div style={{ fontSize: 11, color: "#00C853", marginTop: 1 }}>✓ Twitch verificado · @{twitchUser.login}</div>
@@ -1928,7 +1938,7 @@ function ViewerCard({ v, vList }) {
   return (
     <div className="card fade-up" style={{ borderColor: ok ? "#00C85344" : "#9146FF33" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#9146FF22", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#9146FF", fontSize: 16 }}>{(v.display_name || v.nick)[0].toUpperCase()}</div>
+        <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#9146FF22", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#9146FF", fontSize: 16, ...eloFrameStyle(xp) }}>{(v.display_name || v.nick)[0].toUpperCase()}</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 15 }}>{v.display_name || v.nick}</div>
           <div style={{ fontSize: 11, color: "#ADADB8" }}>#{rank} no ranking · {calcXP(v)} XP · código: <strong style={{ color: "#9146FF" }}>{v.code}</strong></div>
