@@ -246,11 +246,11 @@ function PrizeCarousel({ eligCount, vList }) {
             ))}
           </div>
         </div>
-        <div style={{ flex: 1, transition: "opacity .28s", opacity: vis ? 1 : 0, minHeight: 200 }}>
+        <div style={{ flex: 1, transition: "opacity .28s", opacity: vis ? 1 : 0, minHeight: 460 }}>
           {slide === 0 && (
             <div style={{ padding: "10px 12px 20px", textAlign: "center" }}>
-              <div style={{ position: "relative", marginBottom: 12 }}>
-                <img src="/premio.png" alt="Prêmio Semanal" style={{ width: "100%", maxHeight: 320, objectFit: "contain", display: "block", background: "transparent", borderRadius: 10 }} onError={e => { e.target.style.display="none"; }} />
+              <div style={{ position: "relative", marginBottom: 12, height: 280 }}>
+                <img src="/premio.png" alt="Prêmio Semanal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", background: "transparent", borderRadius: 10 }} onError={e => { e.target.style.display="none"; }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
@@ -267,8 +267,8 @@ function PrizeCarousel({ eligCount, vList }) {
           )}
           {slide === 1 && (
             <div style={{ textAlign: "center" }}>
-              <div style={{ position: "relative" }}>
-                <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", maxHeight: 340, objectFit: "contain", display: "block", background: "#0d0020" }} onError={e => { e.target.style.display="none"; }} />
+              <div style={{ position: "relative", height: 280 }}>
+                <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", background: "#0d0020" }} onError={e => { e.target.style.display="none"; }} />
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, #0d0020, transparent)", height: 50, pointerEvents: "none" }} />
               </div>
               <div style={{ padding: "12px 18px 18px" }}>
