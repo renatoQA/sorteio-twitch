@@ -35,10 +35,8 @@ function getElo(xp) {
   return idx;
 }
 
-// XP / Level system (MMO RPG style)
+// XP bar thresholds (used only for progress bar calculation — levels have no names)
 const LEVEL_THRESHOLDS = [0,200,500,1000,1700,2600,3800,5200,7000,9500,13000,17500,23000,30000,40000];
-const LEVEL_NAMES = ["Novato","Espectador","Fã Fiel","Veterano","Guardião","Herói","Elite","Lendário","Épico","Imortal","Mestre","Grão-Mestre","Transcendente","Lenda do Tailung","Lenda do Tailung"];
-const LEVEL_COLORS = ["#ADADB8","#ADADB8","#00C853","#00C853","#00BFFF","#00BFFF","#9146FF","#9146FF","#FFD700","#FFD700","#FF6B35","#FF6B35","#FF4747","#FF4747","#FF4747"];
 
 function calcXP(v) {
   let xp = v.permanentXP || 0; // XP acumulado de ciclos purgados (permanente)
@@ -56,20 +54,13 @@ function calcXP(v) {
   }
   return xp;
 }
-function getLevel(xp) {
-  let lv = 1;
-  for (let i = 1; i < LEVEL_THRESHOLDS.length; i++) { if (xp >= LEVEL_THRESHOLDS[i]) lv = i+1; else break; }
-  return Math.min(lv, LEVEL_THRESHOLDS.length);
-}
 function getLevelInfo(xp) {
-  const lv = getLevel(xp);
-  const idx = lv - 1;
-  const curr = LEVEL_THRESHOLDS[idx]||0;
-  const next = LEVEL_THRESHOLDS[idx+1];
-  const name = LEVEL_NAMES[idx];
-  const color = LEVEL_COLORS[idx];
-  if (!next) return { lv, name, color, pct: 100, xpIn: 0, xpNeed: 0 };
-  return { lv, name, color, pct: Math.round((xp-curr)/(next-curr)*100), xpIn: xp-curr, xpNeed: next-curr };
+  let idx = 0;
+  for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) { if (xp >= LEVEL_THRESHOLDS[i]) idx = i; else break; }
+  const curr = LEVEL_THRESHOLDS[idx] || 0;
+  const next = LEVEL_THRESHOLDS[idx + 1];
+  if (!next) return { pct: 100, xpIn: 0, xpNeed: 0 };
+  return { pct: Math.round((xp - curr) / (next - curr) * 100), xpIn: xp - curr, xpNeed: next - curr };
 }
 
 function EloBadge({ xp, size = 40 }) {
@@ -157,6 +148,7 @@ const ACHIEVEMENTS = [
 function ProfileModal({ v, vList, onClose }) {
   const xp = calcXP(v);
   const li = getLevelInfo(xp);
+  const eloColor = ELO_RANKS[getElo(xp)].color;
   const ok = isEligible(v);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const monthCycles = monthlyEligibleCycles(v);
@@ -177,15 +169,14 @@ function ProfileModal({ v, vList, onClose }) {
         </div>
 
         {/* Header */}
-        <div style={{ padding: "14px 20px 20px", background: `linear-gradient(180deg, ${li.color}15 0%, transparent 100%)`, borderBottom: "1px solid #26262C" }}>
+        <div style={{ padding: "14px 20px 20px", background: `linear-gradient(180deg, ${eloColor}15 0%, transparent 100%)`, borderBottom: "1px solid #26262C" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 58, height: 58, borderRadius: "50%", background: `${li.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: li.color, fontSize: 26, border: `2px solid ${li.color}55`, flexShrink: 0 }}>
+            <div style={{ width: 58, height: 58, borderRadius: "50%", background: `${eloColor}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: eloColor, fontSize: 26, border: `2px solid ${eloColor}55`, flexShrink: 0 }}>
               {(v.display_name || v.nick)[0].toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 900, fontSize: 19, color: "#EFEFF1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</div>
               <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 5, flexWrap: "wrap" }}>
-                <span style={{ background: `${li.color}22`, border: `1px solid ${li.color}55`, borderRadius: 6, padding: "2px 8px", fontSize: 11, color: li.color, fontWeight: 700 }}>LV {li.lv} · {li.name}</span>
                 <span style={{ fontSize: 11, color: "#ADADB8" }}>#{rank} ranking</span>
                 {v.hasSub && <span style={{ background: "#FF69B415", color: "#FF69B4", borderRadius: 20, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>⭐ sub</span>}
               </div>
@@ -196,10 +187,10 @@ function ProfileModal({ v, vList, onClose }) {
           <div style={{ marginTop: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#ADADB8", marginBottom: 5 }}>
               <span>{xp} XP total</span>
-              {li.xpNeed > 0 && <span>faltam {li.xpNeed - li.xpIn} XP → LV{li.lv + 1}</span>}
+              {li.xpNeed > 0 && <span>faltam {li.xpNeed - li.xpIn} XP</span>}
             </div>
             <div style={{ background: "#26262C", borderRadius: 20, height: 8, overflow: "hidden" }}>
-              <div style={{ width: `${li.pct}%`, height: "100%", background: `linear-gradient(90deg, ${li.color}77, ${li.color})`, borderRadius: 20 }} />
+              <div style={{ width: `${li.pct}%`, height: "100%", background: `linear-gradient(90deg, ${eloColor}77, ${eloColor})`, borderRadius: 20 }} />
             </div>
           </div>
         </div>
@@ -1313,18 +1304,18 @@ export default function App() {
 
           {/* Sistema de Niveis e ELO */}
           <div className="card" style={{ marginTop: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#EFEFF1", marginBottom: 18, letterSpacing: .3 }}>Sistema de Níveis & ELO</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#EFEFF1", marginBottom: 18, letterSpacing: .3 }}>XP & ELO</div>
 
-            {/* Niveis / XP */}
+            {/* Como ganhar XP */}
             <div style={{ marginBottom: 18 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" stroke="#FFD700" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                <span style={{ fontWeight: 700, fontSize: 13, color: "#EFEFF1" }}>Níveis (XP)</span>
+                <span style={{ fontWeight: 700, fontSize: 13, color: "#EFEFF1" }}>Como ganhar XP</span>
               </div>
               <div style={{ fontSize: 12, color: "#ADADB8", lineHeight: 1.7, marginBottom: 12 }}>
-                Ganhe XP assistindo as lives do Tailung e suba de nível. Quanto mais você participar, mais rápido evolui.
+                Acumule XP assistindo as lives do Tailung. Quanto mais você participar, mais alto sobe no ELO.
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {[
                   [<svg key="c" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9146FF" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, "Minutos assistidos", "+XP por hora"],
                   [<svg key="k" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00C853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>, "Check-in feito", "+XP por presença"],
@@ -1338,11 +1329,6 @@ export default function App() {
                       <div style={{ fontSize: 10, color: "#9146FF" }}>{val}</div>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                {[["Novato","#ADADB8"],["Guardião","#00BFFF"],["Elite","#9146FF"],["Épico","#FFD700"],["Mestre","#FF6B35"],["Lenda do Tailung","#FF4747"]].map(([name, color], i) => (
-                  <span key={i} style={{ background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 20, padding: "3px 10px", fontSize: 10, color, fontWeight: 700 }}>{name}</span>
                 ))}
               </div>
             </div>
@@ -1403,7 +1389,6 @@ export default function App() {
             {vList.map((v, i) => {
               const ok = isEligible(v);
               const qDays = qualifiedDays(v.sessions);
-              const li = getLevelInfo(calcXP(v));
               const monthlyOk = isMonthlyEligible(v);
               const monthCycles = monthlyEligibleCycles(v);
               const medals = ["🥇","🥈","🥉"];
@@ -1424,7 +1409,6 @@ export default function App() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <span style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</span>
-                      <span style={{ fontSize: 10, background: "rgba(0,0,0,0.3)", border: `1px solid ${li.color}44`, borderRadius: 6, padding: "1px 6px", color: li.color, fontWeight: 700, flexShrink: 0 }}>LV{li.lv}</span>
                       {v.hasSub && <span style={{ background: "#FF69B415", color: "#FF69B4", borderRadius: 20, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>⭐ sub</span>}
                     </div>
                     {/* Estrelas da semana */}
@@ -1671,7 +1655,7 @@ export default function App() {
                     <option value="">Selecionar viewer...</option>
                     {vList.map(v => (
                       <option key={v.twitch_id} value={v.twitch_id}>
-                        {v.display_name || v.nick} — {calcXP(v)} XP (Lv{getLevelInfo(calcXP(v)).lv})
+                        {v.display_name || v.nick} — {calcXP(v)} XP
                       </option>
                     ))}
                   </select>
@@ -1935,27 +1919,21 @@ function ViewerCard({ v, vList }) {
         </div>
       </div>
 
-      {/* Level / XP Badge */}
-      <div style={{ background: `${li.color}10`, border: `1px solid ${li.color}33`, borderRadius: 12, padding: "10px 14px", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${li.color}55`, borderRadius: 7, padding: "3px 9px", fontWeight: 800, fontSize: 12, color: li.color, letterSpacing: .5 }}>LV {li.lv}</div>
-            <span style={{ fontWeight: 700, fontSize: 12, color: li.color }}>{li.name}</span>
+      {/* XP Bar */}
+      {(() => {
+        const eloC = ELO_RANKS[getElo(xp)].color;
+        return (
+          <div style={{ background: `${eloC}10`, border: `1px solid ${eloC}33`, borderRadius: 12, padding: "10px 14px", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#ADADB8", marginBottom: 6 }}>
+              <span>{xp} XP total</span>
+              {li.xpNeed > 0 && <span>faltam {li.xpNeed - li.xpIn} XP</span>}
+            </div>
+            <div style={{ background: "#1a1a1e", borderRadius: 20, height: 9, overflow: "hidden" }}>
+              <div className="lv-bar-fill" style={{ width: `${li.pct}%`, height: "100%", background: `linear-gradient(90deg, ${eloC}55, ${eloC})`, borderRadius: 20, transition: "width .6s ease" }} />
+            </div>
           </div>
-          <span style={{ fontSize: 10, color: "#ADADB8" }}>{xp} XP total</span>
-        </div>
-        <div style={{ background: "#1a1a1e", borderRadius: 20, height: 9, overflow: "hidden" }}>
-          <div className="lv-bar-fill" style={{ width: `${li.pct}%`, height: "100%", background: `linear-gradient(90deg, ${li.color}55, ${li.color})`, borderRadius: 20, transition: "width .6s ease" }} />
-        </div>
-        {li.xpNeed > 0 ? (
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#ADADB8", marginTop: 5 }}>
-            <span>{li.xpIn} / {li.xpNeed} XP</span>
-            <span>faltam {li.xpNeed - li.xpIn} XP para o próx. nível</span>
-          </div>
-        ) : (
-          <div style={{ fontSize: 10, color: li.color, fontWeight: 700, textAlign: "center", marginTop: 5 }}>✦ Nível máximo atingido!</div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* mini tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
