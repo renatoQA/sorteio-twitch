@@ -971,10 +971,10 @@ export default function App() {
     if (mb !== ma) return mb - ma;
     const sa = calcStars(a.sessions), sb = calcStars(b.sessions);
     if (sb !== sa) return sb - sa;
-    const xa = calcXP(a), xb = calcXP(b);
-    if (xb !== xa) return xb - xa;
     const minA = calcMins(a.sessions), minB = calcMins(b.sessions);
     if (minB !== minA) return minB - minA;
+    const xa = calcXP(a), xb = calcXP(b);
+    if (xb !== xa) return xb - xa;
     return Number(a.twitch_id) - Number(b.twitch_id);
   }) : [];
   const eligCount = vList.filter(isEligible).length;
