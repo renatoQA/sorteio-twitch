@@ -17,6 +17,24 @@ function isEligible(v) {
 }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
 
+// ELO system
+const ELO_RANKS = [
+  { name: "Sombra",            color: "#9CA3AF", bg: "#1C1C22", xpMin: 0     },
+  { name: "Caçador",           color: "#4ADE80", bg: "#071A0C", xpMin: 500   },
+  { name: "Guerreiro",         color: "#22D3EE", bg: "#061518", xpMin: 1700  },
+  { name: "Conquistador",      color: "#60A5FA", bg: "#08111F", xpMin: 3800  },
+  { name: "Élite",             color: "#C084FC", bg: "#150630", xpMin: 7000  },
+  { name: "Campeão",           color: "#FB923C", bg: "#1A0900", xpMin: 13000 },
+  { name: "Lendário",          color: "#FACC15", bg: "#1A1400", xpMin: 23000 },
+  { name: "Imortal",           color: "#F87171", bg: "#1A0303", xpMin: 30000 },
+  { name: "Lenda do Tailung",  color: "#F472B6", bg: "#1A0210", xpMin: 40000 },
+];
+function getElo(xp) {
+  let idx = 0;
+  for (let i = 0; i < ELO_RANKS.length; i++) { if (xp >= ELO_RANKS[i].xpMin) idx = i; else break; }
+  return idx;
+}
+
 // XP / Level system (MMO RPG style)
 const LEVEL_THRESHOLDS = [0,200,500,1000,1700,2600,3800,5200,7000,9500,13000,17500,23000,30000,40000];
 const LEVEL_NAMES = ["Novato","Espectador","Fã Fiel","Veterano","Guardião","Herói","Elite","Lendário","Épico","Imortal","Mestre","Grão-Mestre","Transcendente","Lenda do Tailung","Lenda do Tailung"];
@@ -52,6 +70,57 @@ function getLevelInfo(xp) {
   const color = LEVEL_COLORS[idx];
   if (!next) return { lv, name, color, pct: 100, xpIn: 0, xpNeed: 0 };
   return { lv, name, color, pct: Math.round((xp-curr)/(next-curr)*100), xpIn: xp-curr, xpNeed: next-curr };
+}
+
+function EloBadge({ xp, size = 40 }) {
+  const idx = getElo(xp);
+  const { color, bg } = ELO_RANKS[idx];
+  const shield = "M20,2 L37,12 L33,36 L7,36 L3,12 Z";
+  const hasGlow = idx >= 4;
+  const glowId = `eg${idx}`;
+  const icons = [
+    // 0 Sombra — crescent moon
+    <g key="s"><circle cx="20" cy="21" r="9" fill={color}/><circle cx="24.5" cy="17.5" r="7.5" fill={bg}/></g>,
+    // 1 Caçador — arrow up
+    <path key="c" d="M20,10 L28,22 L22.5,22 L22.5,31 L17.5,31 L17.5,22 L12,22 Z" fill={color}/>,
+    // 2 Guerreiro — crossed swords
+    <g key="g">
+      <line x1="13" y1="13" x2="27" y2="28" stroke={color} strokeWidth="3" strokeLinecap="round"/>
+      <line x1="27" y1="13" x2="13" y2="28" stroke={color} strokeWidth="3" strokeLinecap="round"/>
+      <circle cx="20" cy="20.5" r="2.5" fill={bg} stroke={color} strokeWidth="1.5"/>
+    </g>,
+    // 3 Conquistador — nested shield
+    <path key="co" d="M20,12 L29,17 L26.5,29 L20,33 L13.5,29 L11,17 Z" fill="none" stroke={color} strokeWidth="2.5"/>,
+    // 4 Élite — 5-point star
+    <path key="e" d="M20,10 L22.4,17.2 L30,17.2 L24,21.6 L26.4,28.8 L20,24.4 L13.6,28.8 L16,21.6 L10,17.2 L17.6,17.2 Z" fill={color}/>,
+    // 5 Campeão — crown
+    <g key="ca">
+      <path d="M11.5,27 L11.5,16.5 L16,22.5 L20,12 L24,22.5 L28.5,16.5 L28.5,27 Z" fill={color}/>
+      <rect x="11.5" y="26.5" width="17" height="3" rx="1.5" fill={color}/>
+    </g>,
+    // 6 Lendário — wings + diamond
+    <g key="le">
+      <path d="M20,23 C17,16 10,17 10,22 C10,27 15.5,27 20,23Z" fill={color} opacity="0.85"/>
+      <path d="M20,23 C23,16 30,17 30,22 C30,27 24.5,27 20,23Z" fill={color} opacity="0.85"/>
+      <path d="M20,11 L23,20 L20,23.5 L17,20 Z" fill={color}/>
+    </g>,
+    // 7 Imortal — flame
+    <path key="i" d="M20,31 C13,31 11,24 14,18.5 C15,23 17.5,22 18,18.5 C19.5,22.5 18.5,27 20.5,27 C22.5,27 21.5,22.5 23,18.5 C23.5,22 26,23 25,18.5 C29,24 27,31 20,31Z" fill={color}/>,
+    // 8 Lenda do Tailung — 8-point starburst + ring
+    <g key="lt">
+      <circle cx="20" cy="21" r="9.5" fill="none" stroke={color} strokeWidth="1" opacity="0.5"/>
+      <path d="M20,11 L21.8,18.2 L29,20 L21.8,21.8 L20,29 L18.2,21.8 L11,20 L18.2,18.2 Z" fill={color} opacity="0.6"/>
+      <path d="M20,14 L21.2,18.8 L26,20 L21.2,21.2 L20,26 L18.8,21.2 L14,20 L18.8,18.8 Z" fill={color}/>
+    </g>,
+  ];
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {hasGlow && <defs><filter id={glowId} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>}
+      <path d={shield} fill={bg} stroke={color} strokeWidth={idx === 0 ? "1" : "1.5"} opacity={idx === 0 ? "0.7" : "1"}/>
+      {idx >= 5 && <path d={shield} fill={color} opacity="0.07"/>}
+      <g filter={hasGlow ? `url(#${glowId})` : undefined}>{icons[idx]}</g>
+    </svg>
+  );
 }
 
 function formatDate(d) {
@@ -1273,17 +1342,19 @@ export default function App() {
 
             {/* ELO */}
             <div style={{ marginBottom: 18 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00BFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 <span style={{ fontWeight: 700, fontSize: 13, color: "#EFEFF1" }}>Sistema de ELO</span>
-                <span style={{ background: "#9146FF15", border: "1px solid #9146FF44", borderRadius: 20, padding: "2px 10px", fontSize: 10, color: "#9146FF", fontWeight: 700 }}>Em breve</span>
               </div>
-              <div style={{ fontSize: 12, color: "#ADADB8", lineHeight: 1.7, marginBottom: 12 }}>
-                Um ranking competitivo exclusivo da comunidade está chegando. Suba de ELO participando das lives, acumulando dias qualificados e ganhando sorteios.
-              </div>
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                {[["Sombra","#6D6D7A"],["Caçador","#4CAF50"],["Guerreiro","#00BCD4"],["Conquistador","#2196F3"],["Élite","#9C27B0"],["Campeão","#FF9800"],["Lendário","#FFD700"],["Imortal","#FF4747"],["Lenda do Tailung","#FF2277"]].map(([name, color], i) => (
-                  <span key={i} style={{ background: `${color}15`, border: `1px solid ${color}44`, borderRadius: 20, padding: "3px 10px", fontSize: 10, color, fontWeight: 700 }}>{name}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {ELO_RANKS.map((elo, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: `${elo.color}08`, border: `1px solid ${elo.color}22` }}>
+                    <EloBadge xp={elo.xpMin} size={32}/>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: elo.color }}>{elo.name}</span>
+                    </div>
+                    <span style={{ fontSize: 11, color: "#ADADB8", fontFamily: "'Orbitron',sans-serif" }}>{elo.xpMin.toLocaleString()} XP</span>
+                  </div>
                 ))}
               </div>
             </div>
@@ -1336,8 +1407,10 @@ export default function App() {
                   onClick={() => setProfileViewer(v)}>
                   {/* Posição */}
                   <div style={{ width: 28, textAlign: "center", fontWeight: 800, color: i < 3 ? ["#FFD700","#C0C0C0","#CD7F32"][i] : "#ADADB8", fontSize: i < 3 ? 18 : 13, flexShrink: 0 }}>{i < 3 ? medals[i] : `#${i+1}`}</div>
-                  {/* Avatar */}
-                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: `${li.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: li.color, fontSize: 15, flexShrink: 0, border: `2px solid ${li.color}44` }}>{(v.display_name || v.nick)[0].toUpperCase()}</div>
+                  {/* ELO badge */}
+                  <div style={{ flexShrink: 0 }} title={ELO_RANKS[getElo(calcXP(v))].name}>
+                    <EloBadge xp={calcXP(v)} size={36}/>
+                  </div>
                   {/* Info principal */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
