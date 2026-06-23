@@ -1078,22 +1078,6 @@ export default function App() {
 
         {/* HOME */}
         {tab === "home" && <div className="fade-up">
-          <div className="card">
-            <div className="grid3">
-              <div className="stat-box">
-                <div className="stat-val" style={{ color: "#9146FF" }}>{vList.length}</div>
-                <div className="stat-lbl">Galera do Tailung</div>
-              </div>
-              <div className="stat-box">
-                <div className="stat-val" style={{ color: "#00C853" }}>{eligCount}</div>
-                <div className="stat-lbl">Elegíveis</div>
-              </div>
-              <div className="stat-box">
-                <div className="stat-val" style={{ color: "#FFB347" }}>{Math.floor(vList.reduce((a,v)=>a+calcMins(v.sessions),0)/60)}h</div>
-                <div className="stat-lbl">Total horas</div>
-              </div>
-            </div>
-          </div>
 
           {/* Live + Prize Carousel lado a lado */}
           <div className="home-main">
