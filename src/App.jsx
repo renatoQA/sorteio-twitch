@@ -930,28 +930,29 @@ export default function App() {
   return (
     <div className="app">
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #0E0E10; overscroll-behavior: none; }
         .app { min-height: 100dvh; background: #0E0E10; color: #EFEFF1; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
         .splash { min-height: 100dvh; background: #0E0E10; display: flex; align-items: center; justify-content: center; color: #9146FF; gap: 12px; font-size: 16px; font-family: system-ui; }
-        .navbar { background: #18181B; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 0 #9146FF44, 0 4px 32px rgba(145,70,255,0.12); }
-        .navbar-top { display: flex; align-items: center; padding: 0 16px; height: 56px; gap: 12px; }
-        .logo-badge { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .navbar { background: #18181B; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 0 #9146FF33, 0 4px 40px rgba(145,70,255,0.10); }
+        .navbar-top { display: flex; align-items: center; padding: 0 16px; height: 58px; gap: 12px; }
+        .logo-badge { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; filter: drop-shadow(0 0 10px #9146FF77); }
         .logo-text { line-height: 1; }
-        .logo-name { font-weight: 900; font-size: 15px; color: #EFEFF1; letter-spacing: -.3px; }
+        .logo-name { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 13px; background: linear-gradient(135deg, #C9A7FF 0%, #9146FF 60%, #BF94FF 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: .5px; }
         .logo-sub { font-size: 9px; color: #9146FF; letter-spacing: 1.8px; text-transform: uppercase; font-weight: 700; margin-top: 2px; }
         .navbar-nav { display: none; }
-        .nav-item { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #ADADB8; background: none; border: none; cursor: pointer; transition: color .15s, background .15s; white-space: nowrap; }
-        .nav-item:hover { color: #EFEFF1; background: #26262C; }
-        .nav-item.active { color: #9146FF; background: #9146FF18; }
+        .nav-item { position: relative; padding: 7px 15px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #ADADB8; background: none; border: 1px solid transparent; cursor: pointer; transition: color .2s, border-color .2s, background .2s, box-shadow .2s; white-space: nowrap; letter-spacing: .3px; }
+        .nav-item:hover { color: #EFEFF1; border-color: #9146FF44; background: #9146FF0D; }
+        .nav-item.active { color: #BF94FF; background: #9146FF1A; border-color: #9146FF55; box-shadow: 0 0 0 1px #9146FF22, 0 2px 14px #9146FF33; }
         .live-pill { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 20px; border: 1px solid; white-space: nowrap; }
         .navbar-tabs { display: flex; overflow-x: auto; scrollbar-width: none; border-top: 1px solid #26262C; }
         .navbar-tabs::-webkit-scrollbar { display: none; }
-        .nav-tab { flex: 1; min-width: 72px; padding: 11px 8px; font-size: 12px; font-weight: 700; color: #ADADB8; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: color .15s; letter-spacing: .3px; }
-        .nav-tab.active { color: #9146FF; border-bottom-color: #9146FF; }
+        .nav-tab { flex: 1; min-width: 72px; padding: 11px 8px; font-size: 12px; font-weight: 700; color: #ADADB8; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: color .2s, border-color .2s, text-shadow .2s; letter-spacing: .3px; }
+        .nav-tab.active { color: #9146FF; border-bottom-color: #9146FF; text-shadow: 0 0 12px #9146FF88; }
         @media (min-width: 768px) {
-          .navbar-top { padding: 0 32px; height: 62px; max-width: 1400px; margin: 0 auto; }
-          .navbar-nav { display: flex; align-items: center; gap: 4px; margin-left: 24px; flex: 1; }
+          .navbar-top { padding: 0 32px; height: 64px; max-width: 1400px; margin: 0 auto; }
+          .navbar-nav { display: flex; align-items: center; gap: 6px; margin-left: 28px; flex: 1; }
           .navbar-tabs { display: none; }
           .navbar > .navbar-top { max-width: unset; }
         }
@@ -1035,7 +1036,7 @@ export default function App() {
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             <div className="logo-badge">
-              <img src="/logo.png" alt="Tailung" style={{ width: 36, height: 36, objectFit: "contain", display: "block" }} />
+              <img src="/logo.png" alt="Tailung" style={{ width: 42, height: 42, objectFit: "contain", display: "block" }} />
             </div>
             <div className="logo-text">
               <div className="logo-name">Area do Tailung</div>
