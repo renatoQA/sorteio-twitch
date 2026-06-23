@@ -1284,19 +1284,28 @@ export default function App() {
                 </div>
 
                 {/* Card ELO */}
-                <div className="card" style={{ marginBottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "28px 20px" }}>
-                  {/* Brasão placeholder */}
-                  <div style={{ position: "relative", marginBottom: 14 }}>
-                    <svg width="88" height="100" viewBox="0 0 88 100" fill="none">
-                      <path d="M44 4L80 20V52C80 72 64 86 44 96C24 86 8 72 8 52V20L44 4Z" fill="#1a1a1e" stroke="#3D3D4788" strokeWidth="2"/>
-                      <path d="M44 14L72 27V52C72 68 59 80 44 88C29 80 16 68 16 52V27L44 14Z" fill="#26262C" stroke="#3D3D4744" strokeWidth="1.5"/>
-                      <text x="44" y="60" textAnchor="middle" fill="#3D3D47" fontSize="32" fontWeight="900" fontFamily="Inter,system-ui,sans-serif">?</text>
-                    </svg>
-                  </div>
-                  <div style={{ fontWeight: 800, fontSize: 15, color: "#ADADB8", letterSpacing: .5, marginBottom: 4 }}>ELO</div>
-                  <div style={{ fontSize: 11, color: "#3D3D47", marginBottom: 12 }}>Sistema em desenvolvimento</div>
-                  <span style={{ background: "#9146FF15", border: "1px solid #9146FF44", borderRadius: 20, padding: "4px 14px", fontSize: 11, color: "#9146FF", fontWeight: 700 }}>Em breve</span>
-                </div>
+                {(() => {
+                  const eloXp = myViewer ? calcXP(myViewer) : 0;
+                  const eloIdx = getElo(eloXp);
+                  const elo = ELO_RANKS[eloIdx];
+                  const nextElo = ELO_RANKS[eloIdx + 1];
+                  const progress = nextElo ? Math.min(100, Math.round(((eloXp - elo.xpMin) / (nextElo.xpMin - elo.xpMin)) * 100)) : 100;
+                  return (
+                    <div className="card" style={{ marginBottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "28px 20px", background: elo.bg, borderColor: `${elo.color}33` }}>
+                      <EloBadge xp={eloXp} size={88}/>
+                      <div style={{ fontWeight: 900, fontSize: 17, color: elo.color, letterSpacing: .8, marginTop: 12, marginBottom: 2 }}>{elo.name}</div>
+                      <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 10 }}>{eloXp.toLocaleString()} XP</div>
+                      {nextElo && (
+                        <div style={{ width: "100%", maxWidth: 140 }}>
+                          <div style={{ height: 4, borderRadius: 4, background: "#ffffff15", overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${progress}%`, background: elo.color, borderRadius: 4, transition: "width .4s" }}/>
+                          </div>
+                          <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 4 }}>{progress}% → {nextElo.name}</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               {myViewer && <ViewerCard v={myViewer} vList={vList} />}
             </>
