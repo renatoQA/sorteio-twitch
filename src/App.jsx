@@ -246,13 +246,13 @@ function PrizeCarousel({ eligCount, vList }) {
             ))}
           </div>
         </div>
-        <div style={{ flex: 1, transition: "opacity .28s", opacity: vis ? 1 : 0, minHeight: 460 }}>
+        <div style={{ flex: 1, transition: "opacity .28s", opacity: vis ? 1 : 0, display: "flex", flexDirection: "column" }}>
           {slide === 0 && (
-            <div style={{ padding: "10px 12px 20px", textAlign: "center" }}>
+            <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "10px 12px 16px", textAlign: "center" }}>
               <div style={{ position: "relative", marginBottom: 12, height: 280 }}>
                 <img src="/premio.png" alt="Prêmio Semanal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", background: "transparent", borderRadius: 10 }} onError={e => { e.target.style.display="none"; }} />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, justifyContent: "center" }}>
                 <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 20, flexShrink: 0 }}>⏱</span>
                   <span><strong style={{ color: "#fff" }}>11h</strong> de live acumuladas na semana</span>
@@ -266,14 +266,14 @@ function PrizeCarousel({ eligCount, vList }) {
             </div>
           )}
           {slide === 1 && (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ position: "relative", height: 280 }}>
+            <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+              <div style={{ position: "relative", height: 280, flexShrink: 0 }}>
                 <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", background: "#0d0020" }} onError={e => { e.target.style.display="none"; }} />
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, #0d0020, transparent)", height: 50, pointerEvents: "none" }} />
               </div>
-              <div style={{ padding: "12px 18px 18px" }}>
-                <div style={{ background: "#FFD70018", border: "1px solid #FFD70044", borderRadius: 12, padding: "12px 16px", textAlign: "left" }}>
-                  <div style={{ fontSize: 11, color: "#FFD700", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>🏆 Como se qualificar</div>
+              <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "14px 18px 18px" }}>
+                <div style={{ background: "#FFD70018", border: "1px solid #FFD70044", borderRadius: 12, padding: "14px 16px", textAlign: "left", width: "100%" }}>
+                  <div style={{ fontSize: 11, color: "#FFD700", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>🏆 Como se qualificar</div>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#C9A7FF", lineHeight: 1.6 }}>
                     <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>📆</span>
                     <span>Ter completado pelo menos <strong style={{ color: "#FFD700" }}>3 semanas elegíveis</strong> no mês</span>
@@ -1738,26 +1738,24 @@ export default function App() {
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10, paddingLeft: 2 }}>🤝 Parceiros</div>
             <a href="https://copa.mentora.gg/" target="_blank" rel="noopener noreferrer"
-              style={{ display: "block", textDecoration: "none", background: "linear-gradient(145deg, #071a0e 0%, #0d3320 60%, #0a2218 100%)", border: "1.5px solid #00C85333", borderRadius: 14, overflow: "hidden", transition: "transform .15s, box-shadow .15s" }}
-              onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 28px #00C85335"; }}
+              style={{ display: "block", textDecoration: "none", background: "#000", border: "1.5px solid #00C85344", borderRadius: 14, overflow: "hidden", transition: "transform .18s, box-shadow .18s" }}
+              onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 32px #00C85344"; }}
               onMouseLeave={e => { e.currentTarget.style.transform=""; e.currentTarget.style.boxShadow=""; }}>
-              <div style={{ padding: "16px", display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(135deg, #00C853, #00a844)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 0 14px #00C85355" }}>
-                  <svg width="26" height="26" viewBox="0 0 42 42" fill="none">
-                    <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="#fff" fontSize="28" fontWeight="900" fontFamily="Inter,system-ui,sans-serif">M</text>
-                  </svg>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: "#fff", marginBottom: 2 }}>Mentora</div>
-                  <div style={{ fontSize: 10, color: "#00C853", fontWeight: 700, letterSpacing: .8, textTransform: "uppercase" }}>Parceiro Oficial</div>
-                </div>
-                <span style={{ color: "#00C85399", fontSize: 16 }}>↗</span>
+              {/* Logo banner */}
+              <div style={{ background: "#000", padding: "18px 20px 14px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid #00C85322" }}>
+                <img src="/mentora.png" alt="Mentora" style={{ height: 32, objectFit: "contain", display: "block" }} onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="block"; }} />
+                <span style={{ display: "none", fontWeight: 900, fontSize: 20, color: "#fff", letterSpacing: 3, textTransform: "uppercase" }}>MENTORA</span>
               </div>
-              <div style={{ padding: "0 16px 12px", fontSize: 12, color: "#99DDAA", lineHeight: 1.6 }}>
+              {/* Badge parceiro */}
+              <div style={{ padding: "10px 16px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#00C853", letterSpacing: 1.2, textTransform: "uppercase", background: "#00C85318", border: "1px solid #00C85333", borderRadius: 20, padding: "3px 10px" }}>✦ Parceiro Oficial</span>
+                <span style={{ color: "#00C85388", fontSize: 14 }}>↗</span>
+              </div>
+              <div style={{ padding: "0 16px 10px", fontSize: 12, color: "#7AE09A", lineHeight: 1.6 }}>
                 Lobbys e campeonatos em parceria com a comunidade do Tailung.
               </div>
-              <div style={{ background: "#00C85310", borderTop: "1px solid #00C85322", padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: "#ADADB8" }}>copa.mentora.gg</span>
+              <div style={{ background: "#00C8530D", borderTop: "1px solid #00C85322", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#4D4D4D" }}>copa.mentora.gg</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: "#00C853" }}>Criar conta →</span>
               </div>
             </a>
