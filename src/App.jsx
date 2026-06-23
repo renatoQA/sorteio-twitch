@@ -293,67 +293,55 @@ function ProfileModal({ v, vList, onClose }) {
 }
 
 function PrizeCarousel({ eligCount, vList }) {
-  const [slide, setSlide] = useState(0);
-  const [vis, setVis] = useState(true);
-  const total = 2;
-
-  const SLIDE_LABELS = ["🎁 Prêmios Semanais", "🏅 Prêmio Mensal"];
-
-  useEffect(() => {
-    const t = setInterval(() => {
-      setVis(false);
-      setTimeout(() => { setSlide(s => (s+1)%total); setVis(true); }, 280);
-    }, 5000);
-    return () => clearInterval(t);
-  }, []);
-
-  function goTo(i) { setVis(false); setTimeout(() => { setSlide(i); setVis(true); }, 280); }
-
-  const CAROUSEL_H = 380;
-  const IMG_H = 205;
+  const H = 380;
+  const IMG_H = 210;
+  const card = (bg, border, glow) => ({
+    position: "relative", background: bg, borderRadius: 14, overflow: "hidden",
+    border: `1.5px solid ${border}`, height: H, display: "flex", flexDirection: "column",
+  });
   return (
-    <div style={{ position: "relative", background: "linear-gradient(145deg, #0d0020 0%, #1a0533 55%, #0d001a 100%)", borderRadius: 14, overflow: "hidden", border: "1.5px solid #9146FF44", height: CAROUSEL_H }}>
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 110%, #9146FF20 0%, transparent 65%)", pointerEvents: "none", zIndex: 0 }} />
-      <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column" }}>
-        {/* Header */}
-        <div style={{ padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #9146FF22", flexShrink: 0 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 2, textTransform: "uppercase", transition: "opacity .28s", opacity: vis ? 1 : 0 }}>{SLIDE_LABELS[slide]}</div>
-          <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-            {Array.from({length: total}).map((_,i) => (
-              <div key={i} onClick={() => goTo(i)} style={{ width: i===slide?20:7, height: 7, borderRadius: 4, background: i===slide?"#9146FF":"#3D3D47", cursor: "pointer", transition: "all .3s ease" }} />
-            ))}
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      {/* Semanal */}
+      <div style={card("linear-gradient(145deg,#0d0020 0%,#1a0533 55%,#0d001a 100%)", "#9146FF44")}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 110%,#9146FF18 0%,transparent 65%)", pointerEvents: "none" }} />
+        <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "7px 12px", borderBottom: "1px solid #9146FF22", flexShrink: 0 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 2, textTransform: "uppercase" }}>🎁 Prêmio Semanal</span>
+          </div>
+          <div style={{ height: IMG_H, flexShrink: 0, padding: "8px 10px 0" }}>
+            <img src="/premio.png" alt="Prêmio Semanal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", borderRadius: 8 }} onError={e => { e.target.style.display="none"; }} />
+          </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 5, padding: "8px 10px 10px" }}>
+            <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 9, padding: "7px 10px", fontSize: 11, color: "#C9A7FF", display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ flexShrink: 0 }}>⏱</span>
+              <span><strong style={{ color: "#fff" }}>11h</strong> acumuladas na semana</span>
+            </div>
+            <div style={{ fontSize: 10, color: "#9146FF", fontWeight: 700, textAlign: "center" }}>— OU —</div>
+            <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 9, padding: "7px 10px", fontSize: 11, color: "#C9A7FF", display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ flexShrink: 0 }}>📅</span>
+              <span><strong style={{ color: "#fff" }}>4 dias</strong> com pelo menos 1h cada</span>
+            </div>
           </div>
         </div>
-        {/* Slides — fixed inner height, no resize */}
-        <div style={{ flex: 1, overflow: "hidden", transition: "opacity .28s", opacity: vis ? 1 : 0 }}>
-          {/* Slide 0: Semanal */}
-          <div style={{ display: slide === 0 ? "flex" : "none", flexDirection: "column", height: "100%", padding: "8px 12px 10px" }}>
-            <div style={{ height: IMG_H, flexShrink: 0, marginBottom: 8 }}>
-              <img src="/premio.png" alt="Prêmio Semanal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", borderRadius: 10 }} onError={e => { e.target.style.display="none"; }} />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 10, padding: "8px 12px", fontSize: 12, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>⏱</span>
-                <span><strong style={{ color: "#fff" }}>11h</strong> de live acumuladas na semana</span>
-              </div>
-              <div style={{ fontSize: 10, color: "#9146FF", fontWeight: 700, textAlign: "center" }}>— OU —</div>
-              <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 10, padding: "8px 12px", fontSize: 12, color: "#C9A7FF", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>📅</span>
-                <span><strong style={{ color: "#fff" }}>4 dias</strong> de check-in com pelo menos 1h cada</span>
-              </div>
-            </div>
+      </div>
+
+      {/* Mensal */}
+      <div style={card("linear-gradient(145deg,#1a1000 0%,#2a1a00 55%,#1a1000 100%)", "#FFD70044")}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 110%,#FFD70012 0%,transparent 65%)", pointerEvents: "none" }} />
+        <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "7px 12px", borderBottom: "1px solid #FFD70022", flexShrink: 0 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#FFD700", letterSpacing: 2, textTransform: "uppercase" }}>🏅 Prêmio Mensal</span>
           </div>
-          {/* Slide 1: Mensal */}
-          <div style={{ display: slide === 1 ? "flex" : "none", flexDirection: "column", height: "100%", padding: "8px 12px 10px" }}>
-            <div style={{ height: IMG_H, flexShrink: 0, marginBottom: 8, position: "relative" }}>
-              <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} onError={e => { e.target.style.display="none"; }} />
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, #0d0020, transparent)", height: 30, pointerEvents: "none" }} />
-            </div>
-            <div style={{ background: "#FFD70018", border: "1px solid #FFD70044", borderRadius: 10, padding: "10px 14px" }}>
-              <div style={{ fontSize: 10, color: "#FFD700", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>🏆 Como se qualificar</div>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "#C9A7FF", lineHeight: 1.5 }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>📆</span>
-                <span>Ter completado pelo menos <strong style={{ color: "#FFD700" }}>3 semanas elegíveis</strong> no mês</span>
+          <div style={{ height: IMG_H, flexShrink: 0, padding: "8px 10px 0", position: "relative" }}>
+            <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", borderRadius: 8 }} onError={e => { e.target.style.display="none"; }} />
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 28, background: "linear-gradient(to top,#1a1000,transparent)", pointerEvents: "none" }} />
+          </div>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "8px 10px 10px" }}>
+            <div style={{ background: "#FFD70015", border: "1px solid #FFD70044", borderRadius: 9, padding: "9px 12px", width: "100%" }}>
+              <div style={{ fontSize: 10, color: "#FFD700", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>🏆 Como se qualificar</div>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 7, fontSize: 11, color: "#C9A7FF", lineHeight: 1.5 }}>
+                <span style={{ flexShrink: 0 }}>📆</span>
+                <span>Pelo menos <strong style={{ color: "#FFD700" }}>3 semanas elegíveis</strong> no mês</span>
               </div>
             </div>
           </div>
