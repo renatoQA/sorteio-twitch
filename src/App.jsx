@@ -1089,6 +1089,9 @@ export default function App() {
           .home-player-col { flex: 3; }
           .home-chat-col { flex: 2; height: auto; }
         }
+        /* Partners mobile — hide when sidebar kicks in */
+        .partners-mobile { display: block; margin-bottom: 12px; }
+        @media (min-width: 1100px) { .partners-mobile { display: none; } }
         /* Social banners */
         .social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
         @media (min-width: 640px) { .social-grid { grid-template-columns: repeat(4, 1fr); } }
@@ -1215,6 +1218,29 @@ export default function App() {
 
           {/* Redes Sociais */}
           <SocialBanners />
+
+          {/* Parceiro Mentora — só aparece no mobile (sidebar já exibe no desktop) */}
+          <div className="partners-mobile">
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>🤝 Parceiros</div>
+            <a href="https://copa.mentora.gg/" target="_blank" rel="noopener noreferrer"
+              style={{ display: "block", textDecoration: "none", background: "#000", border: "1.5px solid #00C85344", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ background: "#000", padding: "16px 20px 12px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid #00C85322" }}>
+                <img src="/mentora.png" alt="Mentora" style={{ height: 32, objectFit: "contain", display: "block" }} onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="block"; }} />
+                <span style={{ display: "none", fontWeight: 900, fontSize: 20, color: "#fff", letterSpacing: 3, textTransform: "uppercase" }}>MENTORA</span>
+              </div>
+              <div style={{ padding: "10px 16px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#00C853", letterSpacing: 1.2, textTransform: "uppercase", background: "#00C85318", border: "1px solid #00C85333", borderRadius: 20, padding: "3px 10px" }}>✦ Parceiro Oficial</span>
+                <span style={{ color: "#00C85388", fontSize: 14 }}>↗</span>
+              </div>
+              <div style={{ padding: "0 16px 10px", fontSize: 12, color: "#7AE09A", lineHeight: 1.6 }}>
+                Lobbys e campeonatos em parceria com a comunidade do Tailung.
+              </div>
+              <div style={{ background: "#00C8530D", borderTop: "1px solid #00C85322", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#4D4D4D" }}>copa.mentora.gg</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#00C853" }}>Criar conta →</span>
+              </div>
+            </a>
+          </div>
 
           <div className="card">
             <div className="card-title">Como participar</div>
