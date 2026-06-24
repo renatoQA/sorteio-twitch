@@ -1527,8 +1527,9 @@ export default function App() {
                       </div>
                       <span style={{ fontSize: 10, color: "#ADADB8" }}>
                         {ok && <span style={{ color: "#00C853", fontWeight: 700 }}>✓ elegível · </span>}
-                        {`${Math.floor(calcMins(v.sessions)/60)}h${calcMins(v.sessions)%60}m`}
-                        {vSE > 0 && <span style={{ color: "#FFB347", fontWeight: 600 }}> · {fmtTimer(seToMins(vSE, v.hasSub))}</span>}
+                        {vSE > 0
+                          ? <span style={{ color: "#FFB347", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{fmtTimer(seToMins(vSE, v.hasSub))}</span>
+                          : `${Math.floor(calcMins(v.sessions)/60)}h${calcMins(v.sessions)%60}m`}
                       </span>
                     </div>
                   </div>
