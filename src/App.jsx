@@ -991,10 +991,9 @@ export default function App() {
     if (mb !== ma) return mb - ma;
     const sa = calcStars(a.sessions), sb = calcStars(b.sessions);
     if (sb !== sa) return sb - sa;
-    const minA = calcMins(a.sessions), minB = calcMins(b.sessions);
+    const minA = calcMins(a.sessions) + seToMins(getSE(a), a.hasSub);
+    const minB = calcMins(b.sessions) + seToMins(getSE(b), b.hasSub);
     if (minB !== minA) return minB - minA;
-    const seA = getSE(a), seB = getSE(b);
-    if (seB !== seA) return seB - seA;
     const xa = calcXP(a), xb = calcXP(b);
     if (xb !== xa) return xb - xa;
     return Number(a.twitch_id) - Number(b.twitch_id);
@@ -1527,9 +1526,7 @@ export default function App() {
                       </div>
                       <span style={{ fontSize: 10, color: "#ADADB8" }}>
                         {ok && <span style={{ color: "#00C853", fontWeight: 700 }}>✓ elegível · </span>}
-                        {vSE > 0
-                          ? <span style={{ color: "#FFB347", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{fmtTimer(seToMins(vSE, v.hasSub))}</span>
-                          : `${Math.floor(calcMins(v.sessions)/60)}h${calcMins(v.sessions)%60}m`}
+                        <span style={{ fontVariantNumeric: "tabular-nums" }}>{fmtTimer(calcMins(v.sessions) + seToMins(vSE, v.hasSub))}</span>
                       </span>
                     </div>
                   </div>
