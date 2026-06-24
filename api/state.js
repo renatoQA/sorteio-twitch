@@ -43,7 +43,7 @@ const defaultState = {
   winner: null,
   cycleHistory: [],
   cycleStart: null,
-  prize: null,
+  prizes: [],
   botCycle: 0,
 };
 
@@ -65,9 +65,9 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const state = await kv.get(STATE_KEY) || defaultState;
-    // never expose giftcard code in public state
+    // never expose giftcard codes in public state
     const safe = { ...state };
-    if (safe.prize) safe.prize = { ...safe.prize, giftcard: undefined };
+    if (safe.prizes) safe.prizes = safe.prizes.map(p => ({ ...p, giftcard: undefined }));
     return res.status(200).json(safe);
   }
 
@@ -223,42 +223,46 @@ export default async function handler(req, res) {
       state.liveActive = false;
       state.liveDate = null;
       state.winner = null;
-      state.prize = null;
+      state.prizes = [];
       state.cycleStart = endDate;
     }
 
     else if (action === 'get_prize_code') {
-      if (!state.prize) return res.status(404).json({ error: 'Nenhum prêmio configurado.' });
-      return res.status(200).json({ giftcard: state.prize.giftcard });
+      if (!state.prizes) state.prizes = [];
+      const prize = state.prizes.find(p => p.id === payload.prize_id);
+      if (!prize) return res.status(404).json({ error: 'Prêmio não encontrado.' });
+      return res.status(200).json({ giftcard: prize.giftcard });
     }
 
     else if (action === 'set_prize') {
       const { twitch_id, display_name, giftcard } = payload;
       if (!twitch_id || !giftcard) return res.status(400).json({ error: 'Preencha o vencedor e o código.' });
-      state.prize = { twitch_id, display_name, giftcard, enabled: false, redeemed: false, redeemedAt: null };
+      if (!state.prizes) state.prizes = [];
+      state.prizes.push({ id: Date.now().toString(), twitch_id, display_name, giftcard, enabled: false, redeemed: false, redeemedAt: null });
     }
 
     else if (action === 'toggle_prize') {
-      if (!state.prize) return res.status(404).json({ error: 'Nenhum prêmio configurado.' });
-      state.prize.enabled = !state.prize.enabled;
+      if (!state.prizes) state.prizes = [];
+      const prize = state.prizes.find(p => p.id === payload.prize_id);
+      if (!prize) return res.status(404).json({ error: 'Prêmio não encontrado.' });
+      prize.enabled = !prize.enabled;
     }
 
     else if (action === 'clear_prize') {
-      state.prize = null;
+      if (!state.prizes) state.prizes = [];
+      state.prizes = state.prizes.filter(p => p.id !== payload.prize_id);
     }
 
     else if (action === 'redeem_prize') {
       const { twitch_id } = payload;
-      if (!state.prize) return res.status(404).json({ error: 'Nenhum prêmio disponível.' });
-      if (!state.prize.enabled) return res.status(403).json({ error: 'Resgate ainda não habilitado.' });
-      if (state.prize.redeemed) return res.status(400).json({ error: 'Prêmio já foi resgatado.' });
-      if (state.prize.twitch_id !== twitch_id) return res.status(403).json({ error: 'Este prêmio não é seu.' });
-      state.prize.redeemed = true;
-      state.prize.redeemedAt = new Date().toISOString();
-      const giftcard = state.prize.giftcard;
+      if (!state.prizes) state.prizes = [];
+      const prize = state.prizes.find(p => p.twitch_id === twitch_id && p.enabled && !p.redeemed);
+      if (!prize) return res.status(404).json({ error: 'Nenhum prêmio disponível para resgate.' });
+      prize.redeemed = true;
+      prize.redeemedAt = new Date().toISOString();
+      const giftcard = prize.giftcard;
       await kv.set(STATE_KEY, state);
-      // return giftcard only this one time, stripped from future GETs
-      return res.status(200).json({ giftcard, redeemedAt: state.prize.redeemedAt });
+      return res.status(200).json({ giftcard, redeemedAt: prize.redeemedAt });
     }
 
     else if (action === 'add_schedule') {

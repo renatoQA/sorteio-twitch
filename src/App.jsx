@@ -529,7 +529,7 @@ export default function App() {
   const [schedDate, setSchedDate] = useState('');
   const [schedTime, setSchedTime] = useState('20:00');
   const [redeemedCode, setRedeemedCode] = useState(null);
-  const [adminPrizeCode, setAdminPrizeCode] = useState(null);
+  const [adminPrizeCodes, setAdminPrizeCodes] = useState({});
   const [streamerToken, setStreamerToken] = useState('');
   const [streamerTwitchId, setStreamerTwitchId] = useState('');
   const [streamerLogin, setStreamerLogin] = useState('');
@@ -622,13 +622,12 @@ export default function App() {
 
   useEffect(() => {
     if (!twitchUser || !state) return;
-    const prize = state.prize;
-    // Clear stale local code if prize is gone or belongs to someone else
-    if ((!prize || prize.twitch_id !== twitchUser.id) && redeemedCode) {
+    const myPrize = (state.prizes || []).find(p => p.twitch_id === twitchUser.id);
+    if (!myPrize && redeemedCode) {
       setRedeemedCode(null);
       localStorage.removeItem('redeemed_code');
     }
-  }, [state?.prize, twitchUser?.id]);
+  }, [state?.prizes, twitchUser?.id]);
 
   useEffect(() => {
     if (!botActive) { setBotCountdown(''); return; }
@@ -934,16 +933,16 @@ export default function App() {
     else flash("Senha incorreta.", "#FF4747");
   }
 
-  async function fetchPrizeCode() {
+  async function fetchPrizeCode(prize_id) {
     setActing(true);
     try {
       const r = await fetch(API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "get_prize_code", payload: {} }),
+        body: JSON.stringify({ action: "get_prize_code", payload: { prize_id } }),
       });
       const data = await r.json();
-      if (r.ok) setAdminPrizeCode(data.giftcard);
+      if (r.ok) setAdminPrizeCodes(prev => ({ ...prev, [prize_id]: data.giftcard }));
       else flash(data.error || "Erro!", "#FF4747");
     } catch { flash("Erro de conexão!", "#FF4747"); }
     finally { setActing(false); }
@@ -1295,12 +1294,12 @@ export default function App() {
 
         {/* VIEWER */}
         {tab === "viewer" && <div className="fade-up">
-          {/* Prize redemption banner */}
-          {twitchUser && state?.prize?.twitch_id === twitchUser.id && (!state.prize.redeemed || redeemedCode) && (
-            <div style={{ background: "#9146FF18", border: "2px solid #9146FF", borderRadius: 12, padding: "16px", marginBottom: 12, textAlign: "center" }}>
+          {/* Prize redemption banners */}
+          {twitchUser && (state?.prizes || []).filter(p => p.twitch_id === twitchUser.id).map(prize => (
+            <div key={prize.id} style={{ background: "#9146FF18", border: "2px solid #9146FF", borderRadius: 12, padding: "16px", marginBottom: 12, textAlign: "center" }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>🎁</div>
               <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>Você ganhou um prêmio!</div>
-              {(redeemedCode && state.prize.redeemed) ? (
+              {(redeemedCode && prize.redeemed) ? (
                 <div>
                   <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 10 }}>Seu código gift card:</div>
                   <div style={{ background: "#26262C", borderRadius: 8, padding: "12px 16px", fontSize: 18, fontWeight: 800, color: "#9146FF", letterSpacing: 2, wordBreak: "break-all", marginBottom: 10 }}>{redeemedCode}</div>
@@ -1309,16 +1308,18 @@ export default function App() {
                   </button>
                   <div style={{ fontSize: 11, color: "#ADADB8" }}>Código salvo neste dispositivo. Copie e guarde em local seguro!</div>
                 </div>
-              ) : state.prize.enabled ? (
+              ) : prize.enabled && !prize.redeemed ? (
                 <div>
                   <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14 }}>Seu prêmio está disponível para resgate!</div>
                   <button className="btn btn-full" style={{ background: "#9146FF", fontSize: 15, padding: "13px 20px" }} onClick={redeemPrize} disabled={acting}>🎁 Resgatar Prêmio</button>
                 </div>
+              ) : prize.redeemed ? (
+                <div style={{ fontSize: 13, color: "#00C853" }}>✓ Prêmio já resgatado</div>
               ) : (
                 <div style={{ fontSize: 13, color: "#ADADB8" }}>Aguarde o streamer habilitar o resgate...</div>
               )}
             </div>
-          )}
+          ))}
           {!twitchUser ? (
             <div className="card" style={{ textAlign: "center", padding: "44px 20px" }}>
               <svg width="52" height="52" viewBox="0 0 24 24" fill="#9146FF" style={{ marginBottom: 18 }}><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
@@ -1878,40 +1879,40 @@ export default function App() {
 
             {/* ADMIN: PRÊMIO */}
             {adminTab === "premio" && <>
-              {/* Prêmio ativo — mostrado como histórico, não bloqueia novo */}
-              {state?.prize && (
-                <div className="card" style={{ borderColor: state.prize.redeemed ? "#00C85344" : state.prize.enabled ? "#9146FF44" : "#3D3D47" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Prêmio atual</div>
-                  <div style={{ background: state.prize.redeemed ? "#00C85315" : state.prize.enabled ? "#9146FF15" : "#26262C", border: `1px solid ${state.prize.redeemed ? "#00C85344" : state.prize.enabled ? "#9146FF44" : "#3D3D47"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{state.prize.display_name}</div>
+              {/* Lista de prêmios ativos */}
+              {(state?.prizes || []).map(prize => (
+                <div key={prize.id} className="card" style={{ borderColor: prize.redeemed ? "#00C85344" : prize.enabled ? "#9146FF44" : "#3D3D47" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Prêmio</div>
+                  <div style={{ background: prize.redeemed ? "#00C85315" : prize.enabled ? "#9146FF15" : "#26262C", border: `1px solid ${prize.redeemed ? "#00C85344" : prize.enabled ? "#9146FF44" : "#3D3D47"}`, borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{prize.display_name}</div>
                     <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       Código:&nbsp;
-                      {adminPrizeCode
-                        ? <span style={{ background: "#26262C", borderRadius: 6, padding: "3px 10px", color: "#9146FF", fontWeight: 800, letterSpacing: 1, wordBreak: "break-all", whiteSpace: "pre-line" }}>{adminPrizeCode}</span>
-                        : <button onClick={fetchPrizeCode} disabled={acting} style={{ background: "none", border: "1px solid #9146FF44", borderRadius: 6, padding: "3px 10px", color: "#9146FF", fontSize: 12, cursor: "pointer" }}>👁 Ver código</button>
+                      {adminPrizeCodes[prize.id]
+                        ? <span style={{ background: "#26262C", borderRadius: 6, padding: "3px 10px", color: "#9146FF", fontWeight: 800, letterSpacing: 1, wordBreak: "break-all", whiteSpace: "pre-line" }}>{adminPrizeCodes[prize.id]}</span>
+                        : <button onClick={() => fetchPrizeCode(prize.id)} disabled={acting} style={{ background: "none", border: "1px solid #9146FF44", borderRadius: 6, padding: "3px 10px", color: "#9146FF", fontSize: 12, cursor: "pointer" }}>👁 Ver código</button>
                       }
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <span className={`badge ${state.prize.redeemed ? "badge-ok" : state.prize.enabled ? "badge-ok" : "badge-pend"}`}>
-                        {state.prize.redeemed ? "✓ Resgatado" : state.prize.enabled ? "● Resgate habilitado" : "○ Aguardando habilitação"}
+                      <span className={`badge ${prize.redeemed ? "badge-ok" : prize.enabled ? "badge-ok" : "badge-pend"}`}>
+                        {prize.redeemed ? "✓ Resgatado" : prize.enabled ? "● Resgate habilitado" : "○ Aguardando habilitação"}
                       </span>
-                      {state.prize.redeemed && <span style={{ fontSize: 11, color: "#ADADB8" }}>em {new Date(state.prize.redeemedAt).toLocaleDateString("pt-BR")}</span>}
+                      {prize.redeemed && <span style={{ fontSize: 11, color: "#ADADB8" }}>em {new Date(prize.redeemedAt).toLocaleDateString("pt-BR")}</span>}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    {!state.prize.redeemed && (
-                      <button className={`btn btn-full${state.prize.enabled ? " btn-red" : ""}`} style={!state.prize.enabled ? { background: "#00C853" } : {}} onClick={() => act("toggle_prize")} disabled={acting}>
-                        {state.prize.enabled ? "⏸ Desabilitar resgate" : "▶ Habilitar resgate"}
+                    {!prize.redeemed && (
+                      <button className={`btn btn-full${prize.enabled ? " btn-red" : ""}`} style={!prize.enabled ? { background: "#00C853" } : {}} onClick={() => act("toggle_prize", { prize_id: prize.id })} disabled={acting}>
+                        {prize.enabled ? "⏸ Desabilitar resgate" : "▶ Habilitar resgate"}
                       </button>
                     )}
-                    <button className="btn-ghost" onClick={() => { if (window.confirm("Remover prêmio atual?")) act("clear_prize"); }} disabled={acting}>Remover</button>
+                    <button className="btn-ghost" onClick={() => { if (window.confirm("Remover este prêmio?")) act("clear_prize", { prize_id: prize.id }); }} disabled={acting}>Remover</button>
                   </div>
                 </div>
-              )}
+              ))}
 
               {/* Formulário sempre disponível para dar novo prêmio */}
               <div className="card">
-                <div className="card-title">🎁 {state?.prize ? "Dar prêmio para outro viewer" : "Configurar prêmio"}</div>
+                <div className="card-title">🎁 Dar prêmio</div>
                 <span className="label">Vencedor</span>
                 <select className="inp" style={{ marginBottom: 10, cursor: "pointer" }} value={prizeWinnerId} onChange={e => setPrizeWinnerId(e.target.value)}>
                   <option value="">Selecione o viewer...</option>
