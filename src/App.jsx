@@ -544,6 +544,19 @@ export default function App() {
   const [liveTitle, setLiveTitle] = useState('');
   const [liveTestMode, setLiveTestMode] = useState(false);
   const [profileViewer, setProfileViewer] = useState(null);
+  const [sePoints, setSePoints] = useState({});
+
+  useEffect(() => {
+    if (tab !== "ranking") return;
+    fetch("https://api.streamelements.com/kappa/v2/points/69ebaa7d3d08d0ab3cd6f917/top?limit=200")
+      .then(r => r.json())
+      .then(data => {
+        const map = {};
+        for (const u of data.users || []) map[u.username.toLowerCase()] = u.points;
+        setSePoints(map);
+      })
+      .catch(() => {});
+  }, [tab]);
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -966,6 +979,7 @@ export default function App() {
     </div>
   );
 
+  const getSE = (v) => sePoints[(v.display_name || v.nick).toLowerCase()] ?? sePoints[(v.twitch_login || "").toLowerCase()] ?? 0;
   const vList = state ? Object.values(state.viewers).sort((a, b) => {
     const ma = monthlyEligibleCycles(a), mb = monthlyEligibleCycles(b);
     if (mb !== ma) return mb - ma;
@@ -973,6 +987,8 @@ export default function App() {
     if (sb !== sa) return sb - sa;
     const minA = calcMins(a.sessions), minB = calcMins(b.sessions);
     if (minB !== minA) return minB - minA;
+    const seA = getSE(a), seB = getSE(b);
+    if (seB !== seA) return seB - seA;
     const xa = calcXP(a), xb = calcXP(b);
     if (xb !== xa) return xb - xa;
     return Number(a.twitch_id) - Number(b.twitch_id);
@@ -1473,6 +1489,7 @@ export default function App() {
               const qDays = calcStars(v.sessions);
               const monthlyOk = isMonthlyEligible(v);
               const monthCycles = monthlyEligibleCycles(v);
+              const vSE = getSE(v);
               const medals = ["🥇","🥈","🥉"];
               const rowBg = i % 2 === 0 ? "transparent" : "#26262C18";
               return (
@@ -1505,6 +1522,7 @@ export default function App() {
                       <span style={{ fontSize: 10, color: "#ADADB8" }}>
                         {ok && <span style={{ color: "#00C853", fontWeight: 700 }}>✓ elegível · </span>}
                         {`${Math.floor(calcMins(v.sessions)/60)}h${calcMins(v.sessions)%60}m`}
+                        {vSE > 0 && <span style={{ color: "#FFB347", fontWeight: 600 }}> · {vSE.toLocaleString()} pts</span>}
                       </span>
                     </div>
                   </div>
