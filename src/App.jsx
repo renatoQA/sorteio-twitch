@@ -17,6 +17,10 @@ function calcStars(sessions) {
   const total = sessions.reduce((a, s) => a + (s.minutes || 0), 0);
   return Math.min(Math.floor(total / MIN_MINS_LIVE), sessions.length);
 }
+function calcStarsCombined(sessions, sePts, hasSub) {
+  const total = calcMins(sessions) + seToMins(sePts, hasSub);
+  return Math.min(Math.floor(total / MIN_MINS_LIVE), MIN_DAYS);
+}
 function isEligible(v) {
   return calcMins(v.sessions) >= MIN_MINS_TOTAL || calcStars(v.sessions) >= MIN_DAYS;
 }
@@ -988,7 +992,8 @@ export default function App() {
   const vList = state ? Object.values(state.viewers).sort((a, b) => {
     const ma = monthlyEligibleCycles(a), mb = monthlyEligibleCycles(b);
     if (mb !== ma) return mb - ma;
-    const sa = calcStars(a.sessions), sb = calcStars(b.sessions);
+    const sa = calcStarsCombined(a.sessions, getSE(a), a.hasSub);
+    const sb = calcStarsCombined(b.sessions, getSE(b), b.hasSub);
     if (sb !== sa) return sb - sa;
     const minA = calcMins(a.sessions) + seToMins(getSE(a), a.hasSub);
     const minB = calcMins(b.sessions) + seToMins(getSE(b), b.hasSub);
@@ -1492,10 +1497,10 @@ export default function App() {
             {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum participante ainda.</div>}
             {vList.map((v, i) => {
               const ok = isEligible(v);
-              const qDays = calcStars(v.sessions);
+              const vSE = getSE(v);
+              const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub);
               const monthlyOk = isMonthlyEligible(v);
               const monthCycles = monthlyEligibleCycles(v);
-              const vSE = getSE(v);
               const medals = ["🥇","🥈","🥉"];
               const rowBg = i % 2 === 0 ? "transparent" : "#26262C18";
               return (
