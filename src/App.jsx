@@ -21,6 +21,8 @@ function isEligible(v) {
   return calcMins(v.sessions) >= MIN_MINS_TOTAL || calcStars(v.sessions) >= MIN_DAYS;
 }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
+function seToMins(pts, hasSub) { return Math.round(pts * (hasSub ? 10 / 15 : 2)); }
+function fmtMins(m) { return m >= 60 ? `${Math.floor(m/60)}h${m%60 > 0 ? `${m%60}m` : ""}` : `${m}m`; }
 
 // ELO system — set to true to go live
 const ELO_ENABLED = false;
@@ -1526,7 +1528,7 @@ export default function App() {
                       <span style={{ fontSize: 10, color: "#ADADB8" }}>
                         {ok && <span style={{ color: "#00C853", fontWeight: 700 }}>✓ elegível · </span>}
                         {`${Math.floor(calcMins(v.sessions)/60)}h${calcMins(v.sessions)%60}m`}
-                        {vSE > 0 && <span style={{ color: "#FFB347", fontWeight: 600 }}> · {vSE.toLocaleString()} pts</span>}
+                        {vSE > 0 && <span style={{ color: "#FFB347", fontWeight: 600 }}> · ⏱ {fmtMins(seToMins(vSE, v.hasSub))} SE</span>}
                       </span>
                     </div>
                   </div>
