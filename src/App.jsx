@@ -548,14 +548,18 @@ export default function App() {
 
   useEffect(() => {
     if (tab !== "ranking") return;
-    fetch("https://api.streamelements.com/kappa/v2/points/69ebaa7d3d08d0ab3cd6f917/top?limit=200")
-      .then(r => r.json())
-      .then(data => {
-        const map = {};
-        for (const u of data.users || []) map[u.username.toLowerCase()] = u.points;
-        setSePoints(map);
-      })
-      .catch(() => {});
+    const fetchSE = () =>
+      fetch("https://api.streamelements.com/kappa/v2/points/69ebaa7d3d08d0ab3cd6f917/top?limit=200")
+        .then(r => r.json())
+        .then(data => {
+          const map = {};
+          for (const u of data.users || []) map[u.username.toLowerCase()] = u.points;
+          setSePoints(map);
+        })
+        .catch(() => {});
+    fetchSE();
+    const id = setInterval(fetchSE, 60_000);
+    return () => clearInterval(id);
   }, [tab]);
 
   const flash = useCallback((msg, color = "#9146FF") => {
