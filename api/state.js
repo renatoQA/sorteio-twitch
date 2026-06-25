@@ -1,6 +1,46 @@
 import { kv } from '@vercel/kv';
+import { createHmac } from 'crypto';
 
 const STATE_KEY = 'sorteio_state';
+
+function base32Decode(s) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const clean = s.toUpperCase().replace(/\s/g, '').replace(/=+$/, '');
+  let bits = 0, value = 0;
+  const out = [];
+  for (const c of clean) {
+    const idx = alphabet.indexOf(c);
+    if (idx === -1) continue;
+    value = (value << 5) | idx;
+    bits += 5;
+    if (bits >= 8) { out.push((value >>> (bits - 8)) & 0xff); bits -= 8; }
+  }
+  return Buffer.from(out);
+}
+
+function totpAt(secret, counter) {
+  const key = base32Decode(secret);
+  const buf = Buffer.alloc(8);
+  buf.writeBigInt64BE(BigInt(counter));
+  const hmac = createHmac('sha1', key).update(buf).digest();
+  const offset = hmac[hmac.length - 1] & 0xf;
+  const code = (
+    ((hmac[offset] & 0x7f) << 24) |
+    (hmac[offset + 1] << 16) |
+    (hmac[offset + 2] << 8) |
+    hmac[offset + 3]
+  ) % 1_000_000;
+  return String(code).padStart(6, '0');
+}
+
+function verifyTotp(secret, token) {
+  if (!secret || !token) return false;
+  const counter = Math.floor(Date.now() / 1000 / 30);
+  for (const delta of [-1, 0, 1]) {
+    if (totpAt(secret, counter + delta) === String(token).trim()) return true;
+  }
+  return false;
+}
 
 const ADMIN_ACTIONS = new Set([
   'check_admin', 'open_live', 'close_live', 'draw', 'draw_specific',
@@ -89,6 +129,12 @@ export default async function handler(req, res) {
     }
 
     if (action === 'check_admin') {
+      if (process.env.TOTP_SECRET) {
+        const totpToken = req.headers['x-admin-totp'];
+        if (!verifyTotp(process.env.TOTP_SECRET, totpToken)) {
+          return res.status(401).json({ error: 'Código 2FA inválido.' });
+        }
+      }
       return res.status(200).json({ ok: true });
     }
 

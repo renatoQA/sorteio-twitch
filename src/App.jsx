@@ -516,6 +516,8 @@ export default function App() {
   const [tab, setTab] = useState("home");
   const [adminTab, setAdminTab] = useState("live");
   const [pass, setPass] = useState("");
+  const [totp, setTotp] = useState("");
+  const [loginStep, setLoginStep] = useState(0);
   const [adminSecret, setAdminSecret] = useState("");
   const [streamerUnlocked, setStreamerUnlocked] = useState(false);
   const [flashMsg, setFlashMsg] = useState("");
@@ -935,20 +937,29 @@ export default function App() {
     if (res.ok) { flash("Ciclo encerrado! Histórico salvo. ✅", "#00C853"); setAdminTab("historico"); }
   }
 
+  function advanceLogin() {
+    if (!pass.trim()) return flash("Digite a senha.", "#FF4747");
+    setLoginStep(1);
+  }
+
   async function unlockStreamer() {
+    if (!totp.trim()) return flash("Digite o código 2FA.", "#FF4747");
     try {
       const r = await fetch(API, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-Admin-Secret": pass },
+        headers: { "Content-Type": "application/json", "X-Admin-Secret": pass, "X-Admin-Totp": totp.trim() },
         body: JSON.stringify({ action: "check_admin", payload: {} }),
       });
+      const data = await r.json();
       if (r.ok) {
         setAdminSecret(pass);
         sessionStorage.setItem('admin_secret', pass);
         setStreamerUnlocked(true);
-        setPass("");
+        setPass(""); setTotp(""); setLoginStep(0);
       } else {
-        flash("Senha incorreta.", "#FF4747");
+        flash(data.error || "Credenciais inválidas.", "#FF4747");
+        if (data.error?.includes("2FA")) setTotp("");
+        else { setPass(""); setTotp(""); setLoginStep(0); }
       }
     } catch { flash("Erro de conexão!", "#FF4747"); }
   }
@@ -1626,12 +1637,51 @@ export default function App() {
         {tab === "streamer" && <div className="fade-up">
           {!streamerUnlocked ? (
             <div className="card" style={{ maxWidth: 360, margin: "40px auto" }}>
-              <div className="card-title" style={{ textAlign: "center" }}>🔒 Acesso do Streamer</div>
-              <span className="label">senha</span>
-              <div className="row">
-                <input className="inp" type="password" placeholder="••••••••" value={pass} onChange={e => setPass(e.target.value)} onKeyDown={e => e.key === "Enter" && unlockStreamer()} />
-                <button className="btn" onClick={unlockStreamer}>Entrar</button>
+              <div style={{ textAlign: "center", marginBottom: 18 }}>
+                <div style={{ fontSize: 28, marginBottom: 6 }}>{loginStep === 0 ? "🔒" : "📱"}</div>
+                <div className="card-title" style={{ margin: 0 }}>
+                  {loginStep === 0 ? "Acesso do Streamer" : "Verificação 2FA"}
+                </div>
+                <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 4 }}>
+                  {loginStep === 0 ? "Passo 1 de 2 · Senha" : "Passo 2 de 2 · Código do autenticador"}
+                </div>
               </div>
+
+              {/* Step indicator */}
+              <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 18 }}>
+                {[0, 1].map(i => (
+                  <div key={i} style={{ height: 4, width: 36, borderRadius: 4, background: i <= loginStep ? "#9146FF" : "#3D3D47", transition: "background .3s" }} />
+                ))}
+              </div>
+
+              {loginStep === 0 ? (
+                <>
+                  <span className="label">senha</span>
+                  <div className="row">
+                    <input className="inp" type="password" placeholder="••••••••" value={pass}
+                      onChange={e => setPass(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && advanceLogin()}
+                      autoFocus />
+                    <button className="btn" onClick={advanceLogin}>Avançar</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="label">código 2FA (6 dígitos)</span>
+                  <div className="row">
+                    <input className="inp" type="text" inputMode="numeric" pattern="[0-9]*"
+                      placeholder="000000" maxLength={6} value={totp}
+                      onChange={e => setTotp(e.target.value.replace(/\D/g, ''))}
+                      onKeyDown={e => e.key === "Enter" && unlockStreamer()}
+                      autoFocus />
+                    <button className="btn" onClick={unlockStreamer} disabled={acting}>Entrar</button>
+                  </div>
+                  <button className="btn-ghost" style={{ width: "100%", marginTop: 8, fontSize: 12 }}
+                    onClick={() => { setLoginStep(0); setTotp(""); setPass(""); }}>
+                    ← Voltar
+                  </button>
+                </>
+              )}
             </div>
           ) : <>
             <div className="admin-tabs">
@@ -1895,7 +1945,7 @@ export default function App() {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button className="btn-ghost" style={{ flex: 1, color: "#FF4747", borderColor: "#FF474744" }} onClick={resetAll} disabled={acting}>Resetar tudo</button>
-                <button className="btn-ghost" onClick={() => { setStreamerUnlocked(false); setAdminSecret(''); sessionStorage.removeItem('admin_secret'); }}>Sair</button>
+                <button className="btn-ghost" onClick={() => { setStreamerUnlocked(false); setAdminSecret(''); setTotp(''); setLoginStep(0); sessionStorage.removeItem('admin_secret'); }}>Sair</button>
               </div>
             </>}
 
