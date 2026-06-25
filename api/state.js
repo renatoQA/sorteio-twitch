@@ -2,6 +2,13 @@ import { kv } from '@vercel/kv';
 
 const STATE_KEY = 'sorteio_state';
 
+const ADMIN_ACTIONS = new Set([
+  'check_admin', 'open_live', 'close_live', 'draw', 'draw_specific',
+  'end_cycle', 'reset', 'set_prize', 'toggle_prize', 'clear_prize',
+  'get_prize_code', 'delete_viewer', 'add_xp', 'add_time',
+  'add_schedule', 'remove_schedule',
+]);
+
 const DISCORD_WEBHOOKS = [
   process.env.DISCORD_WEBHOOK_AVISO,
   process.env.DISCORD_WEBHOOK_PAPO,
@@ -73,6 +80,18 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     const { action, payload } = req.body;
+
+    if (ADMIN_ACTIONS.has(action)) {
+      const secret = req.headers['x-admin-secret'];
+      if (!secret || secret !== process.env.ADMIN_SECRET) {
+        return res.status(401).json({ error: 'Não autorizado.' });
+      }
+    }
+
+    if (action === 'check_admin') {
+      return res.status(200).json({ ok: true });
+    }
+
     let state = await kv.get(STATE_KEY) || { ...defaultState };
     if (!state.cycleHistory) state.cycleHistory = [];
 

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 const CHANNEL = "otailungg";
-const PASS = "3n@2ysxk";
 const API = "/api/state";
 const CLIENT_ID = "bso3queqhjj7epoc18d9tfomtmthbm";
 const REDIRECT_URI = "https://area-tailung.vercel.app";
@@ -517,6 +516,7 @@ export default function App() {
   const [tab, setTab] = useState("home");
   const [adminTab, setAdminTab] = useState("live");
   const [pass, setPass] = useState("");
+  const [adminSecret, setAdminSecret] = useState("");
   const [streamerUnlocked, setStreamerUnlocked] = useState(false);
   const [flashMsg, setFlashMsg] = useState("");
   const [flashColor, setFlashColor] = useState("#9146FF");
@@ -586,9 +586,11 @@ export default function App() {
   const act = useCallback(async (action, payload = {}) => {
     setActing(true);
     try {
+      const headers = { "Content-Type": "application/json" };
+      if (adminSecret) headers["X-Admin-Secret"] = adminSecret;
       const r = await fetch(API, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ action, payload }),
       });
       const data = await r.json();
@@ -597,7 +599,7 @@ export default function App() {
       return { ok: r.ok, data };
     } catch { flash("Erro de conexão!", "#FF4747"); return { ok: false }; }
     finally { setActing(false); }
-  }, [flash]);
+  }, [flash, adminSecret]);
 
   useEffect(() => {
     fetchState();
@@ -612,8 +614,9 @@ export default function App() {
     const login = localStorage.getItem('bot_login');
     if (t && id) { setStreamerToken(t); setStreamerTwitchId(id); }
     if (login) setStreamerLogin(login);
-    // Restore admin session
-    if (sessionStorage.getItem('admin_unlocked') === '1') setStreamerUnlocked(true);
+    // Restore admin session (secret stored in sessionStorage — cleared when tab closes)
+    const savedSecret = sessionStorage.getItem('admin_secret');
+    if (savedSecret) { setAdminSecret(savedSecret); setStreamerUnlocked(true); }
     // Restore viewer Twitch session
     try {
       const u = localStorage.getItem('twitch_user');
@@ -932,17 +935,32 @@ export default function App() {
     if (res.ok) { flash("Ciclo encerrado! Histórico salvo. ✅", "#00C853"); setAdminTab("historico"); }
   }
 
-  function unlockStreamer() {
-    if (pass === PASS) { setStreamerUnlocked(true); sessionStorage.setItem('admin_unlocked', '1'); setPass(""); }
-    else flash("Senha incorreta.", "#FF4747");
+  async function unlockStreamer() {
+    try {
+      const r = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Secret": pass },
+        body: JSON.stringify({ action: "check_admin", payload: {} }),
+      });
+      if (r.ok) {
+        setAdminSecret(pass);
+        sessionStorage.setItem('admin_secret', pass);
+        setStreamerUnlocked(true);
+        setPass("");
+      } else {
+        flash("Senha incorreta.", "#FF4747");
+      }
+    } catch { flash("Erro de conexão!", "#FF4747"); }
   }
 
   async function fetchPrizeCode(prize_id) {
     setActing(true);
     try {
+      const headers = { "Content-Type": "application/json" };
+      if (adminSecret) headers["X-Admin-Secret"] = adminSecret;
       const r = await fetch(API, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ action: "get_prize_code", payload: { prize_id } }),
       });
       const data = await r.json();
@@ -1877,7 +1895,7 @@ export default function App() {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button className="btn-ghost" style={{ flex: 1, color: "#FF4747", borderColor: "#FF474744" }} onClick={resetAll} disabled={acting}>Resetar tudo</button>
-                <button className="btn-ghost" onClick={() => { setStreamerUnlocked(false); sessionStorage.removeItem('admin_unlocked'); }}>Sair</button>
+                <button className="btn-ghost" onClick={() => { setStreamerUnlocked(false); setAdminSecret(''); sessionStorage.removeItem('admin_secret'); }}>Sair</button>
               </div>
             </>}
 
