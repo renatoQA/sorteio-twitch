@@ -514,67 +514,76 @@ function SpinWheel({ eligible, spinSecs, onDone }) {
 const TL_SCALE = 4;
 const TL_P = {
   ' ': null,
-  'w': '#EDE5D5',
-  'd': '#1C160E',
-  'b': '#0E0E18',
-  'y': '#FFE024',
-  'p': '#D86048',
-  'i': '#D5CCC0',
+  'w': '#F0E6D0', // cream/white fur
+  'g': '#A09080', // gray fur
+  's': '#383028', // dark leopard spots
+  'd': '#181410', // dark outline
+  'p': '#7055BB', // purple pants
+  'k': '#4A3580', // dark purple (shadow)
+  'i': '#EAE0CC', // inner face/chest
+  'y': '#FFE820', // yellow iris
+  'n': '#C07858', // nose / inner ear
+  't': '#C0B8A0', // tail fur
+  'r': '#383028', // dark tail ring (= spots)
+  'f': '#D8C8A8', // paw / foot
 };
 const TL_FRAMES = [
-  // run A
+  // ── run A ──────────────────────────────────────────────
   [
-    '    dddd      ',
-    '   dwwwpd     ',
-    '  dwwwwwwd    ',
-    '  dwyywwwd    ',
-    '  dwwwipd     ',
-    '   dwwwwd     ',
-    '   dbbbd      ',
-    '  dbbbbbd     ',
-    ' dbbbbbbd     ',
-    ' dbbbbbbd     ',
-    ' dbbbbbd      ',
-    '  dbdbd       ',
-    ' dbd dbd      ',
-    ' dwd  wd      ',
-    '  d    d      ',
+    '    dssd        ', // head top + spots
+    '   dwwwnd       ', // head + inner ear
+    '  dwwwwwwd      ', // head wide
+    '  dwwydwwd      ', // eye (y=iris)
+    '  dwiinwd       ', // muzzle (i=inner, n=nose)
+    '   dwwnd        ', // chin
+    '    dsd         ', // neck spot
+    't   dgwgsd      ', // tail + spotted shoulder
+    'tr  dwwipppd    ', // tail ring + chest + purple pants
+    't   dwgipppd    ', // tail + body + pants
+    '    dkppppd     ', // pants
+    '    dkpppkd     ', // pants lower
+    '    dkpdkpd     ', // legs split
+    '   dkp   kpd    ', // legs
+    '   dfd   dfd    ', // feet / paws
+    '    d     d     ', // toe tips
   ],
-  // run B
+  // ── run B ──────────────────────────────────────────────
   [
-    '    dddd      ',
-    '   dwwwpd     ',
-    '  dwwwwwwd    ',
-    '  dwyywwwd    ',
-    '  dwwwipd     ',
-    '   dwwwwd     ',
-    '   dbbbd      ',
-    '  dbbbbbd     ',
-    ' dbbbbbbd     ',
-    ' dbbbbbbd     ',
-    ' dbbbbbd      ',
-    '  dbdbd       ',
-    '  dbd bd      ',
-    ' dwd  wd      ',
-    ' d      d     ',
+    '    dssd        ',
+    '   dwwwnd       ',
+    '  dwwwwwwd      ',
+    '  dwwydwwd      ',
+    '  dwiinwd       ',
+    '   dwwnd        ',
+    '    dsd         ',
+    't   dgwgsd      ',
+    'tr  dwwipppd    ',
+    't   dwgipppd    ',
+    '    dkppppd     ',
+    '    dkpppkd     ',
+    '    dkpdkpd     ',
+    '  dkpd   kpd    ', // stride B — legs more spread
+    '  dfd    dfd    ',
+    '   d      d     ',
   ],
-  // jump
+  // ── jump ───────────────────────────────────────────────
   [
-    '    dddd      ',
-    '   dwwwpd     ',
-    '  dwwwwwwd    ',
-    '  dwyywwwd    ',
-    '  dwwwipd     ',
-    '   dwwwwd     ',
-    '   dbbbd      ',
-    ' dbbbbbbbd    ',
-    'dbbbbbbbbbd   ',
-    'dbbbbbbbbbd   ',
-    ' dbbbbbbbd    ',
-    '  dbd  bd     ',
-    ' dbd    bd    ',
-    ' dwd     d    ',
-    '  d           ',
+    '    dssd        ',
+    '   dwwwnd       ',
+    '  dwwwwwwd      ',
+    '  dwwydwwd      ',
+    '  dwiinwd       ',
+    '   dwwnd        ',
+    '    dsd         ',
+    'ttr dgwgsd      ', // tail flicking up
+    't   dwwippppd   ', // arms out + pants
+    '    dwgippppd   ',
+    '    dkpppppd    ',
+    '    dkpppkd     ',
+    '   dkp  kpd     ', // legs spread in air
+    '  dkp    kpd    ',
+    '  dfd     fd    ',
+    '   d       d    ',
   ],
 ];
 function tlShadow(frame) {
