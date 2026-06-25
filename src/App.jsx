@@ -510,6 +510,139 @@ function SpinWheel({ eligible, spinSecs, onDone }) {
   );
 }
 
+// ── Tai Lung bit-art sprite ───────────────────────────────────────────────────
+const TL_SCALE = 4;
+const TL_P = {
+  ' ': null,
+  'w': '#EDE5D5',
+  'd': '#1C160E',
+  'b': '#0E0E18',
+  'y': '#FFE024',
+  'p': '#D86048',
+  'i': '#D5CCC0',
+};
+const TL_FRAMES = [
+  // run A
+  [
+    '    dddd      ',
+    '   dwwwpd     ',
+    '  dwwwwwwd    ',
+    '  dwyywwwd    ',
+    '  dwwwipd     ',
+    '   dwwwwd     ',
+    '   dbbbd      ',
+    '  dbbbbbd     ',
+    ' dbbbbbbd     ',
+    ' dbbbbbbd     ',
+    ' dbbbbbd      ',
+    '  dbdbd       ',
+    ' dbd dbd      ',
+    ' dwd  wd      ',
+    '  d    d      ',
+  ],
+  // run B
+  [
+    '    dddd      ',
+    '   dwwwpd     ',
+    '  dwwwwwwd    ',
+    '  dwyywwwd    ',
+    '  dwwwipd     ',
+    '   dwwwwd     ',
+    '   dbbbd      ',
+    '  dbbbbbd     ',
+    ' dbbbbbbd     ',
+    ' dbbbbbbd     ',
+    ' dbbbbbd      ',
+    '  dbdbd       ',
+    '  dbd bd      ',
+    ' dwd  wd      ',
+    ' d      d     ',
+  ],
+  // jump
+  [
+    '    dddd      ',
+    '   dwwwpd     ',
+    '  dwwwwwwd    ',
+    '  dwyywwwd    ',
+    '  dwwwipd     ',
+    '   dwwwwd     ',
+    '   dbbbd      ',
+    ' dbbbbbbbd    ',
+    'dbbbbbbbbbd   ',
+    'dbbbbbbbbbd   ',
+    ' dbbbbbbbd    ',
+    '  dbd  bd     ',
+    ' dbd    bd    ',
+    ' dwd     d    ',
+    '  d           ',
+  ],
+];
+function tlShadow(frame) {
+  return frame.flatMap((row, ri) =>
+    [...row].flatMap((c, ci) => {
+      const col = TL_P[c];
+      return col ? [`${ci * TL_SCALE}px ${ri * TL_SCALE}px 0 ${col}`] : [];
+    })
+  ).join(',');
+}
+const TL_SHADOWS = TL_FRAMES.map(tlShadow);
+const TL_W = TL_FRAMES[0][0].length * TL_SCALE;
+const TL_H = TL_FRAMES[0].length * TL_SCALE;
+
+function TaiLungBit() {
+  const [pos, setPos] = useState({ x: 120, y: 200 });
+  const [frameIdx, setFrameIdx] = useState(0);
+  const [facingRight, setFacingRight] = useState(true);
+  const sRef = useRef({ x: 120, y: 200, vx: 2.4, vy: 0, tick: 0, runF: 0, grounded: false });
+
+  useEffect(() => {
+    let raf;
+    function loop() {
+      const s = sRef.current;
+      const floor = window.innerHeight - TL_H - 64;
+      const right = window.innerWidth - TL_W - 8;
+
+      s.vy += 0.28;
+      s.x += s.vx;
+      s.y += s.vy;
+
+      if (s.y >= floor) { s.y = floor; s.vy = 0; s.grounded = true; }
+      else s.grounded = false;
+
+      if (s.x <= 4)     { s.x = 4;     s.vx = Math.abs(s.vx); }
+      if (s.x >= right) { s.x = right; s.vx = -Math.abs(s.vx); }
+
+      if (s.grounded && Math.random() < 0.008) {
+        s.vy = -(6 + Math.random() * 5);
+        if (Math.random() < 0.3) s.vx = -s.vx;
+      }
+
+      s.tick++;
+      if (s.grounded && s.tick % 7 === 0) s.runF ^= 1;
+
+      setPos({ x: Math.round(s.x), y: Math.round(s.y) });
+      setFrameIdx(s.grounded ? s.runF : 2);
+      setFacingRight(s.vx >= 0);
+      raf = requestAnimationFrame(loop);
+    }
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  return (
+    <div style={{
+      position: 'fixed', left: pos.x, top: pos.y,
+      width: TL_W, height: TL_H, zIndex: 9997,
+      pointerEvents: 'none',
+      transform: `scaleX(${facingRight ? 1 : -1})`,
+      transformOrigin: `${TL_W / 2}px 0`,
+    }}>
+      <div style={{ width: TL_SCALE, height: TL_SCALE, boxShadow: TL_SHADOWS[frameIdx] }} />
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function App() {
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -2151,6 +2284,8 @@ export default function App() {
       </div>{/* end .page-layout */}
 
       {profileViewer && <ProfileModal v={profileViewer} vList={vList} onClose={() => setProfileViewer(null)} />}
+
+      <TaiLungBit />
 
       {flashMsg && (
         <div style={{ position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", background: flashColor, color: "#fff", padding: "11px 22px", borderRadius: 10, fontWeight: 700, fontSize: 13, zIndex: 9999, pointerEvents: "none", whiteSpace: "nowrap", boxShadow: "0 4px 20px #0008" }}>
