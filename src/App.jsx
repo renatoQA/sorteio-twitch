@@ -167,7 +167,7 @@ const ACHIEVEMENTS = [
   { id: "perfect_month",    icon: "💎", name: "Mês Perfeito",       desc: "4 semanas elegíveis em um mesmo mês",      check: v => { const m = {}; for (const h of v.history||[]) { if (!h.eligible) continue; const k=(h.cycleEnd||"").slice(0,7); if (!k) continue; m[k]=(m[k]||0)+1; if(m[k]>=4) return true; } return false; } },
 ];
 
-function ProfileModal({ v, vList, onClose }) {
+function ProfileModal({ v, vList, vSE = 0, onClose }) {
   const xp = calcXP(v);
   const li = getLevelInfo(xp);
   const eloColor = ELO_RANKS[getElo(xp)].color;
@@ -175,7 +175,7 @@ function ProfileModal({ v, vList, onClose }) {
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const monthCycles = monthlyEligibleCycles(v);
   const monthlyOk = isMonthlyEligible(v);
-  const qDays = calcStars(v.sessions);
+  const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub);
   const mins = calcMins(v.sessions);
   const days = uniqueDays(v.sessions).length;
   const history = v.history || [];
@@ -1429,7 +1429,7 @@ export default function App() {
                   </div>
                 )}
               </div>
-              {myViewer && <ViewerCard v={myViewer} vList={vList} />}
+              {myViewer && <ViewerCard v={myViewer} vList={vList} vSE={getSE(myViewer)} />}
             </>
           )}
 
@@ -1526,10 +1526,10 @@ export default function App() {
             {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum participante ainda.</div>}
             {vList.map((v, i) => {
               const ok = isEligible(v);
-              const qDays = calcStars(v.sessions);
+              const vSE = getSE(v);
+              const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub);
               const monthlyOk = isMonthlyEligible(v);
               const monthCycles = monthlyEligibleCycles(v);
-              const vSE = getSE(v);
               const medals = ["🥇","🥈","🥉"];
               const rowBg = i % 2 === 0 ? "transparent" : "#26262C18";
               return (
@@ -2151,7 +2151,7 @@ export default function App() {
 
       </div>{/* end .page-layout */}
 
-      {profileViewer && <ProfileModal v={profileViewer} vList={vList} onClose={() => setProfileViewer(null)} />}
+      {profileViewer && <ProfileModal v={profileViewer} vList={vList} vSE={getSE(profileViewer)} onClose={() => setProfileViewer(null)} />}
 
       {flashMsg && (
         <div style={{ position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", background: flashColor, color: "#fff", padding: "11px 22px", borderRadius: 10, fontWeight: 700, fontSize: 13, zIndex: 9999, pointerEvents: "none", whiteSpace: "nowrap", boxShadow: "0 4px 20px #0008" }}>
@@ -2162,14 +2162,14 @@ export default function App() {
   );
 }
 
-function ViewerCard({ v, vList }) {
+function ViewerCard({ v, vList, vSE = 0 }) {
   const [histTab, setHistTab] = useState("semana");
   const days = uniqueDays(v.sessions).length;
   const mins = calcMins(v.sessions);
   const ok = isEligible(v);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const history = v.history || [];
-  const qDays = calcStars(v.sessions);
+  const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub);
   const todayStr = new Date().toISOString().slice(0, 10);
   const todaySession = v.sessions.find(s => s.date === todayStr);
   const todayGoalMet = (todaySession?.minutes || 0) >= MIN_MINS_LIVE;
