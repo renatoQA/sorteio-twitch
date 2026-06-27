@@ -22,8 +22,8 @@ function calcStarsCombined(sessions, sePts, hasSub) {
   if (timerMins >= MIN_MINS_TOTAL) return MIN_DAYS;
   return calcStars(sessions);
 }
-function isEligible(v) {
-  return calcMins(v.sessions) >= MIN_MINS_TOTAL || calcStars(v.sessions) >= MIN_DAYS;
+function isEligible(v, sePts = 0) {
+  return calcStarsCombined(v.sessions, sePts, v.hasSub) >= MIN_DAYS;
 }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
 function seToMins(pts, hasSub) { return Math.round(pts * (hasSub ? 10 / 15 : 2)); }
@@ -172,7 +172,7 @@ function ProfileModal({ v, vList, vSE = 0, onClose }) {
   const xp = calcXP(v);
   const li = getLevelInfo(xp);
   const eloColor = ELO_RANKS[getElo(xp)].color;
-  const ok = isEligible(v);
+  const ok = isEligible(v, vSE);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const monthCycles = monthlyEligibleCycles(v);
   const monthlyOk = isMonthlyEligible(v);
@@ -1032,7 +1032,7 @@ export default function App() {
     if (xb !== xa) return xb - xa;
     return Number(a.twitch_id) - Number(b.twitch_id);
   }) : [];
-  const eligCount = vList.filter(isEligible).length;
+  const eligCount = vList.filter(v => isEligible(v, getSE(v))).length;
   const myViewer = twitchUser ? state?.viewers?.[twitchUser.id] : null;
   const history = state?.cycleHistory || [];
 
@@ -1526,9 +1526,9 @@ export default function App() {
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
             {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum participante ainda.</div>}
             {vList.map((v, i) => {
-              const ok = isEligible(v);
               const vSE = getSE(v);
               const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub);
+              const ok = isEligible(v, vSE);
               const monthlyOk = isMonthlyEligible(v);
               const monthCycles = monthlyEligibleCycles(v);
               const medals = ["🥇","🥈","🥉"];
@@ -1765,7 +1765,7 @@ export default function App() {
                   </div>
                 </div>
                 <SpinWheel
-                  eligible={vList.filter(isEligible)}
+                  eligible={vList.filter(v => isEligible(v, getSE(v)))}
                   spinSecs={spinSecs}
                   onDone={w => drawSpecific(w.twitch_id || w.nick)}
                 />
@@ -1920,7 +1920,7 @@ export default function App() {
                 {vList.map(v => {
                   const days = uniqueDays(v.sessions).length;
                   const mins = calcMins(v.sessions);
-                  const ok = isEligible(v);
+                  const ok = isEligible(v, getSE(v));
                   const monthlyOk = isMonthlyEligible(v);
                   const monthCycles = monthlyEligibleCycles(v);
                   const hasToday = v.sessions.some(s => s.date === state?.liveDate);
@@ -2167,7 +2167,7 @@ function ViewerCard({ v, vList, vSE = 0 }) {
   const [histTab, setHistTab] = useState("semana");
   const days = uniqueDays(v.sessions).length;
   const mins = calcMins(v.sessions);
-  const ok = isEligible(v);
+  const ok = isEligible(v, vSE);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const history = v.history || [];
   const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub);
