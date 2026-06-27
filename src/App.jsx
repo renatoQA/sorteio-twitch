@@ -14,6 +14,7 @@ function qualifiedDays(sessions) { return sessions.filter(s => s.minutes >= MIN_
 // Stars redistribute excess minutes across days: 2h on one day + 30min on another = 2 stars
 function calcStars(sessions) {
   const total = sessions.reduce((a, s) => a + (s.minutes || 0), 0);
+  if (total >= MIN_MINS_TOTAL) return MIN_DAYS;
   return Math.min(Math.floor(total / MIN_MINS_LIVE), sessions.length);
 }
 function calcStarsCombined(sessions, sePts, hasSub) {
