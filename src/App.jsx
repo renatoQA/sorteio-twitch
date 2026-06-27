@@ -18,8 +18,9 @@ function calcStars(sessions) {
   return Math.min(Math.floor(total / MIN_MINS_LIVE), sessions.length);
 }
 function calcStarsCombined(sessions, sePts, hasSub) {
-  const total = calcMins(sessions) + seToMins(sePts, hasSub);
-  return Math.min(Math.floor(total / MIN_MINS_LIVE), MIN_DAYS);
+  const timerMins = calcMins(sessions) + seToMins(sePts, hasSub);
+  if (timerMins >= MIN_MINS_TOTAL) return MIN_DAYS;
+  return calcStars(sessions);
 }
 function isEligible(v) {
   return calcMins(v.sessions) >= MIN_MINS_TOTAL || calcStars(v.sessions) >= MIN_DAYS;
