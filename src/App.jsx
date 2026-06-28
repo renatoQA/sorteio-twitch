@@ -1025,11 +1025,13 @@ export default function App() {
     if (eb !== ea) return eb - ea;
     const ma = monthlyEligibleCycles(a), mb = monthlyEligibleCycles(b);
     if (mb !== ma) return mb - ma;
-    const sa = calcStarsCombined(a.sessions, getSE(a), a.hasSub), sb = calcStarsCombined(b.sessions, getSE(b), b.hasSub);
-    if (sb !== sa) return sb - sa;
-    const minA = calcMins(a.sessions) + seToMins(getSE(a), a.hasSub);
-    const minB = calcMins(b.sessions) + seToMins(getSE(b), b.hasSub);
-    if (minB !== minA) return minB - minA;
+    if (!ea) {
+      const sa = calcStarsCombined(a.sessions, getSE(a), a.hasSub), sb = calcStarsCombined(b.sessions, getSE(b), b.hasSub);
+      if (sb !== sa) return sb - sa;
+      const minA = calcMins(a.sessions) + seToMins(getSE(a), a.hasSub);
+      const minB = calcMins(b.sessions) + seToMins(getSE(b), b.hasSub);
+      if (minB !== minA) return minB - minA;
+    }
     const xa = calcXP(a), xb = calcXP(b);
     if (xb !== xa) return xb - xa;
     return Number(a.twitch_id) - Number(b.twitch_id);
