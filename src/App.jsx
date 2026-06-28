@@ -1021,9 +1021,11 @@ export default function App() {
 
   const getSE = (v) => sePoints[(v.display_name || v.nick).toLowerCase()] ?? sePoints[(v.twitch_login || "").toLowerCase()] ?? 0;
   const vList = state ? Object.values(state.viewers).sort((a, b) => {
+    const ea = isEligible(a, getSE(a)) ? 1 : 0, eb = isEligible(b, getSE(b)) ? 1 : 0;
+    if (eb !== ea) return eb - ea;
     const ma = monthlyEligibleCycles(a), mb = monthlyEligibleCycles(b);
     if (mb !== ma) return mb - ma;
-    const sa = calcStars(a.sessions), sb = calcStars(b.sessions);
+    const sa = calcStarsCombined(a.sessions, getSE(a), a.hasSub), sb = calcStarsCombined(b.sessions, getSE(b), b.hasSub);
     if (sb !== sa) return sb - sa;
     const minA = calcMins(a.sessions) + seToMins(getSE(a), a.hasSub);
     const minB = calcMins(b.sessions) + seToMins(getSE(b), b.hasSub);
