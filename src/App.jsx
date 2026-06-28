@@ -30,7 +30,7 @@ function seToMins(pts, hasSub) { return Math.round(pts * (hasSub ? 10 / 15 : 2))
 function fmtTimer(m) { return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`; }
 
 // ELO system — set to true to go live
-const ELO_ENABLED = false;
+const ELO_ENABLED = true;
 
 const ELO_RANKS = [
   { name: "Sombra",            color: "#9CA3AF", bg: "#1C1C22", xpMin: 0     },
