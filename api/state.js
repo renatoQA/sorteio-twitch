@@ -228,16 +228,27 @@ export default async function handler(req, res) {
     }
 
     else if (action === 'reset_ranking') {
+      // Season reset: keeps identity but wipes all progress
       Object.keys(state.viewers).forEach(id => {
-        state.viewers[id].sessions = [];
-        state.viewers[id].checkedInToday = false;
-        state.viewers[id].bonusStars = 0;
-        delete state.viewers[id].eligibleOverride;
+        const v = state.viewers[id];
+        state.viewers[id] = {
+          twitch_id: v.twitch_id,
+          nick: v.nick,
+          display_name: v.display_name,
+          code: v.code,
+          hasSub: v.hasSub || false,
+          sessions: [],
+          checkedInToday: false,
+          history: [],
+          permanentXP: 0,
+        };
       });
       state.liveActive = false;
       state.liveDate = null;
       state.winner = null;
       state.cycleStart = new Date().toISOString().slice(0, 10);
+      state.cycleHistory = [];
+      state.prizes = [];
     }
 
     else if (action === 'draw_specific') {

@@ -1011,9 +1011,9 @@ export default function App() {
   }
 
   async function resetRanking() {
-    if (!window.confirm("Resetar ranking do zero? Todos os viewers ficam cadastrados mas perdem os pontos e sessões da semana atual. Não tem como desfazer.")) return;
+    if (!window.confirm("⚠️ RESET DE SEASON\n\nIsso vai zerar TUDO:\n• XP e ELO de todos\n• Histórico e ciclos mensais\n• Sessões e estrelas da semana\n• Vencedor atual e prêmios\n\nAs contas Twitch ficam vinculadas (ninguém precisa re-cadastrar).\n\nTem certeza?")) return;
     const res = await act("reset_ranking");
-    if (res.ok) flash("Ranking resetado! Cadastros mantidos. ✅", "#FFD700");
+    if (res.ok) flash("Nova season iniciada! Todos os cadastros mantidos. ✅", "#FFD700");
   }
 
   async function resetAll() {
@@ -2067,7 +2067,7 @@ export default function App() {
                 })}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button className="btn-ghost" style={{ flex: 1, minWidth: 120, color: "#FFD700", borderColor: "#FFD70044" }} onClick={resetRanking} disabled={acting}>🔄 Resetar ranking</button>
+                <button className="btn-ghost" style={{ flex: 1, minWidth: 120, color: "#FFD700", borderColor: "#FFD70044" }} onClick={resetRanking} disabled={acting}>🏆 Nova Season</button>
                 <button className="btn-ghost" style={{ flex: 1, minWidth: 120, color: "#FF4747", borderColor: "#FF474744" }} onClick={resetAll} disabled={acting}>💀 Resetar tudo</button>
                 <button className="btn-ghost" onClick={() => { setStreamerUnlocked(false); setAdminSecret(''); setTotp(''); setLoginStep(0); sessionStorage.removeItem('admin_secret'); }}>Sair</button>
               </div>
