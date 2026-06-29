@@ -17,13 +17,14 @@ function calcStars(sessions) {
   if (total >= MIN_MINS_TOTAL) return MIN_DAYS;
   return Math.min(Math.floor(total / MIN_MINS_LIVE), sessions.length);
 }
-function calcStarsCombined(sessions, sePts, hasSub) {
+function calcStarsCombined(sessions, sePts, hasSub, bonusStars = 0) {
   const timerMins = calcMins(sessions) + seToMins(sePts, hasSub);
   if (timerMins >= MIN_MINS_TOTAL) return MIN_DAYS;
-  return calcStars(sessions);
+  return Math.min(MIN_DAYS, Math.max(0, calcStars(sessions) + bonusStars));
 }
 function isEligible(v, sePts = 0) {
-  return calcStarsCombined(v.sessions, sePts, v.hasSub) >= MIN_DAYS;
+  if (v.eligibleOverride !== undefined && v.eligibleOverride !== null) return v.eligibleOverride;
+  return calcStarsCombined(v.sessions, sePts, v.hasSub, v.bonusStars || 0) >= MIN_DAYS;
 }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
 function seToMins(pts, hasSub) { return Math.round(pts * (hasSub ? 10 / 15 : 2)); }
@@ -176,7 +177,7 @@ function ProfileModal({ v, vList, vSE = 0, onClose }) {
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const monthCycles = monthlyEligibleCycles(v);
   const monthlyOk = isMonthlyEligible(v);
-  const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub);
+  const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub, v.bonusStars || 0);
   const mins = calcMins(v.sessions);
   const days = uniqueDays(v.sessions).length;
   const history = v.history || [];
@@ -533,6 +534,9 @@ export default function App() {
   const [prizeGiftcard, setPrizeGiftcard] = useState("");
   const [xpTarget, setXpTarget] = useState("");
   const [xpAmount, setXpAmount] = useState(500);
+  const [starTarget, setStarTarget] = useState("");
+  const [starAmount, setStarAmount] = useState(1);
+  const [eligTarget, setEligTarget] = useState("");
   const [schedTitle, setSchedTitle] = useState('');
   const [schedDate, setSchedDate] = useState('');
   const [schedTime, setSchedTime] = useState('20:00');
@@ -1006,6 +1010,12 @@ export default function App() {
     finally { setActing(false); }
   }
 
+  async function resetRanking() {
+    if (!window.confirm("Resetar ranking do zero? Todos os viewers ficam cadastrados mas perdem os pontos e sessões da semana atual. Não tem como desfazer.")) return;
+    const res = await act("reset_ranking");
+    if (res.ok) flash("Ranking resetado! Cadastros mantidos. ✅", "#FFD700");
+  }
+
   async function resetAll() {
     if (!window.confirm("Zerar TUDO incluindo histórico? Não tem como desfazer.")) return;
     const res = await act("reset");
@@ -1026,7 +1036,7 @@ export default function App() {
     const ma = monthlyEligibleCycles(a), mb = monthlyEligibleCycles(b);
     if (mb !== ma) return mb - ma;
     if (!ea) {
-      const sa = calcStarsCombined(a.sessions, getSE(a), a.hasSub), sb = calcStarsCombined(b.sessions, getSE(b), b.hasSub);
+      const sa = calcStarsCombined(a.sessions, getSE(a), a.hasSub, a.bonusStars || 0), sb = calcStarsCombined(b.sessions, getSE(b), b.hasSub, b.bonusStars || 0);
       if (sb !== sa) return sb - sa;
       const minA = calcMins(a.sessions) + seToMins(getSE(a), a.hasSub);
       const minB = calcMins(b.sessions) + seToMins(getSE(b), b.hasSub);
@@ -1531,7 +1541,7 @@ export default function App() {
             {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum participante ainda.</div>}
             {vList.map((v, i) => {
               const vSE = getSE(v);
-              const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub);
+              const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub, v.bonusStars || 0);
               const ok = isEligible(v, vSE);
               const monthlyOk = isMonthlyEligible(v);
               const monthCycles = monthlyEligibleCycles(v);
@@ -1918,6 +1928,113 @@ export default function App() {
                 <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 8 }}>XP negativo remove. Vai para permanentXP, não reseta no ciclo.</div>
               </div>
 
+              {/* Stars bonus card */}
+              <div className="card" style={{ borderColor: "#FFD70022" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 15 }}>★</span>
+                  <span style={{ fontWeight: 700, fontSize: 14 }}>Estrelas bônus</span>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <select
+                    value={starTarget}
+                    onChange={e => setStarTarget(e.target.value)}
+                    style={{ flex: 2, minWidth: 140, background: "#26262C", border: "1.5px solid #3D3D47", borderRadius: 10, color: "#EFEFF1", padding: "10px 12px", fontSize: 13, outline: "none" }}>
+                    <option value="">Selecionar viewer...</option>
+                    {vList.map(v => {
+                      const bonus = v.bonusStars || 0;
+                      const stars = calcStarsCombined(v.sessions, getSE(v), v.hasSub, bonus);
+                      return (
+                        <option key={v.twitch_id} value={v.twitch_id}>
+                          {v.display_name || v.nick} — {stars}★{bonus !== 0 ? ` (bônus: ${bonus > 0 ? '+' : ''}${bonus})` : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <input
+                    type="number"
+                    value={starAmount}
+                    onChange={e => setStarAmount(Number(e.target.value))}
+                    min={-4} max={4}
+                    style={{ width: 70, background: "#26262C", border: "1.5px solid #3D3D47", borderRadius: 10, color: "#EFEFF1", padding: "10px 12px", fontSize: 13, outline: "none" }}
+                  />
+                  <button
+                    className="btn"
+                    style={{ background: "#FFD700", color: "#18181B", flexShrink: 0, fontWeight: 800 }}
+                    disabled={acting || !starTarget}
+                    onClick={() => {
+                      const v = vList.find(v => v.twitch_id === starTarget);
+                      const label = v ? (v.display_name || v.nick) : starTarget;
+                      if (window.confirm(`Definir bônus de ${starAmount > 0 ? '+' : ''}${starAmount} estrela(s) para ${label}?`))
+                        act("set_bonus_stars", { twitch_id: starTarget, bonusStars: starAmount });
+                    }}>
+                    Aplicar ★
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 8 }}>Bônus somado às estrelas naturais. Negativo remove. Entre -4 e +4. Reseta no fim do ciclo.</div>
+              </div>
+
+              {/* Eligible override card */}
+              <div className="card" style={{ borderColor: "#00C85322" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <span style={{ fontSize: 15 }}>✅</span>
+                  <span style={{ fontWeight: 700, fontSize: 14 }}>Elegibilidade manual</span>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <select
+                    value={eligTarget}
+                    onChange={e => setEligTarget(e.target.value)}
+                    style={{ flex: 2, minWidth: 140, background: "#26262C", border: "1.5px solid #3D3D47", borderRadius: 10, color: "#EFEFF1", padding: "10px 12px", fontSize: 13, outline: "none" }}>
+                    <option value="">Selecionar viewer...</option>
+                    {vList.map(v => {
+                      const tag = v.eligibleOverride === true ? ' ✅ forçado' : v.eligibleOverride === false ? ' ❌ bloqueado' : '';
+                      return (
+                        <option key={v.twitch_id} value={v.twitch_id}>
+                          {v.display_name || v.nick}{tag}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <button
+                    className="btn"
+                    style={{ background: "#00C853", flexShrink: 0 }}
+                    disabled={acting || !eligTarget}
+                    onClick={() => {
+                      const v = vList.find(v => v.twitch_id === eligTarget);
+                      const label = v ? (v.display_name || v.nick) : eligTarget;
+                      if (window.confirm(`Forçar ${label} como ELEGÍVEL?`))
+                        act("set_eligible_override", { twitch_id: eligTarget, eligible: true });
+                    }}>
+                    ✅ Elegível
+                  </button>
+                  <button
+                    className="btn btn-red"
+                    style={{ flexShrink: 0 }}
+                    disabled={acting || !eligTarget}
+                    onClick={() => {
+                      const v = vList.find(v => v.twitch_id === eligTarget);
+                      const label = v ? (v.display_name || v.nick) : eligTarget;
+                      if (window.confirm(`Forçar ${label} como NÃO ELEGÍVEL?`))
+                        act("set_eligible_override", { twitch_id: eligTarget, eligible: false });
+                    }}>
+                    ❌ Não elegível
+                  </button>
+                  <button
+                    className="btn-ghost"
+                    style={{ flexShrink: 0 }}
+                    disabled={acting || !eligTarget}
+                    onClick={() => {
+                      const v = vList.find(v => v.twitch_id === eligTarget);
+                      const label = v ? (v.display_name || v.nick) : eligTarget;
+                      act("set_eligible_override", { twitch_id: eligTarget, eligible: null }).then(() =>
+                        flash(`${label} voltou ao automático`, "#9146FF")
+                      );
+                    }}>
+                    🔄 Auto
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 8 }}>Forçar/bloquear ignora as regras de estrelas. "Auto" volta ao comportamento normal. Reseta no fim do ciclo.</div>
+              </div>
+
               <div className="card">
                 <div className="card-title">Viewers cadastrados</div>
                 {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "20px 0", fontSize: 13 }}>Nenhum viewer ainda.</div>}
@@ -1949,8 +2066,9 @@ export default function App() {
                   );
                 })}
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="btn-ghost" style={{ flex: 1, color: "#FF4747", borderColor: "#FF474744" }} onClick={resetAll} disabled={acting}>Resetar tudo</button>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button className="btn-ghost" style={{ flex: 1, minWidth: 120, color: "#FFD700", borderColor: "#FFD70044" }} onClick={resetRanking} disabled={acting}>🔄 Resetar ranking</button>
+                <button className="btn-ghost" style={{ flex: 1, minWidth: 120, color: "#FF4747", borderColor: "#FF474744" }} onClick={resetAll} disabled={acting}>💀 Resetar tudo</button>
                 <button className="btn-ghost" onClick={() => { setStreamerUnlocked(false); setAdminSecret(''); setTotp(''); setLoginStep(0); sessionStorage.removeItem('admin_secret'); }}>Sair</button>
               </div>
             </>}
@@ -2174,7 +2292,7 @@ function ViewerCard({ v, vList, vSE = 0 }) {
   const ok = isEligible(v, vSE);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const history = v.history || [];
-  const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub);
+  const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub, v.bonusStars || 0);
   const todayStr = new Date().toISOString().slice(0, 10);
   const todaySession = v.sessions.find(s => s.date === todayStr);
   const todayGoalMet = (todaySession?.minutes || 0) >= MIN_MINS_LIVE;

@@ -47,6 +47,7 @@ const ADMIN_ACTIONS = new Set([
   'end_cycle', 'reset', 'set_prize', 'toggle_prize', 'clear_prize',
   'get_prize_code', 'delete_viewer', 'add_xp', 'add_time',
   'add_schedule', 'remove_schedule',
+  'set_bonus_stars', 'set_eligible_override', 'reset_ranking',
 ]);
 
 const DISCORD_WEBHOOKS = [
@@ -100,8 +101,10 @@ function calcStars(sessions) {
   return Math.min(Math.floor(total / MIN_MINS_LIVE), sessions.length);
 }
 function isEligible(v) {
+  if (v.eligibleOverride !== undefined && v.eligibleOverride !== null) return v.eligibleOverride;
   const totalMins = v.sessions.reduce((a, s) => a + (s.minutes || 0), 0);
-  return totalMins >= MIN_MINS_TOTAL || calcStars(v.sessions) >= MIN_DAYS;
+  const starCount = calcStars(v.sessions) + (v.bonusStars || 0);
+  return totalMins >= MIN_MINS_TOTAL || starCount >= MIN_DAYS;
 }
 
 export default async function handler(req, res) {
@@ -206,6 +209,37 @@ export default async function handler(req, res) {
       state.viewers[twitch_id].permanentXP = (state.viewers[twitch_id].permanentXP || 0) + amount;
     }
 
+    else if (action === 'set_bonus_stars') {
+      const { twitch_id, bonusStars } = payload;
+      if (!state.viewers[twitch_id]) return res.status(404).json({ error: 'Viewer não encontrado' });
+      const amount = parseInt(bonusStars);
+      if (isNaN(amount)) return res.status(400).json({ error: 'Valor inválido' });
+      state.viewers[twitch_id].bonusStars = Math.max(-4, Math.min(4, amount));
+    }
+
+    else if (action === 'set_eligible_override') {
+      const { twitch_id, eligible } = payload;
+      if (!state.viewers[twitch_id]) return res.status(404).json({ error: 'Viewer não encontrado' });
+      if (eligible === null || eligible === undefined || eligible === 'auto') {
+        delete state.viewers[twitch_id].eligibleOverride;
+      } else {
+        state.viewers[twitch_id].eligibleOverride = !!eligible;
+      }
+    }
+
+    else if (action === 'reset_ranking') {
+      Object.keys(state.viewers).forEach(id => {
+        state.viewers[id].sessions = [];
+        state.viewers[id].checkedInToday = false;
+        state.viewers[id].bonusStars = 0;
+        delete state.viewers[id].eligibleOverride;
+      });
+      state.liveActive = false;
+      state.liveDate = null;
+      state.winner = null;
+      state.cycleStart = new Date().toISOString().slice(0, 10);
+    }
+
     else if (action === 'draw_specific') {
       const { twitch_id } = payload;
       const v = state.viewers[twitch_id];
@@ -284,6 +318,8 @@ export default async function handler(req, res) {
 
         state.viewers[id].sessions = [];
         state.viewers[id].checkedInToday = false;
+        state.viewers[id].bonusStars = 0;
+        delete state.viewers[id].eligibleOverride;
       });
 
       state.liveActive = false;
