@@ -13,14 +13,14 @@ function uniqueDays(sessions) { return [...new Set(sessions.map(s => s.date))]; 
 function qualifiedDays(sessions) { return sessions.filter(s => s.minutes >= MIN_MINS_LIVE).length; }
 // Stars redistribute excess minutes across days: 2h on one day + 30min on another = 2 stars
 function calcStars(sessions) {
-  const total = sessions.reduce((a, s) => a + (s.minutes || 0), 0);
-  if (total >= MIN_MINS_TOTAL) return MIN_DAYS;
-  return Math.min(Math.floor(total / MIN_MINS_LIVE), sessions.length);
+  // each check-in = 60 pts (1hr flat); stars = one per check-in
+  return Math.min(sessions.length, MIN_DAYS);
 }
 function calcStarsCombined(sessions, sePts, hasSub, bonusStars = 0) {
-  const timerMins = calcMins(sessions) + seToMins(sePts, hasSub);
-  if (timerMins >= MIN_MINS_TOTAL) return MIN_DAYS;
-  return Math.min(MIN_DAYS, Math.max(0, calcStars(sessions) + bonusStars));
+  // total pts: check-ins × 60 + SE points converted to mins
+  const pts = sessions.length * MIN_MINS_LIVE + seToMins(sePts, hasSub);
+  if (pts >= MIN_MINS_TOTAL) return MIN_DAYS;
+  return Math.min(MIN_DAYS, Math.max(0, sessions.length + bonusStars));
 }
 function isEligible(v, sePts = 0) {
   if (v.eligibleOverride !== undefined && v.eligibleOverride !== null) return v.eligibleOverride;
@@ -1576,7 +1576,7 @@ export default function App() {
                       </div>
                       <span style={{ fontSize: 10, color: "#ADADB8" }}>
                         {ok && <span style={{ color: "#00C853", fontWeight: 700 }}>✓ elegível · </span>}
-                        <span style={{ fontVariantNumeric: "tabular-nums" }}>{fmtTimer(calcMins(v.sessions) + seToMins(vSE, v.hasSub))}</span>
+                        <span style={{ fontVariantNumeric: "tabular-nums" }}>{v.sessions.length * MIN_MINS_LIVE + seToMins(vSE, v.hasSub)} pts</span>
                       </span>
                     </div>
                   </div>
