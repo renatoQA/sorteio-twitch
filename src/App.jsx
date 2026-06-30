@@ -301,8 +301,8 @@ function ProfileModal({ v, vList, vSE = 0, onClose }) {
 }
 
 function PrizeCarousel({ eligCount, vList }) {
-  const H = 380;
-  const IMG_H = 210;
+  const H = 420;
+  const IMG_H = 262;
   const card = (bg, border, glow) => ({
     position: "relative", background: bg, borderRadius: 14, overflow: "hidden",
     border: `1.5px solid ${border}`, height: H, display: "flex", flexDirection: "column",
@@ -340,7 +340,7 @@ function PrizeCarousel({ eligCount, vList }) {
           <div style={{ padding: "7px 12px", borderBottom: "1px solid #FFD70022", flexShrink: 0 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: "#FFD700", letterSpacing: 2, textTransform: "uppercase" }}>🏅 Prêmio Mensal</span>
           </div>
-          <div style={{ height: 262, flexShrink: 0, padding: "8px 10px 0", position: "relative" }}>
+          <div style={{ height: IMG_H, flexShrink: 0, padding: "8px 10px 0", position: "relative" }}>
             <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", borderRadius: 8 }} onError={e => { e.target.style.display="none"; }} />
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 28, background: "linear-gradient(to top,#1a1000,transparent)", pointerEvents: "none" }} />
           </div>
