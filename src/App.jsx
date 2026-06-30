@@ -5,7 +5,6 @@ const API = "/api/state";
 const CLIENT_ID = "bso3queqhjj7epoc18d9tfomtmthbm";
 const REDIRECT_URI = "https://area-tailung.vercel.app";
 const MIN_MINS_LIVE = 60;
-const MIN_MINS_TOTAL = 660;
 const MIN_DAYS = 4;
 
 function calcMins(sessions) { return sessions.reduce((a, s) => a + (s.minutes || 0), 0); }
@@ -318,13 +317,8 @@ function PrizeCarousel({ eligCount, vList }) {
           </div>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 5, padding: "8px 10px 10px" }}>
             <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 9, padding: "7px 10px", fontSize: 11, color: "#C9A7FF", display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ flexShrink: 0 }}>⏱</span>
-              <span><strong style={{ color: "#fff" }}>11h</strong> acumuladas na semana</span>
-            </div>
-            <div style={{ fontSize: 10, color: "#9146FF", fontWeight: 700, textAlign: "center" }}>— OU —</div>
-            <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 9, padding: "7px 10px", fontSize: 11, color: "#C9A7FF", display: "flex", alignItems: "center", gap: 7 }}>
               <span style={{ flexShrink: 0 }}>📅</span>
-              <span><strong style={{ color: "#fff" }}>4 dias</strong> com pelo menos 1h cada</span>
+              <span><strong style={{ color: "#fff" }}>4 check-ins</strong> em lives diferentes na semana</span>
             </div>
           </div>
         </div>
@@ -1310,7 +1304,7 @@ export default function App() {
 
           <div className="card">
             <div className="card-title">Como participar</div>
-            {["Entre na aba Participar e conecte sua conta Twitch","Faça check-in em cada live que você assistir","Fique elegível: acumule 11h no total na semana OU apareça em 4 lives com pelo menos 1h em cada"].map((txt, i) => (
+            {["Entre na aba Participar e conecte sua conta Twitch","Faça check-in em cada live que você assistir","Fique elegível: faça check-in em 4 lives diferentes na semana"].map((txt, i) => (
               <div key={i} style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "flex-start" }}>
                 <div className="step-num">{i+1}</div>
                 <div style={{ fontSize: 13, color: "#ADADB8", lineHeight: 1.6, paddingTop: 2 }}>{txt}</div>
@@ -1322,9 +1316,8 @@ export default function App() {
             <div className="card" style={{ background: "#9146FF10", borderColor: "#9146FF33", marginBottom: 0 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#9146FF", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>🎁 Sorteio Semanal</div>
               <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.7 }}>
-                Para ser elegível você precisa cumprir <strong>uma</strong> das condições abaixo:<br />
-                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ <strong>11 horas de live</strong> acumuladas no total na semana</span>
-                <span style={{ paddingLeft: 8, display: "block", marginTop: 2 }}>✅ <strong>4 dias de check-in</strong> com no mínimo 1h em cada dia (incluindo o dia do sorteio)</span>
+                Para ser elegível você precisa:<br />
+                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ Fazer check-in em <strong>4 dias diferentes</strong> de live na semana (incluindo o dia do sorteio)</span>
               </div>
             </div>
             <div className="card" style={{ background: "#FFD70010", borderColor: "#FFD70033", marginBottom: 0 }}>
@@ -2362,13 +2355,12 @@ function ViewerCard({ v, vList, vSE = 0 }) {
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 10, color: "#ADADB8" }}>{qDays}/{MIN_DAYS} estrelas · meta: 4 estrelas (minutos acumulados ÷ 60)</div>
+            <div style={{ fontSize: 10, color: "#ADADB8" }}>{qDays}/{MIN_DAYS} estrelas · meta: check-in em 4 lives diferentes</div>
           </div>
           <div>
-            <span className="label">total acumulado</span>
-            <div style={{ fontWeight: 800, fontSize: 22, color: mins >= MIN_MINS_TOTAL ? "#00C853" : "#9146FF" }}>{Math.floor(mins/60)}h{mins%60}m</div>
-            <div className="prog-wrap"><div className="prog-bar" style={{ width: `${Math.min(100, mins/MIN_MINS_TOTAL*100)}%`, background: mins >= MIN_MINS_TOTAL ? "#00C853" : "#9146FF" }} /></div>
-            <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>meta: 11h no total</div>
+            <span className="label">tempo assistido</span>
+            <div style={{ fontWeight: 800, fontSize: 22, color: "#9146FF" }}>{Math.floor(mins/60)}h{mins%60}m</div>
+            <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>não conta para elegibilidade</div>
           </div>
         </div>
         {v.sessions.length > 0 && (

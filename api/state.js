@@ -81,7 +81,6 @@ async function notifyDiscordLive(liveTitle) {
   );
 }
 const MIN_MINS_LIVE = 60;
-const MIN_MINS_TOTAL = 660;
 const MIN_DAYS = 4;
 
 const defaultState = {
