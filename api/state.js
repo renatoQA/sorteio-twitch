@@ -96,14 +96,12 @@ const defaultState = {
 };
 
 function calcStars(sessions) {
-  // each check-in = 60 pts (1hr flat)
   return Math.min(sessions.length, MIN_DAYS);
 }
 function isEligible(v) {
   if (v.eligibleOverride !== undefined && v.eligibleOverride !== null) return v.eligibleOverride;
-  const totalPts = v.sessions.length * MIN_MINS_LIVE;
   const starCount = v.sessions.length + (v.bonusStars || 0);
-  return totalPts >= MIN_MINS_TOTAL || starCount >= MIN_DAYS;
+  return starCount >= MIN_DAYS;
 }
 
 export default async function handler(req, res) {
