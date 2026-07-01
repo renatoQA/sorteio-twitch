@@ -7,23 +7,30 @@ const REDIRECT_URI = "https://area-tailung.vercel.app";
 const MIN_MINS_LIVE = 60;
 const MIN_DAYS = 4;
 
+const WEEKLY_POINTS_FOR_FULL_BAR = 600; // 10h de atividade (pts) enche as 4 estrelas de uma vez
+const POINTS_PER_WEEKLY_STAR = WEEKLY_POINTS_FOR_FULL_BAR / MIN_DAYS;
+
 function calcMins(sessions) { return sessions.reduce((a, s) => a + (s.minutes || 0), 0); }
 function uniqueDays(sessions) { return [...new Set(sessions.map(s => s.date))]; }
+// A day only qualifies for a star with check-in AND 1h+ of real activity that
+// day (chat credit + SE ganho na live, já somado a session.minutes no backend).
 function qualifiedDays(sessions) { return sessions.filter(s => s.minutes >= MIN_MINS_LIVE).length; }
-// Each check-in = 1 star. SE+bot contribute to pts display only.
+function weeklyPoints(sessions) { return sessions.length * MIN_MINS_LIVE + calcMins(sessions); }
 function calcStars(sessions) {
-  return Math.min(sessions.length, MIN_DAYS);
+  return Math.min(MIN_DAYS, qualifiedDays(sessions));
 }
-function calcStarsCombined(sessions, sePts, hasSub, bonusStars = 0) {
-  // stars load as check-ins accumulate; never exceed check-in count
-  return Math.min(MIN_DAYS, Math.max(0, sessions.length + bonusStars));
+// Stars fill either by qualified days, or all at once once weekly points cross
+// the 10h bar — like an XP bar, whichever gives more stars wins.
+function calcStarsCombined(sessions, bonusStars = 0) {
+  const daily = calcStars(sessions);
+  const weekly = Math.min(MIN_DAYS, Math.floor(weeklyPoints(sessions) / POINTS_PER_WEEKLY_STAR));
+  return Math.min(MIN_DAYS, Math.max(0, Math.max(daily, weekly) + bonusStars));
 }
-function isEligible(v, sePts = 0) {
+function isEligible(v) {
   if (v.eligibleOverride !== undefined && v.eligibleOverride !== null) return v.eligibleOverride;
-  return calcStarsCombined(v.sessions, sePts, v.hasSub, v.bonusStars || 0) >= MIN_DAYS;
+  return calcStarsCombined(v.sessions, v.bonusStars || 0) >= MIN_DAYS;
 }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
-function seToMins(pts, hasSub) { return Math.round(pts * (hasSub ? 10 / 15 : 2)); }
 function fmtTimer(m) { return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`; }
 
 // ELO system — set to true to go live
@@ -165,15 +172,15 @@ const ACHIEVEMENTS = [
   { id: "perfect_month",    icon: "💎", name: "Mês Perfeito",       desc: "4 semanas elegíveis em um mesmo mês",      check: v => { const m = {}; for (const h of v.history||[]) { if (!h.eligible) continue; const k=(h.cycleEnd||"").slice(0,7); if (!k) continue; m[k]=(m[k]||0)+1; if(m[k]>=4) return true; } return false; } },
 ];
 
-function ProfileModal({ v, vList, vSE = 0, onClose }) {
+function ProfileModal({ v, vList, onClose }) {
   const xp = calcXP(v);
   const li = getLevelInfo(xp);
   const eloColor = ELO_RANKS[getElo(xp)].color;
-  const ok = isEligible(v, vSE);
+  const ok = isEligible(v);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const monthCycles = monthlyEligibleCycles(v);
   const monthlyOk = isMonthlyEligible(v);
-  const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub, v.bonusStars || 0);
+  const qDays = calcStarsCombined(v.sessions, v.bonusStars || 0);
   const mins = calcMins(v.sessions);
   const days = uniqueDays(v.sessions).length;
   const history = v.history || [];
@@ -549,23 +556,6 @@ export default function App() {
   const [liveTitle, setLiveTitle] = useState('');
   const [liveTestMode, setLiveTestMode] = useState(false);
   const [profileViewer, setProfileViewer] = useState(null);
-  const [sePoints, setSePoints] = useState({});
-
-  useEffect(() => {
-    if (tab !== "ranking") return;
-    const fetchSE = () =>
-      fetch("https://api.streamelements.com/kappa/v2/points/69ebaa7d3d08d0ab3cd6f917/top?limit=200")
-        .then(r => r.json())
-        .then(data => {
-          const map = {};
-          for (const u of data.users || []) map[u.username.toLowerCase()] = u.points;
-          setSePoints(map);
-        })
-        .catch(() => {});
-    fetchSE();
-    const id = setInterval(fetchSE, 60_000);
-    return () => clearInterval(id);
-  }, [tab]);
 
   const flash = useCallback((msg, color = "#9146FF") => {
     setFlashMsg(msg); setFlashColor(color);
@@ -1020,24 +1010,22 @@ export default function App() {
     </div>
   );
 
-  const getSE = (v) => sePoints[(v.display_name || v.nick).toLowerCase()] ?? sePoints[(v.twitch_login || "").toLowerCase()] ?? 0;
   const vList = state ? Object.values(state.viewers).sort((a, b) => {
-    const ea = isEligible(a, getSE(a)) ? 1 : 0, eb = isEligible(b, getSE(b)) ? 1 : 0;
+    const ea = isEligible(a) ? 1 : 0, eb = isEligible(b) ? 1 : 0;
     if (eb !== ea) return eb - ea;
     const ma = monthlyEligibleCycles(a), mb = monthlyEligibleCycles(b);
     if (mb !== ma) return mb - ma;
     if (!ea) {
-      const sa = calcStarsCombined(a.sessions, getSE(a), a.hasSub, a.bonusStars || 0), sb = calcStarsCombined(b.sessions, getSE(b), b.hasSub, b.bonusStars || 0);
+      const sa = calcStarsCombined(a.sessions, a.bonusStars || 0), sb = calcStarsCombined(b.sessions, b.bonusStars || 0);
       if (sb !== sa) return sb - sa;
-      const minA = calcMins(a.sessions) + seToMins(getSE(a), a.hasSub);
-      const minB = calcMins(b.sessions) + seToMins(getSE(b), b.hasSub);
+      const minA = calcMins(a.sessions), minB = calcMins(b.sessions);
       if (minB !== minA) return minB - minA;
     }
     const xa = calcXP(a), xb = calcXP(b);
     if (xb !== xa) return xb - xa;
     return Number(a.twitch_id) - Number(b.twitch_id);
   }) : [];
-  const eligCount = vList.filter(v => isEligible(v, getSE(v))).length;
+  const eligCount = vList.filter(isEligible).length;
   const myViewer = twitchUser ? state?.viewers?.[twitchUser.id] : null;
   const history = state?.cycleHistory || [];
 
@@ -1304,7 +1292,7 @@ export default function App() {
 
           <div className="card">
             <div className="card-title">Como participar</div>
-            {["Entre na aba Participar e conecte sua conta Twitch","Faça check-in em cada live que você assistir","Fique elegível: faça check-in em 4 lives diferentes na semana"].map((txt, i) => (
+            {["Entre na aba Participar e conecte sua conta Twitch","Faça check-in em cada live e fique ativo no chat (ou com pontos SE) por pelo menos 1h","Fique elegível: acumule 4 dias qualificados (checkin + 1h) na semana, ou bata 10h de atividade total"].map((txt, i) => (
               <div key={i} style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "flex-start" }}>
                 <div className="step-num">{i+1}</div>
                 <div style={{ fontSize: 13, color: "#ADADB8", lineHeight: 1.6, paddingTop: 2 }}>{txt}</div>
@@ -1316,8 +1304,10 @@ export default function App() {
             <div className="card" style={{ background: "#9146FF10", borderColor: "#9146FF33", marginBottom: 0 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#9146FF", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>🎁 Sorteio Semanal</div>
               <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.7 }}>
-                Para ser elegível você precisa:<br />
-                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ Fazer check-in em <strong>4 dias diferentes</strong> de live na semana (incluindo o dia do sorteio)</span>
+                Para ser elegível você precisa, na semana (incluindo o dia do sorteio):<br />
+                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ Fazer check-in + pelo menos <strong>1h de atividade</strong> (chat/SE) em <strong>4 dias diferentes</strong> de live</span>
+                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>— ou —</span>
+                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ Acumular <strong>10h de atividade</strong> no total, mesmo sem 4 dias completos</span>
               </div>
             </div>
             <div className="card" style={{ background: "#FFD70010", borderColor: "#FFD70033", marginBottom: 0 }}>
@@ -1434,7 +1424,7 @@ export default function App() {
                   </div>
                 )}
               </div>
-              {myViewer && <ViewerCard v={myViewer} vList={vList} vSE={getSE(myViewer)} />}
+              {myViewer && <ViewerCard v={myViewer} vList={vList} />}
             </>
           )}
 
@@ -1530,9 +1520,8 @@ export default function App() {
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
             {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum participante ainda.</div>}
             {vList.map((v, i) => {
-              const vSE = getSE(v);
-              const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub, v.bonusStars || 0);
-              const ok = isEligible(v, vSE);
+              const qDays = calcStarsCombined(v.sessions, v.bonusStars || 0);
+              const ok = isEligible(v);
               const monthlyOk = isMonthlyEligible(v);
               const monthCycles = monthlyEligibleCycles(v);
               const medals = ["🥇","🥈","🥉"];
@@ -1566,7 +1555,7 @@ export default function App() {
                       </div>
                       <span style={{ fontSize: 10, color: "#ADADB8" }}>
                         {ok && <span style={{ color: "#00C853", fontWeight: 700 }}>✓ elegível · </span>}
-                        <span style={{ fontVariantNumeric: "tabular-nums" }}>{v.sessions.length * MIN_MINS_LIVE + calcMins(v.sessions) + seToMins(vSE, v.hasSub)} pts</span>
+                        <span style={{ fontVariantNumeric: "tabular-nums" }}>{weeklyPoints(v.sessions)} pts</span>
                       </span>
                     </div>
                   </div>
@@ -1769,7 +1758,7 @@ export default function App() {
                   </div>
                 </div>
                 <SpinWheel
-                  eligible={vList.filter(v => isEligible(v, getSE(v)))}
+                  eligible={vList.filter(isEligible)}
                   spinSecs={spinSecs}
                   onDone={w => drawSpecific(w.twitch_id || w.nick)}
                 />
@@ -1932,7 +1921,7 @@ export default function App() {
                     <option value="">Selecionar viewer...</option>
                     {vList.map(v => {
                       const bonus = v.bonusStars || 0;
-                      const stars = calcStarsCombined(v.sessions, getSE(v), v.hasSub, bonus);
+                      const stars = calcStarsCombined(v.sessions, bonus);
                       return (
                         <option key={v.twitch_id} value={v.twitch_id}>
                           {v.display_name || v.nick} — {stars}★{bonus !== 0 ? ` (bônus: ${bonus > 0 ? '+' : ''}${bonus})` : ''}
@@ -2031,7 +2020,7 @@ export default function App() {
                 {vList.map(v => {
                   const days = uniqueDays(v.sessions).length;
                   const mins = calcMins(v.sessions);
-                  const ok = isEligible(v, getSE(v));
+                  const ok = isEligible(v);
                   const monthlyOk = isMonthlyEligible(v);
                   const monthCycles = monthlyEligibleCycles(v);
                   const hasToday = v.sessions.some(s => s.date === state?.liveDate);
@@ -2264,7 +2253,7 @@ export default function App() {
 
       </div>{/* end .page-layout */}
 
-      {profileViewer && <ProfileModal v={profileViewer} vList={vList} vSE={getSE(profileViewer)} onClose={() => setProfileViewer(null)} />}
+      {profileViewer && <ProfileModal v={profileViewer} vList={vList} onClose={() => setProfileViewer(null)} />}
 
       {flashMsg && (
         <div style={{ position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", background: flashColor, color: "#fff", padding: "11px 22px", borderRadius: 10, fontWeight: 700, fontSize: 13, zIndex: 9999, pointerEvents: "none", whiteSpace: "nowrap", boxShadow: "0 4px 20px #0008" }}>
@@ -2275,14 +2264,14 @@ export default function App() {
   );
 }
 
-function ViewerCard({ v, vList, vSE = 0 }) {
+function ViewerCard({ v, vList }) {
   const [histTab, setHistTab] = useState("semana");
   const days = uniqueDays(v.sessions).length;
   const mins = calcMins(v.sessions);
-  const ok = isEligible(v, vSE);
+  const ok = isEligible(v);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
   const history = v.history || [];
-  const qDays = calcStarsCombined(v.sessions, vSE, v.hasSub, v.bonusStars || 0);
+  const qDays = calcStarsCombined(v.sessions, v.bonusStars || 0);
   const todayStr = new Date().toISOString().slice(0, 10);
   const todaySession = v.sessions.find(s => s.date === todayStr);
   const todayGoalMet = (todaySession?.minutes || 0) >= MIN_MINS_LIVE;
@@ -2355,12 +2344,12 @@ function ViewerCard({ v, vList, vSE = 0 }) {
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 10, color: "#ADADB8" }}>{qDays}/{MIN_DAYS} estrelas · meta: check-in em 4 lives diferentes</div>
+            <div style={{ fontSize: 10, color: "#ADADB8" }}>{qDays}/{MIN_DAYS} estrelas · meta: checkin + 1h em 4 dias, ou 10h somadas na semana</div>
           </div>
           <div>
             <span className="label">tempo assistido</span>
             <div style={{ fontWeight: 800, fontSize: 22, color: "#9146FF" }}>{Math.floor(mins/60)}h{mins%60}m</div>
-            <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>não conta para elegibilidade</div>
+            <div style={{ fontSize: 10, color: "#ADADB8", marginTop: 2 }}>conta pra estrela do dia (1h+) e pro total semanal</div>
           </div>
         </div>
         {v.sessions.length > 0 && (

@@ -82,6 +82,9 @@ async function notifyDiscordLive(liveTitle) {
 }
 const MIN_MINS_LIVE = 60;
 const MIN_DAYS = 4;
+const SE_CHANNEL_ID = '69ebaa7d3d08d0ab3cd6f917';
+const WEEKLY_POINTS_FOR_FULL_BAR = 600; // 10h de atividade (pts) enche as 4 estrelas de uma vez
+const POINTS_PER_WEEKLY_STAR = WEEKLY_POINTS_FOR_FULL_BAR / MIN_DAYS;
 
 const defaultState = {
   viewers: {},
@@ -94,12 +97,43 @@ const defaultState = {
   botCycle: 0,
 };
 
-function calcStars(sessions) {
-  return Math.min(sessions.length, MIN_DAYS);
+function seToMins(pts, hasSub) { return Math.round(pts * (hasSub ? 10 / 15 : 2)); }
+
+// Fetches current SE points per viewer (nick -> pts). Returns null on failure so
+// callers can tell "no data" apart from "legitimately zero", and avoid crediting
+// a viewer's whole lifetime SE balance as if it were earned in one live.
+async function fetchSEPoints() {
+  try {
+    const r = await fetch(`https://api.streamelements.com/kappa/v2/points/${SE_CHANNEL_ID}/top?limit=200`);
+    if (!r.ok) return null;
+    const data = await r.json();
+    const map = {};
+    for (const u of data.users || []) map[u.username.toLowerCase()] = u.points;
+    return map;
+  } catch {
+    return null;
+  }
+}
+
+// A day only "qualifies" for a star if there was a check-in AND at least 1h of
+// real activity that day (chat credit + SE gained during the live, baked into
+// session.minutes at close_live).
+function qualifiedDays(sessions) {
+  return sessions.filter(s => (s.minutes || 0) >= MIN_MINS_LIVE).length;
+}
+function weeklyPoints(sessions) {
+  return sessions.length * MIN_MINS_LIVE + sessions.reduce((a, s) => a + (s.minutes || 0), 0);
+}
+// Stars fill either by qualified days, or all at once once weekly points cross
+// the 10h bar — like an XP bar, whichever gives more stars wins.
+function calcStars(v) {
+  const daily = Math.min(MIN_DAYS, qualifiedDays(v.sessions));
+  const weekly = Math.min(MIN_DAYS, Math.floor(weeklyPoints(v.sessions) / POINTS_PER_WEEKLY_STAR));
+  return Math.max(daily, weekly);
 }
 function isEligible(v) {
   if (v.eligibleOverride !== undefined && v.eligibleOverride !== null) return v.eligibleOverride;
-  const starCount = v.sessions.length + (v.bonusStars || 0);
+  const starCount = Math.min(MIN_DAYS, calcStars(v) + (v.bonusStars || 0));
   return starCount >= MIN_DAYS;
 }
 
@@ -155,7 +189,9 @@ export default async function handler(req, res) {
       if (!v) return res.status(404).json({ error: 'Viewer não cadastrado!' });
       if (!state.liveActive) return res.status(400).json({ error: 'Nenhuma live ativa!' });
       if (v.checkedInToday) return res.status(400).json({ error: 'Você já fez check-in hoje!' });
-      state.viewers[twitch_id].sessions.push({ date: state.liveDate, minutes: 0 });
+      const snap = state.seSnapshotOpen;
+      const seStart = snap ? (snap[(v.nick || '').toLowerCase()] ?? 0) : null;
+      state.viewers[twitch_id].sessions.push({ date: state.liveDate, minutes: 0, seStart });
       state.viewers[twitch_id].checkedInToday = true;
     }
 
@@ -165,11 +201,26 @@ export default async function handler(req, res) {
       state.liveActive = true;
       state.liveDate = new Date().toISOString().slice(0, 10);
       if (!state.cycleStart) state.cycleStart = state.liveDate;
+      state.seSnapshotOpen = await fetchSEPoints();
       if (!testMode) notifyDiscordLive(liveTitle).catch(() => {});
     }
 
     else if (action === 'close_live') {
+      const seNow = await fetchSEPoints();
+      if (seNow) {
+        Object.values(state.viewers).forEach(v => {
+          const idx = v.sessions.findLastIndex(s => s.date === state.liveDate);
+          if (idx === -1) return;
+          const session = v.sessions[idx];
+          if (session.seCredited || session.seStart === null || session.seStart === undefined) return;
+          const current = seNow[(v.nick || '').toLowerCase()] ?? 0;
+          const delta = Math.max(0, current - session.seStart);
+          if (delta > 0) session.minutes += seToMins(delta, v.hasSub);
+          session.seCredited = true;
+        });
+      }
       state.liveActive = false;
+      delete state.seSnapshotOpen;
     }
 
     else if (action === 'add_time') {
