@@ -1290,16 +1290,6 @@ export default function App() {
             </a>
           </div>
 
-          <div className="card">
-            <div className="card-title">Como participar</div>
-            {["Entre na aba Participar e conecte sua conta Twitch","Faça check-in em cada live e fique ativo no chat (ou com pontos SE) por pelo menos 1h","Fique elegível: acumule 4 dias qualificados (checkin + 1h) na semana, ou bata 10h de atividade total"].map((txt, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "flex-start" }}>
-                <div className="step-num">{i+1}</div>
-                <div style={{ fontSize: 13, color: "#ADADB8", lineHeight: 1.6, paddingTop: 2 }}>{txt}</div>
-              </div>
-            ))}
-          </div>
-
           <div className="card" style={{ background: "#FFD70008", borderColor: "#FFD70033" }}>
             <div className="card-title">⭐ Como as estrelas funcionam</div>
             <div style={{ fontSize: 13, color: "#ADADB8", lineHeight: 1.7 }}>
