@@ -1300,6 +1300,27 @@ export default function App() {
             ))}
           </div>
 
+          <div className="card" style={{ background: "#FFD70008", borderColor: "#FFD70033" }}>
+            <div className="card-title">⭐ Como as estrelas funcionam</div>
+            <div style={{ fontSize: 13, color: "#ADADB8", lineHeight: 1.7 }}>
+              A estrela <strong style={{ color: "#EFEFF1" }}>não é só fazer check-in</strong> — check-in sozinho não garante nada. O que conta é a atividade:
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 16 }}>📅</span>
+                <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.6 }}><strong>Caminho diário:</strong> cada dia com check-in + <strong>1h de atividade</strong> (tempo de chat + pontos SE ganhos naquela live) vale 1 estrela. 4 dias assim = 4 estrelas.</div>
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 16 }}>📊</span>
+                <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.6 }}><strong>Caminho semanal:</strong> as estrelas também enchem sozinhas conforme sua atividade total na semana sobe — tipo uma barra de XP. Batendo <strong>10h</strong> no total, as 4 estrelas enchem de uma vez, mesmo sem 4 dias completos.</div>
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 16 }}>✅</span>
+                <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.6 }}>Vale o caminho que der <strong>mais estrelas</strong> pra você — os dois somam chances, nunca atrapalham.</div>
+              </div>
+            </div>
+          </div>
+
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div className="card" style={{ background: "#9146FF10", borderColor: "#9146FF33", marginBottom: 0 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#9146FF", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>🎁 Sorteio Semanal</div>
