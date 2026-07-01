@@ -325,7 +325,7 @@ function PrizeCarousel({ eligCount, vList }) {
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 5, padding: "8px 10px 10px" }}>
             <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 9, padding: "7px 10px", fontSize: 11, color: "#C9A7FF", display: "flex", alignItems: "center", gap: 7 }}>
               <span style={{ flexShrink: 0 }}>📅</span>
-              <span><strong style={{ color: "#fff" }}>4 check-ins</strong> em lives diferentes na semana</span>
+              <span><strong style={{ color: "#fff" }}>Checkin + 1h</strong> em 4 dias (ou 10h somadas na semana)</span>
             </div>
           </div>
         </div>
