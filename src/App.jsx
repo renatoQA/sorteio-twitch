@@ -1290,6 +1290,28 @@ export default function App() {
             </a>
           </div>
 
+          {/* Eventos — só aparece no mobile (sidebar já exibe no desktop) */}
+          <div className="partners-mobile">
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>🏆 Eventos</div>
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdDyaJoOAj-iVR68RyKcC1J_9U_s2V_bAkt9Xd1USGn-cBgTg/viewform" target="_blank" rel="noopener noreferrer"
+              style={{ display: "block", textDecoration: "none", background: "#000", border: "1.5px solid #9146FF44", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ padding: "16px 20px 12px", textAlign: "center", borderBottom: "1px solid #9146FF22" }}>
+                <span style={{ fontWeight: 900, fontSize: 16, color: "#fff", letterSpacing: .5 }}>🏆 Copa Tailung <span style={{ color: "#9146FF" }}>By Mentora</span></span>
+              </div>
+              <div style={{ padding: "10px 16px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 1.2, textTransform: "uppercase", background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 20, padding: "3px 10px" }}>📝 Inscrições abertas</span>
+                <span style={{ color: "#9146FF88", fontSize: 14 }}>↗</span>
+              </div>
+              <div style={{ padding: "0 16px 10px", fontSize: 12, color: "#C9A7FF", lineHeight: 1.6 }}>
+                Preencha o formulário e garanta sua vaga na Copa Tailung.
+              </div>
+              <div style={{ background: "#9146FF0D", borderTop: "1px solid #9146FF22", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#4D4D4D" }}>Formulário de inscrição</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#9146FF" }}>Inscrever-se →</span>
+              </div>
+            </a>
+          </div>
+
           <div className="card" style={{ background: "#FFD70008", borderColor: "#FFD70033" }}>
             <div className="card-title">⭐ Como as estrelas funcionam</div>
             <div style={{ fontSize: 13, color: "#ADADB8", lineHeight: 1.7 }}>
@@ -2257,6 +2279,30 @@ export default function App() {
               <div style={{ background: "#00C8530D", borderTop: "1px solid #00C85322", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 11, color: "#4D4D4D" }}>copa.mentora.gg</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: "#00C853" }}>Criar conta →</span>
+              </div>
+            </a>
+          </div>
+
+          {/* Eventos */}
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10, paddingLeft: 2 }}>🏆 Eventos</div>
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdDyaJoOAj-iVR68RyKcC1J_9U_s2V_bAkt9Xd1USGn-cBgTg/viewform" target="_blank" rel="noopener noreferrer"
+              style={{ display: "block", textDecoration: "none", background: "#000", border: "1.5px solid #9146FF44", borderRadius: 14, overflow: "hidden", transition: "transform .18s, box-shadow .18s" }}
+              onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 32px #9146FF44"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform=""; e.currentTarget.style.boxShadow=""; }}>
+              <div style={{ padding: "18px 20px 14px", textAlign: "center", borderBottom: "1px solid #9146FF22" }}>
+                <span style={{ fontWeight: 900, fontSize: 16, color: "#fff", letterSpacing: .5 }}>🏆 Copa Tailung <span style={{ color: "#9146FF" }}>By Mentora</span></span>
+              </div>
+              <div style={{ padding: "10px 16px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 1.2, textTransform: "uppercase", background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 20, padding: "3px 10px" }}>📝 Inscrições abertas</span>
+                <span style={{ color: "#9146FF88", fontSize: 14 }}>↗</span>
+              </div>
+              <div style={{ padding: "0 16px 10px", fontSize: 12, color: "#C9A7FF", lineHeight: 1.6 }}>
+                Preencha o formulário e garanta sua vaga na Copa Tailung.
+              </div>
+              <div style={{ background: "#9146FF0D", borderTop: "1px solid #9146FF22", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#4D4D4D" }}>Formulário de inscrição</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#9146FF" }}>Inscrever-se →</span>
               </div>
             </a>
           </div>
