@@ -10,7 +10,7 @@ Sistema de sorteio com verificação de presença para streamers da Twitch.
 4. Faça upload de todos esses arquivos (arraste a pasta inteira)
 5. Na Vercel, clique em "New Project" → importe o repositório → escolha **Vite** → Deploy
 
-Pronto! Você vai ganhar um link tipo `sorteio-live.vercel.app`
+Pronto! Você vai ganhar um link tipo `sorteio-live.vercel.app` 
 
 ## Como usar na live
 
