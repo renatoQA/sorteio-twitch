@@ -407,13 +407,16 @@ function SpinWheel({ eligible, spinSecs, onDone }) {
   const [winner, setWinner] = useState(null);
 
   const COLORS = ["#9146FF","#7B2FBE","#6D28D9","#A855F7","#5B1A99","#C084FC","#4C1A7A","#8B5CF6","#D8B4FE","#7C3AED","#3B0764","#B45FDB"];
+  const CSS_SIZE = 280;
+  const DPR = typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 3) : 1;
 
   function drawFrame(rot, items) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     const S = canvas.width;
-    const cx = S / 2, cy = S / 2, r = cx - 6;
+    const scale = S / CSS_SIZE;
+    const cx = S / 2, cy = S / 2, r = cx - 6 * scale;
     const n = items.length;
     const arc = (2 * Math.PI) / n;
     ctx.clearRect(0, 0, S, S);
@@ -421,17 +424,17 @@ function SpinWheel({ eligible, spinSecs, onDone }) {
       const a0 = rot + i * arc, a1 = a0 + arc;
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, a0, a1); ctx.closePath();
       ctx.fillStyle = COLORS[i % COLORS.length]; ctx.fill();
-      ctx.strokeStyle = "#0E0E10"; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.strokeStyle = "#0E0E10"; ctx.lineWidth = 1.5 * scale; ctx.stroke();
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(a0 + arc / 2);
       ctx.textAlign = "right"; ctx.fillStyle = "#fff";
-      ctx.font = `bold ${n > 12 ? 9 : 11}px Inter,system-ui,sans-serif`;
-      ctx.shadowColor = "#00000099"; ctx.shadowBlur = 3;
-      ctx.fillText((item.display_name || item.nick).slice(0, 13), r - 10, 4);
+      ctx.font = `bold ${(n > 12 ? 9 : 11) * scale}px Inter,system-ui,sans-serif`;
+      ctx.shadowColor = "#00000099"; ctx.shadowBlur = 3 * scale;
+      ctx.fillText((item.display_name || item.nick).slice(0, 13), r - 10 * scale, 4 * scale);
       ctx.restore();
     });
-    ctx.beginPath(); ctx.arc(cx, cy, 16, 0, 2 * Math.PI);
+    ctx.beginPath(); ctx.arc(cx, cy, 16 * scale, 0, 2 * Math.PI);
     ctx.fillStyle = "#18181B"; ctx.fill();
-    ctx.strokeStyle = "#9146FF"; ctx.lineWidth = 3; ctx.stroke();
+    ctx.strokeStyle = "#9146FF"; ctx.lineWidth = 3 * scale; ctx.stroke();
   }
 
   const eligibleKey = eligible.map(v => v.twitch_id || v.nick).join(",");
@@ -495,8 +498,8 @@ function SpinWheel({ eligible, spinSecs, onDone }) {
           borderTop: "20px solid #FFD700",
           filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))"
         }} />
-        <canvas ref={canvasRef} width={280} height={280}
-          style={{ display: "block", borderRadius: "50%", border: "2px solid #9146FF44" }} />
+        <canvas ref={canvasRef} width={CSS_SIZE * DPR} height={CSS_SIZE * DPR}
+          style={{ display: "block", width: CSS_SIZE, height: CSS_SIZE, borderRadius: "50%", border: "2px solid #9146FF44" }} />
       </div>
       {winner && !spinning && (
         <div style={{ textAlign: "center" }} className="fade-up">
@@ -552,6 +555,7 @@ export default function App() {
   const ircRef = useRef(null);
   const ircReconnectRef = useRef(false);
   const [spinSecs, setSpinSecs] = useState(8);
+  const [rouletteMode, setRouletteMode] = useState("weekly");
   const [ircLog, setIrcLog] = useState([]);
   const [liveTitle, setLiveTitle] = useState('');
   const [liveTestMode, setLiveTestMode] = useState(false);
@@ -916,11 +920,6 @@ export default function App() {
   async function drawSpecific(twitch_id) {
     const res = await act("draw_specific", { twitch_id });
     if (res.ok) flash(`🏆 ${res.data.winner?.display_name || res.data.winner?.nick} é o vencedor!`);
-  }
-
-  async function drawMonthlyWinner() {
-    const res = await act("draw_monthly");
-    if (res.ok) flash(`🏅 Vencedor mensal: ${res.data.monthlyWinner?.display_name || res.data.monthlyWinner?.nick}!`);
   }
 
   async function drawMonthlySpecific(twitch_id) {
@@ -1781,14 +1780,36 @@ export default function App() {
                   <button className="btn-ghost" style={{ marginTop: 14, fontSize: 12, padding: "6px 14px" }} onClick={() => act("clear_winner")}>Limpar</button>
                 </div>
               )}
+              {state?.monthlyWinner && (
+                <div className="winner-box" style={{ background: "#FFD70018", borderColor: "#FFD700" }}>
+                  <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>🏅 Vencedor Mensal</div>
+                  <div style={{ fontSize: 30, fontWeight: 900, color: "#FFD700" }}>{state.monthlyWinner.display_name || state.monthlyWinner.nick}</div>
+                  <div style={{ fontSize: 12, color: "#ADADB8", marginTop: 6 }}>código: <strong style={{ color: "#FFD700" }}>{state.monthlyWinner.code}</strong></div>
+                  <button className="btn-ghost" style={{ marginTop: 14, fontSize: 12, padding: "6px 14px" }} onClick={() => act("clear_monthly_winner")}>Limpar</button>
+                </div>
+              )}
 
               {/* Roleta */}
               <div className="card">
-                <div style={{ fontWeight: 700, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                  🎡 Roleta
-                  <span style={{ fontSize: 11, color: "#9146FF", background: "#9146FF15", padding: "2px 8px", borderRadius: 10 }}>
-                    {eligCount} elegíve{eligCount === 1 ? "l" : "is"}
+                <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ fontWeight: 700 }}>🎡 Roleta</div>
+                  <span style={{ fontSize: 11, color: rouletteMode === "monthly" ? "#FFD700" : "#9146FF", background: rouletteMode === "monthly" ? "#FFD70015" : "#9146FF15", padding: "2px 8px", borderRadius: 10 }}>
+                    {(rouletteMode === "monthly" ? monthlyEligCount : eligCount)} elegíve{(rouletteMode === "monthly" ? monthlyEligCount : eligCount) === 1 ? "l" : "is"}
                   </span>
+                  <div style={{ display: "flex", gap: 4, marginLeft: "auto", background: "#1a1a1e", borderRadius: 10, padding: 3 }}>
+                    <button
+                      onClick={() => setRouletteMode("weekly")}
+                      style={{ border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, padding: "6px 12px", borderRadius: 8, background: rouletteMode === "weekly" ? "#9146FF" : "transparent", color: rouletteMode === "weekly" ? "#fff" : "#ADADB8" }}
+                    >
+                      Semanal
+                    </button>
+                    <button
+                      onClick={() => setRouletteMode("monthly")}
+                      style={{ border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, padding: "6px 12px", borderRadius: 8, background: rouletteMode === "monthly" ? "#FFD700" : "transparent", color: rouletteMode === "monthly" ? "#18181B" : "#ADADB8" }}
+                    >
+                      Mensal
+                    </button>
+                  </div>
                 </div>
                 <div style={{ marginBottom: 16 }}>
                   <span className="label">Tempo de giro: <strong style={{ color: "#9146FF" }}>{spinSecs}s</strong></span>
@@ -1801,38 +1822,21 @@ export default function App() {
                     <span>3s</span><span>100s</span>
                   </div>
                 </div>
-                <SpinWheel
-                  eligible={vList.filter(isEligible)}
-                  spinSecs={spinSecs}
-                  onDone={w => drawSpecific(w.twitch_id || w.nick)}
-                />
-              </div>
-
-              {/* Sorteio Mensal */}
-              <div className="card" style={{ borderColor: "#FFD70033" }}>
-                <div style={{ fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                  🏅 Sorteio Mensal
-                  <span style={{ fontSize: 11, color: "#FFD700", background: "#FFD70015", padding: "2px 8px", borderRadius: 10 }}>
-                    {monthlyEligCount} elegíve{monthlyEligCount === 1 ? "l" : "is"}
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14 }}>Considera só quem tem 3+ semanas elegíveis neste mês.</div>
-                <button className="btn btn-full" style={{ background: "#FFD700", color: "#18181B" }} onClick={drawMonthlyWinner} disabled={acting || !monthlyEligCount}>🎲 Sortear Mensal</button>
-                {state?.monthlyWinner && (
-                  <div className="winner-box" style={{ background: "#FFD70018", borderColor: "#FFD700", marginTop: 14, marginBottom: 0 }}>
-                    <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>🏅 Vencedor Mensal</div>
-                    <div style={{ fontSize: 30, fontWeight: 900, color: "#FFD700" }}>{state.monthlyWinner.display_name || state.monthlyWinner.nick}</div>
-                    <div style={{ fontSize: 12, color: "#ADADB8", marginTop: 6 }}>código: <strong style={{ color: "#FFD700" }}>{state.monthlyWinner.code}</strong></div>
-                    <button className="btn-ghost" style={{ marginTop: 14, fontSize: 12, padding: "6px 14px" }} onClick={() => act("clear_monthly_winner")}>Limpar</button>
-                  </div>
-                )}
-                <div style={{ marginTop: 16 }}>
+                {rouletteMode === "monthly" ? (
                   <SpinWheel
+                    key="monthly"
                     eligible={vList.filter(isMonthlyEligible)}
                     spinSecs={spinSecs}
                     onDone={w => drawMonthlySpecific(w.twitch_id || w.nick)}
                   />
-                </div>
+                ) : (
+                  <SpinWheel
+                    key="weekly"
+                    eligible={vList.filter(isEligible)}
+                    spinSecs={spinSecs}
+                    onDone={w => drawSpecific(w.twitch_id || w.nick)}
+                  />
+                )}
               </div>
 
               {/* Bot do Chat */}

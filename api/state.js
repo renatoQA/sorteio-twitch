@@ -44,7 +44,7 @@ function verifyTotp(secret, token) {
 
 const ADMIN_ACTIONS = new Set([
   'check_admin', 'open_live', 'close_live', 'draw', 'draw_specific',
-  'draw_monthly', 'draw_monthly_specific', 'clear_monthly_winner',
+  'draw_monthly_specific', 'clear_monthly_winner',
   'end_cycle', 'reset', 'set_prize', 'toggle_prize', 'clear_prize',
   'get_prize_code', 'delete_viewer', 'add_xp', 'add_time',
   'add_schedule', 'remove_schedule',
@@ -137,15 +137,6 @@ function isEligible(v) {
   if (v.eligibleOverride !== undefined && v.eligibleOverride !== null) return v.eligibleOverride;
   const starCount = Math.min(MIN_DAYS, calcStars(v) + (v.bonusStars || 0));
   return starCount >= MIN_DAYS;
-}
-
-const MIN_MONTHLY_CYCLES = 3;
-function monthlyEligibleCycles(v) {
-  const now = new Date().toISOString().slice(0, 7);
-  return (v.history || []).filter(h => h.eligible && (h.cycleEnd || '').slice(0, 7) === now).length;
-}
-function isMonthlyEligible(v) {
-  return monthlyEligibleCycles(v) >= MIN_MONTHLY_CYCLES;
 }
 
 export default async function handler(req, res) {
@@ -319,12 +310,6 @@ export default async function handler(req, res) {
 
     else if (action === 'clear_winner') {
       state.winner = null;
-    }
-
-    else if (action === 'draw_monthly') {
-      const eligible = Object.values(state.viewers).filter(isMonthlyEligible);
-      if (!eligible.length) return res.status(400).json({ error: 'Nenhum elegível ao mensal!' });
-      state.monthlyWinner = eligible[Math.floor(Math.random() * eligible.length)];
     }
 
     else if (action === 'draw_monthly_specific') {
