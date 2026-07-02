@@ -918,6 +918,16 @@ export default function App() {
     if (res.ok) flash(`🏆 ${res.data.winner?.display_name || res.data.winner?.nick} é o vencedor!`);
   }
 
+  async function drawMonthlyWinner() {
+    const res = await act("draw_monthly");
+    if (res.ok) flash(`🏅 Vencedor mensal: ${res.data.monthlyWinner?.display_name || res.data.monthlyWinner?.nick}!`);
+  }
+
+  async function drawMonthlySpecific(twitch_id) {
+    const res = await act("draw_monthly_specific", { twitch_id });
+    if (res.ok) flash(`🏅 ${res.data.monthlyWinner?.display_name || res.data.monthlyWinner?.nick} é o vencedor mensal!`);
+  }
+
   async function endCycle() {
     if (!window.confirm("Encerrar ciclo semanal? Isso vai salvar o histórico e resetar os pontos de todos os viewers.")) return;
     const res = await act("end_cycle");
@@ -1026,6 +1036,7 @@ export default function App() {
     return Number(a.twitch_id) - Number(b.twitch_id);
   }) : [];
   const eligCount = vList.filter(isEligible).length;
+  const monthlyEligCount = vList.filter(isMonthlyEligible).length;
   const myViewer = twitchUser ? state?.viewers?.[twitchUser.id] : null;
   const history = state?.cycleHistory || [];
 
@@ -1795,6 +1806,33 @@ export default function App() {
                   spinSecs={spinSecs}
                   onDone={w => drawSpecific(w.twitch_id || w.nick)}
                 />
+              </div>
+
+              {/* Sorteio Mensal */}
+              <div className="card" style={{ borderColor: "#FFD70033" }}>
+                <div style={{ fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                  🏅 Sorteio Mensal
+                  <span style={{ fontSize: 11, color: "#FFD700", background: "#FFD70015", padding: "2px 8px", borderRadius: 10 }}>
+                    {monthlyEligCount} elegíve{monthlyEligCount === 1 ? "l" : "is"}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14 }}>Considera só quem tem 3+ semanas elegíveis neste mês.</div>
+                <button className="btn btn-full" style={{ background: "#FFD700", color: "#18181B" }} onClick={drawMonthlyWinner} disabled={acting || !monthlyEligCount}>🎲 Sortear Mensal</button>
+                {state?.monthlyWinner && (
+                  <div className="winner-box" style={{ background: "#FFD70018", borderColor: "#FFD700", marginTop: 14, marginBottom: 0 }}>
+                    <div style={{ fontSize: 11, color: "#ADADB8", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>🏅 Vencedor Mensal</div>
+                    <div style={{ fontSize: 30, fontWeight: 900, color: "#FFD700" }}>{state.monthlyWinner.display_name || state.monthlyWinner.nick}</div>
+                    <div style={{ fontSize: 12, color: "#ADADB8", marginTop: 6 }}>código: <strong style={{ color: "#FFD700" }}>{state.monthlyWinner.code}</strong></div>
+                    <button className="btn-ghost" style={{ marginTop: 14, fontSize: 12, padding: "6px 14px" }} onClick={() => act("clear_monthly_winner")}>Limpar</button>
+                  </div>
+                )}
+                <div style={{ marginTop: 16 }}>
+                  <SpinWheel
+                    eligible={vList.filter(isMonthlyEligible)}
+                    spinSecs={spinSecs}
+                    onDone={w => drawMonthlySpecific(w.twitch_id || w.nick)}
+                  />
+                </div>
               </div>
 
               {/* Bot do Chat */}
