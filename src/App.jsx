@@ -1,4 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Calendar, CheckCircle2, Trophy, Award, Gift, Users, Clock, Radio, ArrowUpRight, MessageSquare } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 const CHANNEL = "otailungg";
 const API = "/api/state";
@@ -6,6 +11,8 @@ const CLIENT_ID = "bso3queqhjj7epoc18d9tfomtmthbm";
 const REDIRECT_URI = "https://area-tailung.vercel.app";
 const MIN_MINS_LIVE = 60;
 const MIN_DAYS = 4;
+
+const NAV_ITEMS = [["home", "Início"], ["viewer", "Participar"], ["ranking", "Ranking"], ["cronograma", "Cronograma"], ["streamer", "Streamer"]];
 
 const WEEKLY_POINTS_FOR_FULL_BAR = 600; // 10h de atividade (pts) enche as 4 estrelas de uma vez
 const POINTS_PER_WEEKLY_STAR = WEEKLY_POINTS_FOR_FULL_BAR / MIN_DAYS;
@@ -304,55 +311,40 @@ function ProfileModal({ v, vList, onClose }) {
 }
 
 function PrizeCarousel({ eligCount, vList }) {
-  const H = 420;
-  const IMG_H = 262;
-  const card = (bg, border, glow) => ({
-    position: "relative", background: bg, borderRadius: 14, overflow: "hidden",
-    border: `1.5px solid ${border}`, height: H, display: "flex", flexDirection: "column",
-  });
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-      {/* Semanal */}
-      <div style={card("linear-gradient(145deg,#0d0020 0%,#1a0533 55%,#0d001a 100%)", "#9146FF44")}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 110%,#9146FF18 0%,transparent 65%)", pointerEvents: "none" }} />
-        <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "7px 12px", borderBottom: "1px solid #9146FF22", flexShrink: 0 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 2, textTransform: "uppercase" }}>🎁 Prêmio Semanal</span>
-          </div>
-          <div style={{ height: IMG_H, flexShrink: 0, padding: "8px 10px 0" }}>
-            <img src="/premio.png" alt="Prêmio Semanal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", borderRadius: 8 }} onError={e => { e.target.style.display="none"; }} />
-          </div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 5, padding: "8px 10px 10px" }}>
-            <div style={{ background: "#9146FF18", border: "1px solid #9146FF44", borderRadius: 9, padding: "7px 10px", fontSize: 11, color: "#C9A7FF", display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ flexShrink: 0 }}>📅</span>
-              <span><strong style={{ color: "#fff" }}>Checkin + 1h</strong> em 4 dias (ou 10h somadas na semana)</span>
-            </div>
-          </div>
+    <div className="grid grid-cols-2 gap-2.5 2xl:gap-4">
+      <Card className="gap-0 overflow-hidden border-brand/25 bg-neutral-950 py-0">
+        <div className="border-b border-brand/15 px-3 py-2 2xl:px-5 2xl:py-3">
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand 2xl:text-sm">Prêmio Semanal</span>
         </div>
-      </div>
+        <div className="h-[220px] shrink-0 p-2.5 pb-0 sm:h-[262px] 2xl:h-[360px] 2xl:p-4 2xl:pb-0">
+          <img src="/premio.png" alt="Prêmio Semanal" className="block h-full w-full rounded-lg object-contain" onError={e => { e.target.style.display = "none"; }} />
+        </div>
+        <CardContent className="flex flex-1 flex-col justify-center gap-1.5 py-2.5 2xl:py-4">
+          <div className="flex items-center gap-2 rounded-lg border border-brand/30 bg-brand/10 px-2.5 py-2 text-[11px] text-brand/80 2xl:gap-3 2xl:px-4 2xl:py-3 2xl:text-sm">
+            <Calendar className="size-3.5 shrink-0 2xl:size-5" />
+            <span><strong className="text-foreground">Checkin + 1h</strong> em 4 dias (ou 10h somadas na semana)</span>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Mensal */}
-      <div style={card("linear-gradient(145deg,#1a1000 0%,#2a1a00 55%,#1a1000 100%)", "#FFD70044")}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 110%,#FFD70012 0%,transparent 65%)", pointerEvents: "none" }} />
-        <div style={{ position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "7px 12px", borderBottom: "1px solid #FFD70022", flexShrink: 0 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "#FFD700", letterSpacing: 2, textTransform: "uppercase" }}>🏅 Prêmio Mensal</span>
-          </div>
-          <div style={{ height: IMG_H, flexShrink: 0, padding: "8px 10px 0", position: "relative" }}>
-            <img src="/premio-mensal.png" alt="Prêmio Mensal" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", borderRadius: 8 }} onError={e => { e.target.style.display="none"; }} />
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 28, background: "linear-gradient(to top,#1a1000,transparent)", pointerEvents: "none" }} />
-          </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "5px 10px 8px" }}>
-            <div style={{ background: "#FFD70015", border: "1px solid #FFD70044", borderRadius: 9, padding: "9px 12px", width: "100%" }}>
-              <div style={{ fontSize: 10, color: "#FFD700", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>🏆 Como se qualificar</div>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 7, fontSize: 11, color: "#C9A7FF", lineHeight: 1.5 }}>
-                <span style={{ flexShrink: 0 }}>📆</span>
-                <span>Pelo menos <strong style={{ color: "#FFD700" }}>3 semanas elegíveis</strong> no mês</span>
-              </div>
+      <Card className="gap-0 overflow-hidden border-brand-gold/25 bg-neutral-950 py-0">
+        <div className="border-b border-brand-gold/15 px-3 py-2 2xl:px-5 2xl:py-3">
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-gold 2xl:text-sm">Prêmio Mensal</span>
+        </div>
+        <div className="relative h-[220px] shrink-0 p-2.5 pb-0 sm:h-[262px] 2xl:h-[360px] 2xl:p-4 2xl:pb-0">
+          <img src="/premio-mensal.png" alt="Prêmio Mensal" className="block h-full w-full rounded-lg object-contain" onError={e => { e.target.style.display = "none"; }} />
+        </div>
+        <CardContent className="flex flex-1 items-center py-2.5 2xl:py-4">
+          <div className="w-full rounded-lg border border-brand-gold/30 bg-brand-gold/10 px-3 py-2.5 2xl:px-5 2xl:py-4">
+            <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-brand-gold 2xl:mb-2 2xl:text-sm">Como se qualificar</div>
+            <div className="flex items-start gap-2 text-[11px] leading-snug text-brand-gold/80 2xl:gap-3 2xl:text-sm">
+              <Trophy className="size-3.5 shrink-0 2xl:size-5" />
+              <span>Pelo menos <strong className="text-brand-gold">3 semanas elegíveis</strong> no mês</span>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -361,41 +353,91 @@ function SocialBanners() {
   const socials = [
     {
       name: "Instagram", handle: "@otailung", url: "https://www.instagram.com/otailung",
-      grad: "linear-gradient(135deg, #6a11cb 0%, #c7007a 60%, #fcb045 100%)", glow: "#c7007a",
-      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none"/></svg>),
+      className: "bg-gradient-to-br from-[#6a11cb] via-[#c7007a] to-[#fcb045] hover:shadow-[#c7007a]/40",
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none"/></svg>),
     },
     {
       name: "TikTok", handle: "@otailungg", url: "https://www.tiktok.com/@otailungg",
-      grad: "linear-gradient(135deg, #010101 0%, #1a1a2e 50%, #16213e 100%)", glow: "#69C9D0",
-      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.69a8.18 8.18 0 004.76 1.52V6.76a4.85 4.85 0 01-1-.07z"/></svg>),
+      className: "bg-gradient-to-br from-[#010101] via-[#1a1a2e] to-[#16213e] hover:shadow-[#69C9D0]/40",
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.69a8.18 8.18 0 004.76 1.52V6.76a4.85 4.85 0 01-1-.07z"/></svg>),
     },
     {
       name: "YouTube", handle: "@otailungg", url: "https://www.youtube.com/@otailungg",
-      grad: "linear-gradient(135deg, #1a0000 0%, #8b0000 55%, #cc0000 100%)", glow: "#FF0000",
-      icon: (<svg width="20" height="20" viewBox="0 0 24 24"><path fill="white" d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58z"/><polygon fill="#cc0000" points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>),
+      className: "bg-gradient-to-br from-[#1a0000] via-[#8b0000] to-[#cc0000] hover:shadow-[#FF0000]/40",
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24"><path fill="white" d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58z"/><polygon fill="#cc0000" points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>),
     },
     {
       name: "Discord", handle: "Entrar no Server", url: "https://discord.gg/5mM5WyPFjr",
-      grad: "linear-gradient(135deg, #1a1d2e 0%, #2c3260 55%, #5865F2 100%)", glow: "#5865F2",
-      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>),
+      className: "bg-gradient-to-br from-[#1a1d2e] via-[#2c3260] to-[#5865F2] hover:shadow-[#5865F2]/40",
+      icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>),
     },
   ];
   return (
-    <div className="social-grid">
+    <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4 2xl:gap-3">
       {socials.map(s => (
-        <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="social-card"
-          style={{ background: s.grad, border: "1px solid rgba(255,255,255,0.08)" }}
-          onMouseEnter={e => { e.currentTarget.style.transform="translateY(-3px)"; e.currentTarget.style.boxShadow=`0 10px 30px ${s.glow}55`; }}
-          onMouseLeave={e => { e.currentTarget.style.transform=""; e.currentTarget.style.boxShadow=""; }}>
-          <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{s.icon}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 13, color: "#fff" }}>{s.name}</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.handle}</div>
+        <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer"
+          className={cn("flex items-center gap-2.5 rounded-xl border border-white/10 px-3 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg 2xl:gap-3 2xl:rounded-2xl 2xl:px-4 2xl:py-4", s.className)}>
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/10 2xl:size-11 2xl:rounded-xl">{s.icon}</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[13px] font-bold text-white 2xl:text-base">{s.name}</div>
+            <div className="truncate text-[10px] text-white/60 2xl:text-xs">{s.handle}</div>
           </div>
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, flexShrink: 0 }}>↗</div>
+          <ArrowUpRight className="size-3.5 shrink-0 text-white/40 2xl:size-4" />
         </a>
       ))}
     </div>
+  );
+}
+
+function PartnerCard({ href, tone = "brand", header, badgeIcon: BadgeIcon, badgeText, description, footerLabel, footerCta }) {
+  const c = tone === "green"
+    ? { border: "border-brand-green/30", headerBorder: "border-brand-green/20", badge: "border-brand-green/30 bg-brand-green/10 text-brand-green", desc: "text-emerald-300/80", footBorder: "border-brand-green/20", footBg: "bg-brand-green/5", cta: "text-brand-green" }
+    : { border: "border-brand/30", headerBorder: "border-brand/20", badge: "border-brand/30 bg-brand/10 text-brand", desc: "text-brand/70", footBorder: "border-brand/20", footBg: "bg-brand/5", cta: "text-brand" };
+
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer"
+      className={cn("group block overflow-hidden rounded-2xl border bg-black transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl", c.border)}>
+      <div className={cn("flex items-center justify-center border-b px-5 py-4 2xl:px-6 2xl:py-6", c.headerBorder)}>{header}</div>
+      <div className="flex items-center justify-between px-4 pt-2.5 pb-2 2xl:px-5 2xl:pt-3.5 2xl:pb-2.5">
+        <Badge variant="outline" className={cn("gap-1 text-[10px] font-bold uppercase tracking-wide 2xl:text-xs", c.badge)}>
+          {BadgeIcon && <BadgeIcon className="size-3" />}
+          {badgeText}
+        </Badge>
+        <ArrowUpRight className={cn("size-3.5 opacity-60", c.cta)} />
+      </div>
+      <p className={cn("px-4 pb-2.5 text-xs leading-relaxed 2xl:px-5 2xl:pb-3.5 2xl:text-sm", c.desc)}>{description}</p>
+      <div className={cn("flex items-center justify-between border-t px-4 py-2.5 2xl:px-5 2xl:py-3.5", c.footBorder, c.footBg)}>
+        <span className="text-[11px] text-white/30 2xl:text-xs">{footerLabel}</span>
+        <span className={cn("text-[11px] font-bold 2xl:text-xs", c.cta)}>{footerCta} →</span>
+      </div>
+    </a>
+  );
+}
+
+function MentoraPartnerCard() {
+  return (
+    <PartnerCard
+      href="https://copa.mentora.gg/" tone="green"
+      header={<>
+        <img src="/mentora.png" alt="Mentora" className="h-8 object-contain 2xl:h-10" onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "block"; }} />
+        <span className="hidden text-xl font-black uppercase tracking-[0.2em] text-white">MENTORA</span>
+      </>}
+      badgeIcon={Award} badgeText="Parceiro Oficial"
+      description="Lobbys e campeonatos em parceria com a comunidade do Tailung."
+      footerLabel="copa.mentora.gg" footerCta="Criar conta"
+    />
+  );
+}
+
+function CopaTailungPartnerCard() {
+  return (
+    <PartnerCard
+      href="https://docs.google.com/forms/d/e/1FAIpQLSdDyaJoOAj-iVR68RyKcC1J_9U_s2V_bAkt9Xd1USGn-cBgTg/viewform"
+      header={<span className="flex items-center gap-2 text-base font-black tracking-wide text-white 2xl:text-lg"><Trophy className="size-4 text-brand 2xl:size-5" /> Copa Tailung <span className="text-brand">By Mentora</span></span>}
+      badgeIcon={CheckCircle2} badgeText="Inscrições abertas"
+      description="Preencha o formulário e garanta sua vaga na Copa Tailung."
+      footerLabel="Formulário de inscrição" footerCta="Inscrever-se"
+    />
   );
 }
 
@@ -1056,32 +1098,9 @@ export default function App() {
   return (
     <div className="app">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #0E0E10; overscroll-behavior: none; }
         .app { min-height: 100dvh; background: #0E0E10; color: #EFEFF1; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
         .splash { min-height: 100dvh; background: #0E0E10; display: flex; align-items: center; justify-content: center; color: #9146FF; gap: 12px; font-size: 16px; font-family: system-ui; }
-        .navbar { background: #18181B; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 0 #9146FF33, 0 4px 40px rgba(145,70,255,0.10); }
-        .navbar-top { display: flex; align-items: center; padding: 0 16px; height: 58px; gap: 12px; }
-        .logo-badge { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; filter: drop-shadow(0 0 10px #9146FF77); }
-        .logo-text { line-height: 1; }
-        .logo-name { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 13px; background: linear-gradient(135deg, #C9A7FF 0%, #9146FF 60%, #BF94FF 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: .5px; }
-        .logo-sub { font-size: 9px; color: #9146FF; letter-spacing: 1.8px; text-transform: uppercase; font-weight: 700; margin-top: 2px; }
-        .navbar-nav { display: none; }
-        .nav-item { position: relative; padding: 7px 15px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #ADADB8; background: none; border: 1px solid transparent; cursor: pointer; transition: color .2s, border-color .2s, background .2s, box-shadow .2s; white-space: nowrap; letter-spacing: .3px; }
-        .nav-item:hover { color: #EFEFF1; border-color: #9146FF44; background: #9146FF0D; }
-        .nav-item.active { color: #BF94FF; background: #9146FF1A; border-color: #9146FF55; box-shadow: 0 0 0 1px #9146FF22, 0 2px 14px #9146FF33; }
-        .live-pill { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 20px; border: 1px solid; white-space: nowrap; }
-        .navbar-tabs { display: flex; overflow-x: auto; scrollbar-width: none; border-top: 1px solid #26262C; }
-        .navbar-tabs::-webkit-scrollbar { display: none; }
-        .nav-tab { flex: 1; min-width: 72px; padding: 11px 8px; font-size: 12px; font-weight: 700; color: #ADADB8; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: color .2s, border-color .2s, text-shadow .2s; letter-spacing: .3px; }
-        .nav-tab.active { color: #9146FF; border-bottom-color: #9146FF; text-shadow: 0 0 12px #9146FF88; }
-        @media (min-width: 768px) {
-          .navbar-top { padding: 0 32px; height: 64px; max-width: 1400px; margin: 0 auto; }
-          .navbar-nav { display: flex; align-items: center; gap: 6px; margin-left: 28px; flex: 1; }
-          .navbar-tabs { display: none; }
-          .navbar > .navbar-top { max-width: unset; }
-        }
         /* Page layout — single col mobile, main+sidebar desktop */
         .page-layout { display: grid; grid-template-columns: 1fr; max-width: 1400px; margin: 0 auto; }
         .body { padding: 14px; padding-bottom: 32px; min-width: 0; }
@@ -1090,6 +1109,10 @@ export default function App() {
           .page-layout { grid-template-columns: 1fr 300px; align-items: start; padding: 0 32px; }
           .body { padding: 24px 20px 48px 0; }
           .sidebar { display: flex; flex-direction: column; gap: 12px; padding: 24px 0 48px 4px; position: sticky; top: 72px; align-self: start; }
+        }
+        @media (min-width: 1536px) {
+          .page-layout { max-width: 1680px; grid-template-columns: 1fr 360px; padding: 0 40px; }
+          .body { padding: 28px 28px 48px 0; }
         }
         .card { background: #18181B; border: 1px solid #26262C; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
         .card-title { font-weight: 700; font-size: 15px; margin-bottom: 14px; }
@@ -1138,22 +1161,9 @@ export default function App() {
         @media (min-width: 768px) {
           .prize-img { max-height: 480px; object-fit: contain; background: #1a0533; }
         }
-        /* Home layout */
-        .home-live-row { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; height: auto; }
-        .home-player-col { flex: 1; }
-        .home-chat-col { height: 300px; }
-        @media (min-width: 768px) {
-          .home-live-row { flex-direction: row; height: 320px; }
-          .home-player-col { flex: 3; }
-          .home-chat-col { flex: 2; height: auto; }
-        }
         /* Partners mobile — hide when sidebar kicks in */
         .partners-mobile { display: block; margin-bottom: 12px; }
         @media (min-width: 1100px) { .partners-mobile { display: none; } }
-        /* Social banners */
-        .social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-        @media (min-width: 640px) { .social-grid { grid-template-columns: repeat(4, 1fr); } }
-        .social-card { text-decoration: none; display: flex; align-items: center; gap: 10px; border-radius: 14px; padding: 13px 12px; transition: transform .15s, box-shadow .15s; }
         /* Level XP bar */
         @keyframes lvGlow { 0%,100%{opacity:.7} 50%{opacity:1} }
         .lv-bar-fill { animation: lvGlow 2.5s ease-in-out infinite; }
@@ -1161,47 +1171,51 @@ export default function App() {
       `}</style>
 
       {/* Navbar */}
-      <div className="navbar">
-        <div className="navbar-top">
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-card/95 backdrop-blur">
+        <div className="mx-auto flex h-[58px] max-w-[1400px] items-center gap-3 px-4 md:h-16 md:px-8 2xl:h-20 2xl:max-w-[1680px] 2xl:px-10">
           {/* Logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-            <div className="logo-badge">
-              <img src="/logo.png" alt="Tailung" style={{ width: 42, height: 42, objectFit: "contain", display: "block" }} />
-            </div>
-            <div className="logo-text">
-              <div className="logo-name">Area do Tailung</div>
-            </div>
+          <div className="flex shrink-0 items-center gap-2.5 2xl:gap-3">
+            <img src="/logo.png" alt="Tailung" className="size-9 object-contain drop-shadow-[0_0_10px_rgba(145,70,255,0.4)] md:size-10 2xl:size-12" />
+            <span className="text-sm font-bold tracking-tight text-foreground 2xl:text-lg">Área do Tailung</span>
           </div>
 
           {/* Nav inline — desktop only */}
-          <nav className="navbar-nav">
-            {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["cronograma","Cronograma"],["streamer","Streamer"]].map(([id,label]) => (
-              <button key={id} className={`nav-item${tab===id?" active":""}`} onClick={() => setTab(id)}>{label}</button>
+          <nav className="ml-5 hidden items-center gap-1 md:flex 2xl:ml-8 2xl:gap-2">
+            {NAV_ITEMS.map(([id, label]) => (
+              <button key={id} onClick={() => setTab(id)}
+                className={cn("rounded-lg px-3.5 py-2 text-[13px] font-semibold transition-colors 2xl:rounded-xl 2xl:px-5 2xl:py-2.5 2xl:text-base",
+                  tab === id ? "bg-brand/15 text-brand" : "text-muted-foreground hover:bg-white/5 hover:text-foreground")}>
+                {label}
+              </button>
             ))}
           </nav>
 
           {/* Right side */}
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="ml-auto flex items-center gap-2 2xl:gap-3">
             {twitchUser && (
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#9146FF", background: "#9146FF15", padding: "5px 10px", borderRadius: 8, display: "flex", alignItems: "center", gap: 5 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
+              <div className="hidden items-center gap-1.5 rounded-lg bg-brand/10 px-2.5 py-1.5 text-xs font-bold text-brand sm:flex 2xl:rounded-xl 2xl:px-3.5 2xl:py-2 2xl:text-sm">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
                 {twitchUser.display_name || twitchUser.login}
               </div>
             )}
-            <div className="live-pill" style={{ color: state?.liveActive ? "#FF4747" : "#ADADB8", borderColor: state?.liveActive ? "#FF474744" : "#3D3D47", background: state?.liveActive ? "#FF474712" : "#26262C" }}>
-              <div className="live-dot" style={{ background: state?.liveActive ? "#FF4747" : "#3D3D47", animation: state?.liveActive ? "pulse 1.5s infinite" : "none" }} />
+            <Badge variant="outline" className={cn("gap-1.5 border-none px-2.5 py-1.5 text-[11px] font-bold 2xl:rounded-xl 2xl:px-3.5 2xl:py-2 2xl:text-xs", state?.liveActive ? "bg-brand-red/10 text-brand-red" : "bg-secondary text-muted-foreground")}>
+              <span className={cn("size-1.5 rounded-full 2xl:size-2", state?.liveActive ? "animate-pulse bg-brand-red" : "bg-muted-foreground/50")} />
               {state?.liveActive ? "AO VIVO" : "OFFLINE"}
-            </div>
+            </Badge>
           </div>
         </div>
 
         {/* Tabs row — mobile only */}
-        <div className="navbar-tabs">
-          {[["home","Início"],["viewer","Participar"],["ranking","Ranking"],["cronograma","Cronograma"],["streamer","Streamer"]].map(([id,label]) => (
-            <button key={id} className={`nav-tab${tab===id?" active":""}`} onClick={() => setTab(id)}>{label}</button>
+        <nav className="flex overflow-x-auto border-t border-white/5 md:hidden [scrollbar-width:none]">
+          {NAV_ITEMS.map(([id, label]) => (
+            <button key={id} onClick={() => setTab(id)}
+              className={cn("min-w-[72px] flex-1 border-b-2 px-2 py-2.5 text-xs font-bold whitespace-nowrap transition-colors",
+                tab === id ? "border-brand text-brand" : "border-transparent text-muted-foreground")}>
+              {label}
+            </button>
           ))}
-        </div>
-      </div>
+        </nav>
+      </header>
 
       <div className="page-layout">
       <div className="body">
@@ -1215,151 +1229,119 @@ export default function App() {
           </div>
 
           {/* Live + Chat — numa row */}
-          <div className="home-live-row">
+          <div className="mb-3 flex flex-col gap-3 md:h-80 md:flex-row 2xl:h-[480px] 2xl:gap-4">
             {/* Player */}
-            <div className="home-player-col">
-              <div style={{ background: "#18181B", border: `1px solid ${state?.liveActive ? "#FF474744" : "#26262C"}`, borderRadius: 12, overflow: "hidden", height: "100%", display: "flex", flexDirection: "column" }}>
-                <div style={{ background: "linear-gradient(135deg, #18181B, #26262C)", padding: "8px 12px", borderBottom: "1px solid #26262C", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#EFEFF1" }}>{CHANNEL}</span>
-                  <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 700, color: state?.liveActive ? "#FF4747" : "#ADADB8" }}>
-                    <div className="live-dot" style={{ background: state?.liveActive ? "#FF4747" : "#3D3D47", animation: state?.liveActive ? "pulse 1.5s infinite" : "none" }} />
+            <div className="flex flex-col md:flex-[3]">
+              <Card className={cn("h-[260px] gap-0 overflow-hidden py-0 md:h-full", state?.liveActive ? "border-brand-red/30" : "border-border")}>
+                <div className="flex shrink-0 items-center gap-2 border-b border-border bg-gradient-to-br from-card to-secondary px-3 py-2 2xl:px-4 2xl:py-3">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--color-brand)"><path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43z"/></svg>
+                  <span className="text-[11px] font-bold text-foreground 2xl:text-sm">{CHANNEL}</span>
+                  <div className={cn("ml-auto flex items-center gap-1.5 text-[10px] font-bold 2xl:text-xs", state?.liveActive ? "text-brand-red" : "text-muted-foreground")}>
+                    <span className={cn("size-[7px] rounded-full", state?.liveActive ? "animate-pulse bg-brand-red" : "bg-muted-foreground/40")} />
                     {state?.liveActive ? "AO VIVO" : "OFFLINE"}
                   </div>
                 </div>
-                <div style={{ flex: 1, position: "relative", background: "#0E0E10" }}>
+                <div className="relative flex-1 bg-background">
                   <iframe
                     src={`https://player.twitch.tv/?channel=${CHANNEL}&parent=area-tailung.vercel.app&autoplay=false&muted=false`}
-                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                    className="absolute inset-0 size-full border-none"
                     allowFullScreen
                     title="oTaiLungg Live"
                   />
                 </div>
                 {/* Footer: participar ou próxima live */}
                 {state?.liveActive ? (
-                  <div style={{ padding: "8px 12px", fontSize: 11, color: "#ADADB8", borderTop: "1px solid #26262C", flexShrink: 0 }}>
-                    🔴 Live rolando! <strong style={{ color: "#9146FF", cursor: "pointer" }} onClick={() => setTab("viewer")}>Participar →</strong>
+                  <div className="shrink-0 border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
+                    Live rolando! <strong className="cursor-pointer text-brand" onClick={() => setTab("viewer")}>Participar →</strong>
                   </div>
                 ) : (() => {
                   const next = (state?.schedule || []).filter(e => new Date(`${e.date}T${e.time}`) > new Date()).sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time))[0];
                   if (!next) return null;
                   const dt = new Date(`${next.date}T${next.time}`);
                   return (
-                    <div style={{ padding: "8px 12px", borderTop: "1px solid #26262C", flexShrink: 0, cursor: "pointer" }} onClick={() => setTab("cronograma")}>
-                      <div style={{ fontSize: 9, color: "#ADADB8", marginBottom: 2, textTransform: "uppercase", letterSpacing: .6, fontWeight: 700 }}>📅 Próxima live</div>
-                      <div style={{ fontWeight: 800, fontSize: 12, color: "#EFEFF1" }}>{next.title}</div>
-                      <div style={{ fontSize: 10, color: "#9146FF" }}>{dt.toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'})} · {next.time}</div>
+                    <div className="shrink-0 cursor-pointer border-t border-border px-3 py-2" onClick={() => setTab("cronograma")}>
+                      <div className="mb-0.5 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground"><Calendar className="size-2.5" /> Próxima live</div>
+                      <div className="text-xs font-extrabold text-foreground">{next.title}</div>
+                      <div className="text-[10px] text-brand">{dt.toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'})} · {next.time}</div>
                     </div>
                   );
                 })()}
-              </div>
+              </Card>
             </div>
 
             {/* Chat */}
-            <div className="home-chat-col">
-              <div style={{ background: "#18181B", border: "1px solid #26262C", borderRadius: 12, overflow: "hidden", height: "100%", display: "flex", flexDirection: "column" }}>
-                <div style={{ padding: "8px 12px", borderBottom: "1px solid #26262C", display: "flex", alignItems: "center", gap: 8, flexShrink: 0, background: "linear-gradient(135deg,#18181B,#26262C)" }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9146FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#EFEFF1" }}>Chat</span>
+            <div className="flex h-[300px] flex-col md:h-auto md:flex-[2]">
+              <Card className="h-full gap-0 overflow-hidden py-0">
+                <div className="flex shrink-0 items-center gap-2 border-b border-border bg-gradient-to-br from-card to-secondary px-3 py-2 2xl:px-4 2xl:py-3">
+                  <MessageSquare className="size-3.5 text-brand 2xl:size-4" />
+                  <span className="text-[11px] font-bold text-foreground 2xl:text-sm">Chat</span>
                 </div>
                 {/* zoom-out via transform so more chat fits in the frame */}
-                <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+                <div className="relative flex-1 overflow-hidden">
                   <iframe
                     src={`https://www.twitch.tv/embed/${CHANNEL}/chat?parent=area-tailung.vercel.app&darkpopout`}
-                    style={{ position: "absolute", top: 0, left: 0, width: "125%", height: "125%", transform: "scale(0.8)", transformOrigin: "top left", border: "none" }}
+                    style={{ transform: "scale(0.8)", transformOrigin: "top left" }}
+                    className="absolute top-0 left-0 h-[125%] w-[125%] border-none"
                     title="Chat oTaiLungg"
                   />
                 </div>
-              </div>
+              </Card>
             </div>
           </div>
 
           {/* Redes Sociais */}
           <SocialBanners />
 
-          {/* Parceiro Mentora — só aparece no mobile (sidebar já exibe no desktop) */}
-          <div className="partners-mobile">
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>🤝 Parceiros</div>
-            <a href="https://copa.mentora.gg/" target="_blank" rel="noopener noreferrer"
-              style={{ display: "block", textDecoration: "none", background: "#000", border: "1.5px solid #00C85344", borderRadius: 14, overflow: "hidden" }}>
-              <div style={{ background: "#000", padding: "16px 20px 12px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid #00C85322" }}>
-                <img src="/mentora.png" alt="Mentora" style={{ height: 32, objectFit: "contain", display: "block" }} onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="block"; }} />
-                <span style={{ display: "none", fontWeight: 900, fontSize: 20, color: "#fff", letterSpacing: 3, textTransform: "uppercase" }}>MENTORA</span>
-              </div>
-              <div style={{ padding: "10px 16px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#00C853", letterSpacing: 1.2, textTransform: "uppercase", background: "#00C85318", border: "1px solid #00C85333", borderRadius: 20, padding: "3px 10px" }}>✦ Parceiro Oficial</span>
-                <span style={{ color: "#00C85388", fontSize: 14 }}>↗</span>
-              </div>
-              <div style={{ padding: "0 16px 10px", fontSize: 12, color: "#7AE09A", lineHeight: 1.6 }}>
-                Lobbys e campeonatos em parceria com a comunidade do Tailung.
-              </div>
-              <div style={{ background: "#00C8530D", borderTop: "1px solid #00C85322", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: "#4D4D4D" }}>copa.mentora.gg</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#00C853" }}>Criar conta →</span>
-              </div>
-            </a>
-          </div>
-
-          {/* Eventos — só aparece no mobile (sidebar já exibe no desktop) */}
-          <div className="partners-mobile">
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>🏆 Eventos</div>
-            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdDyaJoOAj-iVR68RyKcC1J_9U_s2V_bAkt9Xd1USGn-cBgTg/viewform" target="_blank" rel="noopener noreferrer"
-              style={{ display: "block", textDecoration: "none", background: "#000", border: "1.5px solid #9146FF44", borderRadius: 14, overflow: "hidden" }}>
-              <div style={{ padding: "16px 20px 12px", textAlign: "center", borderBottom: "1px solid #9146FF22" }}>
-                <span style={{ fontWeight: 900, fontSize: 16, color: "#fff", letterSpacing: .5 }}>🏆 Copa Tailung <span style={{ color: "#9146FF" }}>By Mentora</span></span>
-              </div>
-              <div style={{ padding: "10px 16px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 1.2, textTransform: "uppercase", background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 20, padding: "3px 10px" }}>📝 Inscrições abertas</span>
-                <span style={{ color: "#9146FF88", fontSize: 14 }}>↗</span>
-              </div>
-              <div style={{ padding: "0 16px 10px", fontSize: 12, color: "#C9A7FF", lineHeight: 1.6 }}>
-                Preencha o formulário e garanta sua vaga na Copa Tailung.
-              </div>
-              <div style={{ background: "#9146FF0D", borderTop: "1px solid #9146FF22", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: "#4D4D4D" }}>Formulário de inscrição</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#9146FF" }}>Inscrever-se →</span>
-              </div>
-            </a>
-          </div>
-
-          <div className="card" style={{ background: "#FFD70008", borderColor: "#FFD70033" }}>
-            <div className="card-title">⭐ Como as estrelas funcionam</div>
-            <div style={{ fontSize: 13, color: "#ADADB8", lineHeight: 1.7 }}>
-              A estrela <strong style={{ color: "#EFEFF1" }}>não é só fazer check-in</strong> — check-in sozinho não garante nada. O que conta é a atividade:
+          {/* Parceiros e Eventos — só aparece no mobile (sidebar já exibe no desktop) */}
+          <div className="partners-mobile flex flex-col gap-3">
+            <div>
+              <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Parceiros</div>
+              <MentoraPartnerCard />
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
-              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <span style={{ fontSize: 16 }}>📅</span>
-                <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.6 }}><strong>Caminho diário:</strong> cada dia com check-in + <strong>1h de atividade</strong> (tempo de chat + pontos SE ganhos naquela live) vale 1 estrela. 4 dias assim = 4 estrelas.</div>
-              </div>
-              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <span style={{ fontSize: 16 }}>📊</span>
-                <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.6 }}><strong>Caminho semanal:</strong> as estrelas também enchem sozinhas conforme sua atividade total na semana sobe — tipo uma barra de XP. Batendo <strong>10h</strong> no total, as 4 estrelas enchem de uma vez, mesmo sem 4 dias completos.</div>
-              </div>
-              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <span style={{ fontSize: 16 }}>✅</span>
-                <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.6 }}>Vale o caminho que der <strong>mais estrelas</strong> pra você — os dois somam chances, nunca atrapalham.</div>
-              </div>
+            <div>
+              <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Eventos</div>
+              <CopaTailungPartnerCard />
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div className="card" style={{ background: "#9146FF10", borderColor: "#9146FF33", marginBottom: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#9146FF", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>🎁 Sorteio Semanal</div>
-              <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.7 }}>
-                Para ser elegível você precisa, na semana (incluindo o dia do sorteio):<br />
-                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ Fazer check-in + pelo menos <strong>1h de atividade</strong> (chat/SE) em <strong>4 dias diferentes</strong> de live</span>
-                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>— ou —</span>
-                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ Acumular <strong>10h de atividade</strong> no total, mesmo sem 4 dias completos</span>
+          <Card className="border-brand-gold/20 bg-brand-gold/[0.03] p-4 2xl:p-6">
+            <div className="mb-2.5 text-[15px] font-bold text-foreground 2xl:mb-3 2xl:text-lg">⭐ Como as estrelas funcionam</div>
+            <p className="text-[13px] leading-relaxed text-muted-foreground 2xl:text-base">
+              A estrela <strong className="text-foreground">não é só fazer check-in</strong> — check-in sozinho não garante nada. O que conta é a atividade:
+            </p>
+            <div className="mt-2.5 flex flex-col gap-2.5 2xl:mt-4 2xl:gap-3.5">
+              <div className="flex items-start gap-2.5 text-xs leading-relaxed text-brand/80 2xl:gap-3 2xl:text-base">
+                <Calendar className="size-4 shrink-0 text-brand 2xl:size-5" />
+                <span><strong className="text-foreground">Caminho diário:</strong> cada dia com check-in + <strong>1h de atividade</strong> (tempo de chat + pontos SE ganhos naquela live) vale 1 estrela. 4 dias assim = 4 estrelas.</span>
+              </div>
+              <div className="flex items-start gap-2.5 text-xs leading-relaxed text-brand/80 2xl:gap-3 2xl:text-base">
+                <Clock className="size-4 shrink-0 text-brand 2xl:size-5" />
+                <span><strong className="text-foreground">Caminho semanal:</strong> as estrelas também enchem sozinhas conforme sua atividade total na semana sobe — tipo uma barra de XP. Batendo <strong>10h</strong> no total, as 4 estrelas enchem de uma vez, mesmo sem 4 dias completos.</span>
+              </div>
+              <div className="flex items-start gap-2.5 text-xs leading-relaxed text-brand/80 2xl:gap-3 2xl:text-base">
+                <CheckCircle2 className="size-4 shrink-0 text-brand 2xl:size-5" />
+                <span>Vale o caminho que der <strong className="text-foreground">mais estrelas</strong> pra você — os dois somam chances, nunca atrapalham.</span>
               </div>
             </div>
-            <div className="card" style={{ background: "#FFD70010", borderColor: "#FFD70033", marginBottom: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#FFD700", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>🏅 Sorteio Mensal</div>
-              <div style={{ fontSize: 12, color: "#C9A7FF", lineHeight: 1.7 }}>
-                Para se qualificar ao prêmio mensal:<br />
-                <span style={{ paddingLeft: 8, display: "block", marginTop: 4 }}>✅ Ter completado pelo menos <strong>3 semanas elegíveis</strong> no mês</span>
+          </Card>
+
+          <div className="mt-3 flex flex-col gap-2 2xl:flex-row 2xl:gap-4">
+            <Card className="border-brand/20 bg-brand/[0.04] p-4 2xl:flex-1 2xl:p-6">
+              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-brand 2xl:mb-3 2xl:text-sm"><Gift className="size-3.5 2xl:size-4" /> Sorteio Semanal</div>
+              <div className="text-xs leading-relaxed text-brand/80 2xl:text-base">
+                Para ser elegível você precisa, na semana (incluindo o dia do sorteio):
+                <div className="mt-1 flex items-start gap-1.5 pl-1 2xl:mt-2"><CheckCircle2 className="mt-0.5 size-3.5 shrink-0 2xl:size-4" /> <span>Fazer check-in + pelo menos <strong className="text-foreground">1h de atividade</strong> (chat/SE) em <strong className="text-foreground">4 dias diferentes</strong> de live</span></div>
+                <div className="mt-1 pl-1 text-muted-foreground">— ou —</div>
+                <div className="mt-1 flex items-start gap-1.5 pl-1 2xl:mt-2"><CheckCircle2 className="mt-0.5 size-3.5 shrink-0 2xl:size-4" /> <span>Acumular <strong className="text-foreground">10h de atividade</strong> no total, mesmo sem 4 dias completos</span></div>
               </div>
-            </div>
+            </Card>
+            <Card className="border-brand-gold/20 bg-brand-gold/[0.04] p-4 2xl:flex-1 2xl:p-6">
+              <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-brand-gold 2xl:mb-3 2xl:text-sm"><Award className="size-3.5 2xl:size-4" /> Sorteio Mensal</div>
+              <div className="text-xs leading-relaxed text-brand-gold/80 2xl:text-base">
+                Para se qualificar ao prêmio mensal:
+                <div className="mt-1 flex items-start gap-1.5 pl-1 2xl:mt-2"><CheckCircle2 className="mt-0.5 size-3.5 shrink-0 2xl:size-4" /> <span>Ter completado pelo menos <strong className="text-foreground">3 semanas elegíveis</strong> no mês</span></div>
+              </div>
+            </Card>
           </div>
 
         </div>}
@@ -2272,81 +2254,42 @@ export default function App() {
         {/* SIDEBAR — visível só em desktop (≥1100px via CSS) */}
         <aside className="sidebar">
           {/* Stats rápidos */}
-          <div style={{ background: "#18181B", border: "1px solid #26262C", borderRadius: 12, padding: "14px 16px" }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 12 }}>📊 Status da semana</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: "#ADADB8" }}>Participantes</span>
-                <span style={{ fontWeight: 800, fontSize: 14, color: "#9146FF" }}>{vList.length}</span>
+          <Card className="p-4 2xl:p-5">
+            <div className="mb-3 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-brand 2xl:text-xs"><Users className="size-3.5 2xl:size-4" /> Status da semana</div>
+            <div className="flex flex-col gap-2 2xl:gap-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground 2xl:text-sm">Participantes</span>
+                <span className="text-sm font-extrabold text-brand 2xl:text-base">{vList.length}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: "#ADADB8" }}>Elegíveis</span>
-                <span style={{ fontWeight: 800, fontSize: 14, color: "#00C853" }}>{eligCount}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground 2xl:text-sm">Elegíveis</span>
+                <span className="text-sm font-extrabold text-brand-green 2xl:text-base">{eligCount}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: "#ADADB8" }}>Horas acumuladas</span>
-                <span style={{ fontWeight: 800, fontSize: 14, color: "#FFB347" }}>{Math.floor(vList.reduce((a,v)=>a+calcMins(v.sessions),0)/60)}h</span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground 2xl:text-sm">Horas acumuladas</span>
+                <span className="text-sm font-extrabold text-amber-400 2xl:text-base">{Math.floor(vList.reduce((a,v)=>a+calcMins(v.sessions),0)/60)}h</span>
               </div>
-              <div style={{ height: 1, background: "#26262C", margin: "4px 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: "#ADADB8" }}>Live</span>
-                <span style={{ display: "flex", alignItems: "center", gap: 5, fontWeight: 700, fontSize: 12, color: state?.liveActive ? "#FF4747" : "#ADADB8" }}>
-                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: state?.liveActive ? "#FF4747" : "#3D3D47", display: "inline-block", animation: state?.liveActive ? "pulse 1.5s infinite" : "none" }} />
+              <Separator className="my-0.5" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground 2xl:text-sm">Live</span>
+                <span className={cn("flex items-center gap-1.5 text-xs font-bold 2xl:text-sm", state?.liveActive ? "text-brand-red" : "text-muted-foreground")}>
+                  <span className={cn("inline-block size-[7px] rounded-full", state?.liveActive ? "animate-pulse bg-brand-red" : "bg-muted-foreground/40")} />
                   {state?.liveActive ? "Ao vivo" : "Offline"}
                 </span>
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Parceiros */}
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10, paddingLeft: 2 }}>🤝 Parceiros</div>
-            <a href="https://copa.mentora.gg/" target="_blank" rel="noopener noreferrer"
-              style={{ display: "block", textDecoration: "none", background: "#000", border: "1.5px solid #00C85344", borderRadius: 14, overflow: "hidden", transition: "transform .18s, box-shadow .18s" }}
-              onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 32px #00C85344"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform=""; e.currentTarget.style.boxShadow=""; }}>
-              {/* Logo banner */}
-              <div style={{ background: "#000", padding: "18px 20px 14px", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid #00C85322" }}>
-                <img src="/mentora.png" alt="Mentora" style={{ height: 32, objectFit: "contain", display: "block" }} onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="block"; }} />
-                <span style={{ display: "none", fontWeight: 900, fontSize: 20, color: "#fff", letterSpacing: 3, textTransform: "uppercase" }}>MENTORA</span>
-              </div>
-              {/* Badge parceiro */}
-              <div style={{ padding: "10px 16px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#00C853", letterSpacing: 1.2, textTransform: "uppercase", background: "#00C85318", border: "1px solid #00C85333", borderRadius: 20, padding: "3px 10px" }}>✦ Parceiro Oficial</span>
-                <span style={{ color: "#00C85388", fontSize: 14 }}>↗</span>
-              </div>
-              <div style={{ padding: "0 16px 10px", fontSize: 12, color: "#7AE09A", lineHeight: 1.6 }}>
-                Lobbys e campeonatos em parceria com a comunidade do Tailung.
-              </div>
-              <div style={{ background: "#00C8530D", borderTop: "1px solid #00C85322", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: "#4D4D4D" }}>copa.mentora.gg</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#00C853" }}>Criar conta →</span>
-              </div>
-            </a>
+            <div className="mb-2.5 pl-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground 2xl:text-xs">Parceiros</div>
+            <MentoraPartnerCard />
           </div>
 
           {/* Eventos */}
-          <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#ADADB8", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10, paddingLeft: 2 }}>🏆 Eventos</div>
-            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdDyaJoOAj-iVR68RyKcC1J_9U_s2V_bAkt9Xd1USGn-cBgTg/viewform" target="_blank" rel="noopener noreferrer"
-              style={{ display: "block", textDecoration: "none", background: "#000", border: "1.5px solid #9146FF44", borderRadius: 14, overflow: "hidden", transition: "transform .18s, box-shadow .18s" }}
-              onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 32px #9146FF44"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform=""; e.currentTarget.style.boxShadow=""; }}>
-              <div style={{ padding: "18px 20px 14px", textAlign: "center", borderBottom: "1px solid #9146FF22" }}>
-                <span style={{ fontWeight: 900, fontSize: 16, color: "#fff", letterSpacing: .5 }}>🏆 Copa Tailung <span style={{ color: "#9146FF" }}>By Mentora</span></span>
-              </div>
-              <div style={{ padding: "10px 16px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#9146FF", letterSpacing: 1.2, textTransform: "uppercase", background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 20, padding: "3px 10px" }}>📝 Inscrições abertas</span>
-                <span style={{ color: "#9146FF88", fontSize: 14 }}>↗</span>
-              </div>
-              <div style={{ padding: "0 16px 10px", fontSize: 12, color: "#C9A7FF", lineHeight: 1.6 }}>
-                Preencha o formulário e garanta sua vaga na Copa Tailung.
-              </div>
-              <div style={{ background: "#9146FF0D", borderTop: "1px solid #9146FF22", padding: "9px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: "#4D4D4D" }}>Formulário de inscrição</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#9146FF" }}>Inscrever-se →</span>
-              </div>
-            </a>
+          <div>
+            <div className="mb-2.5 pl-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground 2xl:text-xs">Eventos</div>
+            <CopaTailungPartnerCard />
           </div>
         </aside>
 
