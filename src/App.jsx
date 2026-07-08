@@ -11,6 +11,7 @@ const CLIENT_ID = "bso3queqhjj7epoc18d9tfomtmthbm";
 const REDIRECT_URI = "https://area-tailung.vercel.app";
 const MIN_MINS_LIVE = 60;
 const MIN_DAYS = 4;
+const SE_CHANNEL_ID = "69ebaa7d3d08d0ab3cd6f917";
 
 const NAV_ITEMS = [["home", "Início"], ["viewer", "Participar"], ["ranking", "Ranking"], ["cronograma", "Cronograma"], ["streamer", "Streamer"]];
 
@@ -36,6 +37,28 @@ function calcStarsCombined(sessions, bonusStars = 0) {
 function isEligible(v) {
   if (v.eligibleOverride !== undefined && v.eligibleOverride !== null) return v.eligibleOverride;
   return calcStarsCombined(v.sessions, v.bonusStars || 0) >= MIN_DAYS;
+}
+// Mirrors api/state.js seToMins — used only to preview live SE progress client-side.
+function seToMins(pts, hasSub) { return Math.round(pts * (hasSub ? 10 / 15 : 2)); }
+// Overlays a live SE-points estimate onto today's open session, purely for display.
+// The real credit (same rule as always) still only lands on close_live.
+function withLiveSe(viewers, liveDate, sePoints) {
+  if (!sePoints) return viewers;
+  const out = {};
+  for (const [id, v] of Object.entries(viewers)) {
+    const idx = v.sessions.findLastIndex(s => s.date === liveDate);
+    if (idx === -1) { out[id] = v; continue; }
+    const session = v.sessions[idx];
+    if (session.seCredited || session.seStart == null) { out[id] = v; continue; }
+    const current = sePoints[(v.nick || "").toLowerCase()] ?? sePoints[(v.display_name || "").toLowerCase()];
+    if (current == null) { out[id] = v; continue; }
+    const delta = Math.max(0, current - session.seStart);
+    if (delta <= 0) { out[id] = v; continue; }
+    const sessions = [...v.sessions];
+    sessions[idx] = { ...session, minutes: session.minutes + seToMins(delta, v.hasSub) };
+    out[id] = { ...v, sessions };
+  }
+  return out;
 }
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
 function fmtTimer(m) { return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`; }
@@ -642,6 +665,24 @@ export default function App() {
     return () => clearInterval(interval);
   }, [fetchState]);
 
+  // Live preview of SE points during an open live — display only, doesn't touch crediting.
+  const [liveSePoints, setLiveSePoints] = useState(null);
+  useEffect(() => {
+    if (!state?.liveActive) { setLiveSePoints(null); return; }
+    const fetchSE = () =>
+      fetch(`https://api.streamelements.com/kappa/v2/points/${SE_CHANNEL_ID}/top?limit=200`)
+        .then(r => r.json())
+        .then(data => {
+          const map = {};
+          for (const u of data.users || []) map[u.username.toLowerCase()] = u.points;
+          setLiveSePoints(map);
+        })
+        .catch(() => {});
+    fetchSE();
+    const id = setInterval(fetchSE, 30_000);
+    return () => clearInterval(id);
+  }, [state?.liveActive]);
+
   useEffect(() => {
     // Restore bot token
     const t = localStorage.getItem('bot_token');
@@ -1061,7 +1102,8 @@ export default function App() {
     </div>
   );
 
-  const vList = state ? Object.values(state.viewers).sort((a, b) => {
+  const liveViewers = state ? withLiveSe(state.viewers, state.liveDate, liveSePoints) : {};
+  const vList = state ? Object.values(liveViewers).sort((a, b) => {
     const ea = isEligible(a) ? 1 : 0, eb = isEligible(b) ? 1 : 0;
     if (eb !== ea) return eb - ea;
     const ma = monthlyEligibleCycles(a), mb = monthlyEligibleCycles(b);
@@ -1078,7 +1120,7 @@ export default function App() {
   }) : [];
   const eligCount = vList.filter(isEligible).length;
   const monthlyEligCount = vList.filter(isMonthlyEligible).length;
-  const myViewer = twitchUser ? state?.viewers?.[twitchUser.id] : null;
+  const myViewer = twitchUser ? liveViewers?.[twitchUser.id] : null;
   const history = state?.cycleHistory || [];
 
   const filteredHistory = historyFilter === "all" ? history : history.filter(c => {
