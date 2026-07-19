@@ -433,10 +433,10 @@ function CopaTailungPartnerCard() {
   return (
     <PartnerCard
       href="https://copa.mentora.gg/tournaments/copa-tailung"
-      header={<>
-        <img src="/copa-tailung.png" alt="Copa Tailung" className="h-12 object-contain 2xl:h-14" onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
-        <span className="hidden items-center gap-2 text-base font-black tracking-wide text-white 2xl:text-lg"><Trophy className="size-4 text-brand 2xl:size-5" /> Copa Tailung <span className="text-brand">By Mentora</span></span>
-      </>}
+      header={<div className="flex flex-col items-center gap-2.5 py-1 2xl:gap-3">
+        <img src="/copa-tailung.png" alt="Copa Tailung" className="h-20 object-contain drop-shadow-[0_0_18px_rgba(145,70,255,0.55)] 2xl:h-24" />
+        <span className="flex items-center gap-1.5 text-lg font-black uppercase tracking-wide text-white 2xl:text-xl">Copa Tailung <span className="text-brand">By Mentora</span></span>
+      </div>}
       badgeIcon={CheckCircle2} badgeText="Inscrições abertas"
       description="Preencha o formulário e garanta sua vaga na Copa Tailung."
       footerLabel="Formulário de inscrição" footerCta="Inscrever-se"
