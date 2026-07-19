@@ -1100,9 +1100,22 @@ export default function App() {
 
   return (
     <div className="app">
+      <div className="bg-glow" aria-hidden="true">
+        <span className="g1" />
+        <span className="g2" />
+        <span className="g3" />
+      </div>
       <style>{`
         body { background: #0E0E10; overscroll-behavior: none; }
-        .app { min-height: 100dvh; background: #0E0E10; color: #EFEFF1; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
+        .app { min-height: 100dvh; position: relative; background: transparent; color: #EFEFF1; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
+        .bg-glow { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: #0E0E10; }
+        .bg-glow span { position: absolute; border-radius: 50%; filter: blur(110px); }
+        .bg-glow .g1 { width: 46vw; height: 46vw; top: -14%; right: -8%; background: radial-gradient(circle, #9146FF 0%, transparent 70%); opacity: .4; animation: glowFloat1 20s ease-in-out infinite; }
+        .bg-glow .g2 { width: 40vw; height: 40vw; bottom: -16%; left: -8%; background: radial-gradient(circle, #6a11cb 0%, transparent 70%); opacity: .35; animation: glowFloat2 24s ease-in-out infinite; }
+        .bg-glow .g3 { width: 32vw; height: 32vw; bottom: 4%; right: 2%; background: radial-gradient(circle, #c084fc 0%, transparent 70%); opacity: .3; animation: glowFloat3 16s ease-in-out infinite; }
+        @keyframes glowFloat1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-6%,8%) scale(1.15); } }
+        @keyframes glowFloat2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8%,-6%) scale(1.1); } }
+        @keyframes glowFloat3 { 0%,100% { transform: translate(0,0) scale(1); opacity: .3; } 50% { transform: translate(-5%,-10%) scale(1.25); opacity: .5; } }
         .splash { min-height: 100dvh; background: #0E0E10; display: flex; align-items: center; justify-content: center; color: #9146FF; gap: 12px; font-size: 16px; font-family: system-ui; }
         /* Page layout — single col mobile, main+sidebar desktop */
         .page-layout { display: grid; grid-template-columns: 1fr; max-width: 1400px; margin: 0 auto; }
@@ -1117,7 +1130,7 @@ export default function App() {
           .page-layout { max-width: 1680px; grid-template-columns: 1fr 360px; padding: 0 40px; }
           .body { padding: 28px 28px 48px 0; }
         }
-        .card { background: #18181B; border: 1px solid #26262C; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+        .card { background: linear-gradient(160deg, #201a30 0%, #18181B 55%); border: 1px solid #9146FF26; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 24px -12px #9146FF20; }
         .card-title { font-weight: 700; font-size: 15px; margin-bottom: 14px; }
         .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
