@@ -312,7 +312,7 @@ function ProfileModal({ v, vList, onClose }) {
 
 function PrizeCarousel({ eligCount, vList }) {
   return (
-    <div className="grid grid-cols-2 gap-2.5 2xl:gap-4">
+    <div className="grid grid-cols-1 gap-2.5 2xl:gap-4">
       <Card className="gap-0 overflow-hidden border-brand/25 bg-neutral-950 py-0">
         <div className="border-b border-brand/15 px-3 py-2 2xl:px-5 2xl:py-3">
           <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand 2xl:text-sm">Prêmio Semanal</span>
@@ -324,24 +324,6 @@ function PrizeCarousel({ eligCount, vList }) {
           <div className="flex items-center gap-2 rounded-lg border border-brand/30 bg-brand/10 px-2.5 py-2 text-[11px] text-brand/80 2xl:gap-3 2xl:px-4 2xl:py-3 2xl:text-sm">
             <Calendar className="size-3.5 shrink-0 2xl:size-5" />
             <span><strong className="text-foreground">Checkin + 1h</strong> em 4 dias (ou 10h somadas na semana)</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="gap-0 overflow-hidden border-brand-gold/25 bg-neutral-950 py-0">
-        <div className="border-b border-brand-gold/15 px-3 py-2 2xl:px-5 2xl:py-3">
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand-gold 2xl:text-sm">Prêmio Mensal</span>
-        </div>
-        <div className="relative h-[220px] shrink-0 p-2.5 pb-0 sm:h-[262px] 2xl:h-[360px] 2xl:p-4 2xl:pb-0">
-          <img src="/premio-mensal.png" alt="Prêmio Mensal" className="block h-full w-full rounded-lg object-contain" onError={e => { e.target.style.display = "none"; }} />
-        </div>
-        <CardContent className="flex flex-1 items-center py-2.5 2xl:py-4">
-          <div className="w-full rounded-lg border border-brand-gold/30 bg-brand-gold/10 px-3 py-2.5 2xl:px-5 2xl:py-4">
-            <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-brand-gold 2xl:mb-2 2xl:text-sm">Como se qualificar</div>
-            <div className="flex items-start gap-2 text-[11px] leading-snug text-brand-gold/80 2xl:gap-3 2xl:text-sm">
-              <Trophy className="size-3.5 shrink-0 2xl:size-5" />
-              <span>Pelo menos <strong className="text-brand-gold">3 semanas elegíveis</strong> no mês</span>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -1548,9 +1530,21 @@ export default function App() {
               <div style={{ fontWeight: 900, fontSize: 18, color: "#EFEFF1" }}>Ranking Mensal</div>
               <div style={{ fontSize: 12, color: "#ADADB8", marginTop: 2 }}>{monthLabel(new Date().toISOString().slice(0,10))} · reseta todo mês</div>
             </div>
-            <div style={{ background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 10, padding: "6px 12px", fontSize: 11, color: "#C9A7FF", textAlign: "right" }}>
-              <div style={{ fontWeight: 700 }}>{eligCount} elegíveis</div>
-              <div style={{ color: "#ADADB8" }}>esta semana</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {streamerUnlocked && (
+                <button
+                  className="btn-ghost"
+                  style={{ fontSize: 11, padding: "6px 12px", whiteSpace: "nowrap" }}
+                  disabled={acting}
+                  onClick={() => { if (window.confirm("Resetar o ciclo mensal? Isso limpa o vencedor mensal atual.")) act("clear_monthly_winner"); }}
+                >
+                  🔄 Resetar ciclo mensal
+                </button>
+              )}
+              <div style={{ background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 10, padding: "6px 12px", fontSize: 11, color: "#C9A7FF", textAlign: "right" }}>
+                <div style={{ fontWeight: 700 }}>{eligCount} elegíveis</div>
+                <div style={{ color: "#ADADB8" }}>esta semana</div>
+              </div>
             </div>
           </div>
 
