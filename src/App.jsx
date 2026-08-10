@@ -160,18 +160,18 @@ function monthLabel(d) {
   return `${months[parseInt(m)-1]} ${y}`;
 }
 
-function monthlyEligibleCycles(v) {
+function monthlyEligibleCycles(v, resetAt) {
   const now = new Date().toISOString().slice(0, 7);
-  return (v.history || []).filter(h => h.eligible && (h.cycleEnd || "").slice(0, 7) === now).length;
+  return (v.history || []).filter(h => h.eligible && (h.cycleEnd || "").slice(0, 7) === now && (!resetAt || h.cycleEnd > resetAt)).length;
 }
-function isMonthlyEligible(v) { return monthlyEligibleCycles(v) >= 3; }
+function isMonthlyEligible(v, resetAt) { return monthlyEligibleCycles(v, resetAt) >= 3; }
 
 const ACHIEVEMENTS = [
   { id: "first_step",       icon: "🎮", name: "Primeiros Passos",  desc: "Fez o primeiro check-in",                 check: v => v.sessions?.length > 0 || (v.history||[]).some(h => h.sessions?.length > 0) },
   { id: "eligible",         icon: "✅", name: "Na Urna",           desc: "Ficou elegível em um sorteio",             check: v => isEligible(v) || (v.history||[]).some(h => h.eligible) },
   { id: "champion",         icon: "🏆", name: "Campeão",           desc: "Ganhou um sorteio semanal",                check: v => (v.history||[]).some(h => h.won) },
   { id: "subscriber",       icon: "⭐", name: "Inscrito",          desc: "É inscrito do canal",                      check: v => !!v.hasSub },
-  { id: "monthly_eligible", icon: "🏅", name: "Elegível Mensal",   desc: "3+ semanas elegíveis no mesmo mês",        check: v => isMonthlyEligible(v) },
+  { id: "monthly_eligible", icon: "🏅", name: "Elegível Mensal",   desc: "3+ semanas elegíveis no mesmo mês",        check: (v, ctx) => isMonthlyEligible(v, ctx?.monthlyResetAt) },
   { id: "marathon",         icon: "⏱", name: "Maratonista",        desc: "Acumulou 11h em uma única semana",         check: v => calcMins(v.sessions) >= 660 || (v.history||[]).some(h => h.totalMinutes >= 660) },
   { id: "dedicated",        icon: "📅", name: "Dedicado",           desc: "4+ estrelas em uma semana",                check: v => calcStars(v.sessions) >= 4 || (v.history||[]).some(h => calcStars(h.sessions||[]) >= 4) },
   { id: "veteran",          icon: "🎖", name: "Veterano",           desc: "Participou de 5 ou mais ciclos",           check: v => (v.history?.length||0) >= 5 },
@@ -179,19 +179,19 @@ const ACHIEVEMENTS = [
   { id: "perfect_month",    icon: "💎", name: "Mês Perfeito",       desc: "4 semanas elegíveis em um mesmo mês",      check: v => { const m = {}; for (const h of v.history||[]) { if (!h.eligible) continue; const k=(h.cycleEnd||"").slice(0,7); if (!k) continue; m[k]=(m[k]||0)+1; if(m[k]>=4) return true; } return false; } },
 ];
 
-function ProfileModal({ v, vList, onClose }) {
+function ProfileModal({ v, vList, onClose, monthlyResetAt }) {
   const xp = calcXP(v);
   const li = getLevelInfo(xp);
   const eloColor = ELO_RANKS[getElo(xp)].color;
   const ok = isEligible(v);
   const rank = vList.findIndex(x => x.twitch_id === v.twitch_id) + 1;
-  const monthCycles = monthlyEligibleCycles(v);
-  const monthlyOk = isMonthlyEligible(v);
+  const monthCycles = monthlyEligibleCycles(v, monthlyResetAt);
+  const monthlyOk = isMonthlyEligible(v, monthlyResetAt);
   const qDays = calcStarsCombined(v.sessions, v.bonusStars || 0);
   const mins = calcMins(v.sessions);
   const days = uniqueDays(v.sessions).length;
   const history = v.history || [];
-  const achievements = ACHIEVEMENTS.map(a => ({ ...a, unlocked: a.check(v) }));
+  const achievements = ACHIEVEMENTS.map(a => ({ ...a, unlocked: a.check(v, { monthlyResetAt }) }));
   const unlockedCount = achievements.filter(a => a.unlocked).length;
 
   return (
@@ -1049,7 +1049,7 @@ export default function App() {
   const vList = state ? Object.values(state.viewers).sort((a, b) => {
     const ea = isEligible(a) ? 1 : 0, eb = isEligible(b) ? 1 : 0;
     if (eb !== ea) return eb - ea;
-    const ma = monthlyEligibleCycles(a), mb = monthlyEligibleCycles(b);
+    const ma = monthlyEligibleCycles(a, state?.monthlyResetAt), mb = monthlyEligibleCycles(b, state?.monthlyResetAt);
     if (mb !== ma) return mb - ma;
     if (!ea) {
       const sa = calcStarsCombined(a.sessions, a.bonusStars || 0), sb = calcStarsCombined(b.sessions, b.bonusStars || 0);
@@ -1443,7 +1443,7 @@ export default function App() {
                   </div>
                 )}
               </div>
-              {myViewer && <ViewerCard v={myViewer} vList={vList} />}
+              {myViewer && <ViewerCard v={myViewer} vList={vList} monthlyResetAt={state?.monthlyResetAt} />}
             </>
           )}
 
@@ -1536,7 +1536,7 @@ export default function App() {
                   className="btn-ghost"
                   style={{ fontSize: 11, padding: "6px 12px", whiteSpace: "nowrap" }}
                   disabled={acting}
-                  onClick={() => { if (window.confirm("Resetar o ciclo mensal? Isso limpa o vencedor mensal atual.")) act("clear_monthly_winner"); }}
+                  onClick={() => { if (window.confirm("Resetar o ciclo mensal? Isso zera o progresso mensal (0/3) de todo mundo e limpa o vencedor mensal atual.")) act("reset_monthly_cycle"); }}
                 >
                   🔄 Resetar ciclo mensal
                 </button>
@@ -1553,8 +1553,8 @@ export default function App() {
             {vList.map((v, i) => {
               const qDays = calcStarsCombined(v.sessions, v.bonusStars || 0);
               const ok = isEligible(v);
-              const monthlyOk = isMonthlyEligible(v);
-              const monthCycles = monthlyEligibleCycles(v);
+              const monthlyOk = isMonthlyEligible(v, state?.monthlyResetAt);
+              const monthCycles = monthlyEligibleCycles(v, state?.monthlyResetAt);
               const medals = ["🥇","🥈","🥉"];
               const rowBg = i % 2 === 0 ? "transparent" : "#26262C18";
               return (
@@ -2084,8 +2084,8 @@ export default function App() {
                   const days = uniqueDays(v.sessions).length;
                   const mins = calcMins(v.sessions);
                   const ok = isEligible(v);
-                  const monthlyOk = isMonthlyEligible(v);
-                  const monthCycles = monthlyEligibleCycles(v);
+                  const monthlyOk = isMonthlyEligible(v, state?.monthlyResetAt);
+                  const monthCycles = monthlyEligibleCycles(v, state?.monthlyResetAt);
                   const hasToday = v.sessions.some(s => s.date === state?.liveDate);
                   return (
                     <div key={v.twitch_id || v.nick} className="viewer-row">
@@ -2295,7 +2295,7 @@ export default function App() {
 
       </div>{/* end .page-layout */}
 
-      {profileViewer && <ProfileModal v={profileViewer} vList={vList} onClose={() => setProfileViewer(null)} />}
+      {profileViewer && <ProfileModal v={profileViewer} vList={vList} onClose={() => setProfileViewer(null)} monthlyResetAt={state?.monthlyResetAt} />}
 
       {flashMsg && (
         <div style={{ position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", background: flashColor, color: "#fff", padding: "11px 22px", borderRadius: 10, fontWeight: 700, fontSize: 13, zIndex: 9999, pointerEvents: "none", whiteSpace: "nowrap", boxShadow: "0 4px 20px #0008" }}>
@@ -2306,7 +2306,7 @@ export default function App() {
   );
 }
 
-function ViewerCard({ v, vList }) {
+function ViewerCard({ v, vList, monthlyResetAt }) {
   const [histTab, setHistTab] = useState("semana");
   const days = uniqueDays(v.sessions).length;
   const mins = calcMins(v.sessions);
@@ -2320,8 +2320,8 @@ function ViewerCard({ v, vList }) {
 
   const now = new Date().toISOString().slice(0, 7);
   const monthHistory = history.filter(h => (h.cycleEnd || "").slice(0, 7) === now);
-  const monthCycles = monthlyEligibleCycles(v);
-  const monthlyOk = isMonthlyEligible(v);
+  const monthCycles = monthlyEligibleCycles(v, monthlyResetAt);
+  const monthlyOk = isMonthlyEligible(v, monthlyResetAt);
   const xp = calcXP(v);
   const li = getLevelInfo(xp);
 

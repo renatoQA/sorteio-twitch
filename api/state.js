@@ -44,7 +44,7 @@ function verifyTotp(secret, token) {
 
 const ADMIN_ACTIONS = new Set([
   'check_admin', 'open_live', 'close_live', 'draw', 'draw_specific',
-  'draw_monthly_specific', 'clear_monthly_winner',
+  'draw_monthly_specific', 'clear_monthly_winner', 'reset_monthly_cycle',
   'end_cycle', 'reset', 'set_prize', 'toggle_prize', 'clear_prize',
   'get_prize_code', 'delete_viewer', 'add_xp', 'add_time',
   'add_schedule', 'remove_schedule',
@@ -320,6 +320,12 @@ export default async function handler(req, res) {
     }
 
     else if (action === 'clear_monthly_winner') {
+      state.monthlyWinner = null;
+    }
+
+    else if (action === 'reset_monthly_cycle') {
+      // Não apaga histórico — só marca a partir de quando as semanas voltam a contar pro mês.
+      state.monthlyResetAt = new Date().toISOString().slice(0, 10);
       state.monthlyWinner = null;
     }
 
