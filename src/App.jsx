@@ -1308,15 +1308,11 @@ export default function App() {
           {/* Redes Sociais */}
           <SocialBanners />
 
-          {/* Parceiros e Eventos — só aparece no mobile (sidebar já exibe no desktop) */}
+          {/* Parceiros — só aparece no mobile (sidebar já exibe no desktop) */}
           <div className="partners-mobile flex flex-col gap-3">
             <div>
               <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Parceiros</div>
               <MentoraPartnerCard />
-            </div>
-            <div>
-              <div className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Eventos</div>
-              <CopaTailungPartnerCard />
             </div>
           </div>
 
@@ -2300,12 +2296,6 @@ export default function App() {
           <div>
             <div className="mb-2.5 pl-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground 2xl:text-xs">Parceiros</div>
             <MentoraPartnerCard />
-          </div>
-
-          {/* Eventos */}
-          <div>
-            <div className="mb-2.5 pl-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground 2xl:text-xs">Eventos</div>
-            <CopaTailungPartnerCard />
           </div>
         </aside>
 
