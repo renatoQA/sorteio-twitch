@@ -348,20 +348,20 @@ function ProfileModal({ v, vList, onClose, monthlyResetAt }) {
   );
 }
 
-function PrizeCarousel({ eligCount, vList }) {
+function PrizeCarousel({ eligCount, vList, setTab }) {
   return (
     <div className="grid grid-cols-1 gap-2.5 2xl:gap-4">
-      <Card className="gap-0 overflow-hidden border-brand/25 bg-neutral-950 py-0">
-        <div className="border-b border-brand/15 px-3 py-2 2xl:px-5 2xl:py-3">
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-brand 2xl:text-sm">Prêmio Semanal</span>
+      <Card className="pixel-box gap-0 overflow-hidden bg-neutral-950 py-0 cursor-pointer" onClick={() => setTab?.("ranking")}>
+        <div style={{ borderBottom: "3px solid #000" }} className="px-3 py-2.5 2xl:px-5 2xl:py-3.5">
+          <span className="pixel-font" style={{ fontSize: 11, color: "#FFEC27" }}>🔥 EVENTO ESPECIAL</span>
         </div>
         <div className="h-[220px] shrink-0 p-2.5 pb-0 sm:h-[262px] 2xl:h-[360px] 2xl:p-4 2xl:pb-0">
-          <img src="/premio.png" alt="Prêmio Semanal" className="block h-full w-full rounded-lg object-contain" onError={e => { e.target.style.display = "none"; }} />
+          <img src="/premio-mensal.png" alt="Evento Especial" className="block h-full w-full rounded-lg object-contain" onError={e => { e.target.style.display = "none"; }} />
         </div>
         <CardContent className="flex flex-1 flex-col justify-center gap-1.5 py-2.5 2xl:py-4">
-          <div className="flex items-center gap-2 rounded-lg border border-brand/30 bg-brand/10 px-2.5 py-2 text-[11px] text-brand/80 2xl:gap-3 2xl:px-4 2xl:py-3 2xl:text-sm">
-            <Calendar className="size-3.5 shrink-0 2xl:size-5" />
-            <span><strong className="text-foreground">Checkin + 1h</strong> em 4 dias (ou 10h somadas na semana)</span>
+          <div className="flex items-center gap-2 rounded-lg border border-brand-gold/30 bg-brand-gold/10 px-2.5 py-2 text-[11px] text-brand-gold/90 2xl:gap-3 2xl:px-4 2xl:py-3 2xl:text-sm">
+            <Trophy className="size-3.5 shrink-0 2xl:size-5" />
+            <span>Faça seu check-in e se mantenha com <strong className="text-brand-gold">70 de HP</strong> até o dia 19. Basta participar das lives pra manter a vida. Boa sorte!!! 🍀</span>
           </div>
         </CardContent>
       </Card>
@@ -1272,7 +1272,7 @@ export default function App() {
 
           {/* Prize Carousel — largura total, altura fixa */}
           <div style={{ marginBottom: 12 }}>
-            <PrizeCarousel eligCount={eligCount} vList={vList} />
+            <PrizeCarousel eligCount={eligCount} vList={vList} setTab={setTab} />
           </div>
 
           {/* Live + Chat — numa row */}
