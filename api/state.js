@@ -49,6 +49,8 @@ const ADMIN_ACTIONS = new Set([
   'get_prize_code', 'delete_viewer', 'add_xp', 'add_time',
   'add_schedule', 'remove_schedule',
   'set_bonus_stars', 'set_eligible_override', 'reset_ranking',
+  'start_special_event', 'stop_special_event', 'reset_special_event',
+  'event_draw_bundle', 'event_draw_giftcard', 'event_reset_draws',
 ]);
 
 const DISCORD_WEBHOOKS = [
@@ -139,6 +141,19 @@ function isEligible(v) {
   return starCount >= MIN_DAYS;
 }
 
+// Evento especial (barra de participação) — independente do ciclo semanal/mensal.
+function isEventGiftEligible(v) {
+  const e = v.event || { bar: 0, livesAttended: 0, zeroed: false };
+  return e.livesAttended >= 1 && !e.zeroed;
+}
+function isEventBundleEligible(v, specialEvent) {
+  if (!isEventGiftEligible(v)) return false;
+  const total = specialEvent?.totalLives || 0;
+  if (total <= 0) return false;
+  const e = v.event || { livesAttended: 0 };
+  return (e.livesAttended / total) * 100 >= (specialEvent?.bundleMinPct ?? 70);
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -182,6 +197,7 @@ export default async function handler(req, res) {
       if (state.viewers[twitch_id]) return res.status(200).json(state);
       const code = Math.random().toString(36).slice(2, 7).toUpperCase();
       state.viewers[twitch_id] = { twitch_id, nick, display_name, code, sessions: [], checkedInToday: false };
+      if (state.specialEvent?.active) state.viewers[twitch_id].event = { bar: 0, livesAttended: 0, zeroed: false };
       if (!state.cycleStart) state.cycleStart = new Date().toISOString().slice(0, 10);
     }
 
@@ -223,6 +239,22 @@ export default async function handler(req, res) {
       }
       state.liveActive = false;
       delete state.seSnapshotOpen;
+
+      // Barra de participação do evento especial — some se não participou, some se participou.
+      if (state.specialEvent?.active) {
+        state.specialEvent.totalLives = (state.specialEvent.totalLives || 0) + 1;
+        Object.values(state.viewers).forEach(v => {
+          if (!v.event) v.event = { bar: 0, livesAttended: 0, zeroed: false };
+          if (v.checkedInToday) {
+            v.event.bar = Math.min(4, v.event.bar + 1);
+            v.event.livesAttended += 1;
+          } else {
+            const before = v.event.bar;
+            v.event.bar = Math.max(0, v.event.bar - 1);
+            if (before > 0 && v.event.bar === 0) v.event.zeroed = true;
+          }
+        });
+      }
     }
 
     else if (action === 'add_time') {
@@ -327,6 +359,56 @@ export default async function handler(req, res) {
       // Não apaga histórico — só marca a partir de quando as semanas voltam a contar pro mês.
       state.monthlyResetAt = new Date().toISOString().slice(0, 10);
       state.monthlyWinner = null;
+    }
+
+    else if (action === 'start_special_event') {
+      const { endDate, bundleMinPct } = payload || {};
+      if (!endDate) return res.status(400).json({ error: 'Defina a data final do evento.' });
+      state.specialEvent = {
+        active: true,
+        startDate: new Date().toISOString().slice(0, 10),
+        endDate,
+        bundleMinPct: Number(bundleMinPct) > 0 ? Number(bundleMinPct) : 70,
+        totalLives: 0,
+        bundleWinner: null,
+        giftcardWinners: [],
+      };
+      Object.keys(state.viewers).forEach(id => {
+        state.viewers[id].event = { bar: 0, livesAttended: 0, zeroed: false };
+      });
+    }
+
+    else if (action === 'stop_special_event') {
+      if (!state.specialEvent) return res.status(404).json({ error: 'Nenhum evento ativo.' });
+      state.specialEvent.active = false;
+    }
+
+    else if (action === 'reset_special_event') {
+      state.specialEvent = null;
+      Object.keys(state.viewers).forEach(id => { delete state.viewers[id].event; });
+    }
+
+    else if (action === 'event_draw_bundle') {
+      if (!state.specialEvent) return res.status(400).json({ error: 'Nenhum evento em andamento.' });
+      const pool = Object.values(state.viewers).filter(v => isEventBundleEligible(v, state.specialEvent));
+      if (!pool.length) return res.status(400).json({ error: 'Nenhum elegível pro bundle!' });
+      state.specialEvent.bundleWinner = pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    else if (action === 'event_draw_giftcard') {
+      if (!state.specialEvent) return res.status(400).json({ error: 'Nenhum evento em andamento.' });
+      const already = new Set((state.specialEvent.giftcardWinners || []).map(w => w.twitch_id));
+      const pool = Object.values(state.viewers).filter(v => isEventGiftEligible(v) && !already.has(v.twitch_id));
+      if (!pool.length) return res.status(400).json({ error: 'Nenhum elegível disponível pro gift card!' });
+      const winner = pool[Math.floor(Math.random() * pool.length)];
+      if (!state.specialEvent.giftcardWinners) state.specialEvent.giftcardWinners = [];
+      state.specialEvent.giftcardWinners.push(winner);
+    }
+
+    else if (action === 'event_reset_draws') {
+      if (!state.specialEvent) return res.status(404).json({ error: 'Nenhum evento ativo.' });
+      state.specialEvent.bundleWinner = null;
+      state.specialEvent.giftcardWinners = [];
     }
 
     else if (action === 'delete_viewer') {

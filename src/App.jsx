@@ -37,6 +37,35 @@ function isEligible(v) {
   if (v.eligibleOverride !== undefined && v.eligibleOverride !== null) return v.eligibleOverride;
   return calcStarsCombined(v.sessions, v.bonusStars || 0) >= MIN_DAYS;
 }
+
+// Evento especial (barra de participação) — independente do ciclo semanal/mensal.
+function isEventGiftEligible(v) {
+  const e = v.event || { bar: 0, livesAttended: 0, zeroed: false };
+  return e.livesAttended >= 1 && !e.zeroed;
+}
+function isEventBundleEligible(v, specialEvent) {
+  if (!isEventGiftEligible(v)) return false;
+  const total = specialEvent?.totalLives || 0;
+  if (total <= 0) return false;
+  const e = v.event || { livesAttended: 0 };
+  return (e.livesAttended / total) * 100 >= (specialEvent?.bundleMinPct ?? 70);
+}
+function EventBar({ bar = 0, zeroed = false, size = 12 }) {
+  const color = bar >= 4 ? "#00C853" : bar === 0 ? "#FF4747" : "#FFB347";
+  return (
+    <div style={{ display: "flex", gap: 3 }}>
+      {Array.from({ length: MIN_DAYS }, (_, i) => (
+        <div key={i} style={{
+          width: size, height: size, borderRadius: "50%",
+          background: i < bar ? color : "#3D3D47",
+          border: `1.5px solid ${i < bar ? color + "66" : "#26262C"}`,
+          boxShadow: zeroed && i === 0 ? "0 0 0 2px #FF474755" : "none",
+          transition: "all .3s",
+        }} />
+      ))}
+    </div>
+  );
+}
 function totalScore(v) { return uniqueDays(v.sessions).length * 20 + calcMins(v.sessions); }
 function fmtTimer(m) { return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`; }
 
@@ -560,6 +589,8 @@ export default function App() {
   const [historyFilter, setHistoryFilter] = useState("all");
   const [prizeWinnerId, setPrizeWinnerId] = useState("");
   const [prizeGiftcard, setPrizeGiftcard] = useState("");
+  const [eventEndDate, setEventEndDate] = useState("");
+  const [eventBundlePct, setEventBundlePct] = useState(70);
   const [xpTarget, setXpTarget] = useState("");
   const [xpAmount, setXpAmount] = useState(500);
   const [starTarget, setStarTarget] = useState("");
@@ -1443,7 +1474,7 @@ export default function App() {
                   </div>
                 )}
               </div>
-              {myViewer && <ViewerCard v={myViewer} vList={vList} monthlyResetAt={state?.monthlyResetAt} />}
+              {myViewer && <ViewerCard v={myViewer} vList={vList} monthlyResetAt={state?.monthlyResetAt} specialEvent={state?.specialEvent} />}
             </>
           )}
 
@@ -1524,6 +1555,68 @@ export default function App() {
 
         {/* RANKING */}
         {tab === "ranking" && <div className="fade-up">
+          {state?.specialEvent ? (<>
+            {/* Header do evento especial */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: 18, color: "#EFEFF1" }}>🔥 Evento Especial</div>
+                <div style={{ fontSize: 12, color: "#ADADB8", marginTop: 2 }}>Até {formatDate(state.specialEvent.endDate)} · {state.specialEvent.totalLives || 0} live(s) contabilizada(s){!state.specialEvent.active ? " · encerrado" : ""}</div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 10, padding: "6px 12px", fontSize: 11, color: "#C9A7FF", textAlign: "right" }}>
+                  <div style={{ fontWeight: 700 }}>{vList.filter(isEventGiftEligible).length} elegíveis</div>
+                  <div style={{ color: "#ADADB8" }}>gift card</div>
+                </div>
+                <div style={{ background: "#FFD70018", border: "1px solid #FFD70033", borderRadius: 10, padding: "6px 12px", fontSize: 11, color: "#FFD700", textAlign: "right" }}>
+                  <div style={{ fontWeight: 700 }}>{vList.filter(v => isEventBundleEligible(v, state.specialEvent)).length} elegíveis</div>
+                  <div style={{ color: "#ADADB8" }}>bundle</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+              {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum participante ainda.</div>}
+              {[...vList].sort((a, b) => (b.event?.livesAttended || 0) - (a.event?.livesAttended || 0)).map((v, i) => {
+                const ev = v.event || { bar: 0, livesAttended: 0, zeroed: false };
+                const giftOk = isEventGiftEligible(v);
+                const bundleOk = isEventBundleEligible(v, state.specialEvent);
+                const rowBg = i % 2 === 0 ? "transparent" : "#26262C18";
+                return (
+                  <div key={v.twitch_id || v.nick}
+                    style={{ display: "flex", gap: 10, padding: "12px 16px", background: rowBg, borderBottom: i < vList.length-1 ? "1px solid #26262C22" : "none", alignItems: "center", cursor: "pointer", transition: "background .15s" }}
+                    onMouseEnter={e => e.currentTarget.style.background="#9146FF0A"}
+                    onMouseLeave={e => e.currentTarget.style.background=rowBg}
+                    onClick={() => setProfileViewer(v)}>
+                    {ELO_ENABLED && (
+                      <div style={{ flexShrink: 0 }} title={ELO_RANKS[getElo(calcXP(v))].name}>
+                        <EloBadge xp={calcXP(v)} size={36}/>
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</span>
+                        {ev.zeroed && <span style={{ background: "#FF474715", color: "#FF4747", borderRadius: 20, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>❌ zerou</span>}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
+                        <EventBar bar={ev.bar} zeroed={ev.zeroed} />
+                        <span style={{ fontSize: 10, color: "#ADADB8" }}>
+                          <span style={{ fontVariantNumeric: "tabular-nums" }}>{ev.livesAttended}/{state.specialEvent.totalLives || 0} lives</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end" }}>
+                      {giftOk && <span style={{ fontSize: 9, fontWeight: 700, color: "#C9A7FF" }}>💳 gift card</span>}
+                      {bundleOk && <span style={{ fontSize: 9, fontWeight: 700, color: "#FFD700" }}>🎁 bundle</span>}
+                      {!giftOk && !bundleOk && <span style={{ fontSize: 9, color: "#3D3D47" }}>—</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 11, color: "#3D3D47", textAlign: "center", marginTop: 8 }}>
+              barra = participação nas lives do evento · zerou 1x = fora do evento
+            </div>
+          </>) : (<>
           {/* Header do mês */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <div>
@@ -1606,6 +1699,7 @@ export default function App() {
           <div style={{ fontSize: 11, color: "#3D3D47", textAlign: "center", marginTop: 8 }}>
             ★ = dias qualificados nesta semana · ●●● = semanas elegíveis neste mês
           </div>
+          </>)}
         </div>}
 
         {/* CRONOGRAMA */}
@@ -1711,7 +1805,7 @@ export default function App() {
             </div>
           ) : <>
             <div className="admin-tabs">
-              {[["live","Live"],["ciclo","Ciclo"],["viewers","Viewers"],["premio","Prêmio"],["historico","Histórico"],["cronograma","Cronograma"]].map(([id,label]) => (
+              {[["live","Live"],["ciclo","Ciclo"],["evento","Evento"],["viewers","Viewers"],["premio","Prêmio"],["historico","Histórico"],["cronograma","Cronograma"]].map(([id,label]) => (
                 <button key={id} className={`admin-tab${adminTab===id?" active":""}`} onClick={() => setAdminTab(id)}>{label}</button>
               ))}
             </div>
@@ -1925,6 +2019,79 @@ export default function App() {
                 <div className="card-title">Histórico rápido</div>
                 <div style={{ fontSize: 13, color: "#ADADB8" }}>{history.length} ciclo(s) encerrado(s) · <span style={{ color: "#9146FF", cursor: "pointer" }} onClick={() => setAdminTab("historico")}>Ver tudo →</span></div>
               </div>
+            </>}
+
+            {/* ADMIN: EVENTO ESPECIAL */}
+            {adminTab === "evento" && <>
+              {!state?.specialEvent ? (
+                <div className="card">
+                  <div className="card-title">🔥 Iniciar evento especial</div>
+                  <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14, lineHeight: 1.6 }}>
+                    Cria a barra de participação pra todo mundo (começa em 0). A cada live fechada, quem fez check-in ganha +1, quem não fez perde 1. Zerou uma vez, fica fora do evento inteiro.
+                  </div>
+                  <span className="label">Data final do evento</span>
+                  <input type="date" className="inp" style={{ marginBottom: 12 }} value={eventEndDate} onChange={e => setEventEndDate(e.target.value)} />
+                  <span className="label">% mínima de lives pro bundle</span>
+                  <input type="number" min={1} max={100} className="inp" style={{ marginBottom: 16 }} value={eventBundlePct} onChange={e => setEventBundlePct(Math.max(1, Math.min(100, Number(e.target.value) || 70)))} />
+                  <button className="btn btn-full" disabled={acting || !eventEndDate}
+                    onClick={() => { if (window.confirm("Iniciar evento especial? Isso zera a barra de participação de todo mundo.")) act("start_special_event", { endDate: eventEndDate, bundleMinPct: eventBundlePct }); }}>
+                    Iniciar evento
+                  </button>
+                </div>
+              ) : (<>
+                <div className="card">
+                  <div className="card-title">🔥 Evento especial {state.specialEvent.active ? "(ativo)" : "(encerrado)"}</div>
+                  <div className="grid3" style={{ marginBottom: 16 }}>
+                    {[["#9146FF", state.specialEvent.totalLives || 0, "lives contadas"],["#C9A7FF", vList.filter(isEventGiftEligible).length, "p/ gift card"],["#FFD700", vList.filter(v => isEventBundleEligible(v, state.specialEvent)).length, "p/ bundle"]].map(([color,val,lbl]) => (
+                      <div key={lbl} className="stat-box"><div className="stat-val" style={{ color }}>{val}</div><div className="stat-lbl">{lbl}</div></div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14 }}>Até {formatDate(state.specialEvent.endDate)} · mínimo {state.specialEvent.bundleMinPct}% das lives pro bundle</div>
+                  <div className="row">
+                    {state.specialEvent.active
+                      ? <button className="btn btn-red btn-full" disabled={acting} onClick={() => { if (window.confirm("Encerrar o evento? A barra para de mudar — dá pra sortear depois.")) act("stop_special_event"); }}>⏹ Encerrar evento</button>
+                      : <button className="btn-ghost" style={{ flex: 1 }} disabled={acting} onClick={() => { if (window.confirm("Reabrir o evento? A barra volta a mudar nas próximas lives.")) act("start_special_event", { endDate: state.specialEvent.endDate, bundleMinPct: state.specialEvent.bundleMinPct }); }}>Reiniciar do zero</button>}
+                  </div>
+                  <button className="btn-ghost btn-full" style={{ marginTop: 8, color: "#FF4747" }} disabled={acting}
+                    onClick={() => { if (window.confirm("Resetar o evento por completo? Isso apaga a barra de todo mundo e os sorteios. Não tem como desfazer.")) act("reset_special_event"); }}>
+                    Resetar evento (apaga tudo)
+                  </button>
+                </div>
+
+                <div className="card">
+                  <div className="card-title">🎁 Sorteio do Bundle</div>
+                  {state.specialEvent.bundleWinner ? (
+                    <div style={{ background: "#FFD70012", border: "1px solid #FFD70044", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
+                      <div style={{ fontWeight: 800, fontSize: 16, color: "#FFD700" }}>{state.specialEvent.bundleWinner.display_name || state.specialEvent.bundleWinner.nick}</div>
+                      <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 2 }}>código: <strong style={{ color: "#FFD700" }}>{state.specialEvent.bundleWinner.code}</strong></div>
+                    </div>
+                  ) : <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 12 }}>Nenhum vencedor sorteado ainda.</div>}
+                  <button className="btn btn-full" disabled={acting} onClick={() => act("event_draw_bundle")}>🎲 Sortear vencedor do bundle</button>
+                </div>
+
+                <div className="card">
+                  <div className="card-title">💳 Sorteio de Gift Cards</div>
+                  {!!(state.specialEvent.giftcardWinners || []).length && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                      {state.specialEvent.giftcardWinners.map((w, i) => (
+                        <div key={i} style={{ background: "#9146FF12", border: "1px solid #9146FF44", borderRadius: 10, padding: "10px 14px" }}>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: "#C9A7FF" }}>{w.display_name || w.nick}</div>
+                          <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 2 }}>código: <strong style={{ color: "#9146FF" }}>{w.code}</strong></div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!(state.specialEvent.giftcardWinners || []).length && <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 12 }}>Nenhum vencedor sorteado ainda.</div>}
+                  <button className="btn btn-full" disabled={acting} onClick={() => act("event_draw_giftcard")}>🎲 Sortear vencedor de gift card</button>
+                </div>
+
+                {(state.specialEvent.bundleWinner || !!(state.specialEvent.giftcardWinners || []).length) && (
+                  <button className="btn-ghost btn-full" disabled={acting}
+                    onClick={() => { if (window.confirm("Limpar os sorteios do evento? A barra de participação de todo mundo continua igual.")) act("event_reset_draws"); }}>
+                    Limpar sorteios (sortear de novo)
+                  </button>
+                )}
+              </>)}
             </>}
 
             {/* ADMIN: VIEWERS */}
@@ -2306,7 +2473,7 @@ export default function App() {
   );
 }
 
-function ViewerCard({ v, vList, monthlyResetAt }) {
+function ViewerCard({ v, vList, monthlyResetAt, specialEvent }) {
   const [histTab, setHistTab] = useState("semana");
   const days = uniqueDays(v.sessions).length;
   const mins = calcMins(v.sessions);
@@ -2324,6 +2491,9 @@ function ViewerCard({ v, vList, monthlyResetAt }) {
   const monthlyOk = isMonthlyEligible(v, monthlyResetAt);
   const xp = calcXP(v);
   const li = getLevelInfo(xp);
+  const ev = v.event || { bar: 0, livesAttended: 0, zeroed: false };
+  const giftOk = isEventGiftEligible(v);
+  const bundleOk = isEventBundleEligible(v, specialEvent);
 
   return (
     <div className="card fade-up" style={{ borderColor: ok ? "#00C85344" : "#9146FF33" }}>
@@ -2334,12 +2504,30 @@ function ViewerCard({ v, vList, monthlyResetAt }) {
           <div style={{ fontSize: 11, color: "#ADADB8" }}>#{rank} no ranking · {calcXP(v)} XP · código: <strong style={{ color: "#9146FF" }}>{v.code}</strong></div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
-          <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "Elegível ✓" : "Pendente"}</span>
-          {monthlyOk && <span style={{ background: "#FFD70020", color: "#FFD700", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "1px solid #FFD70044" }}>🏅 Mensal</span>}
-          {!monthlyOk && monthCycles > 0 && <span style={{ background: "#FFD70010", color: "#FFD70099", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 600 }}>{monthCycles}/3 🏅</span>}
+          {specialEvent ? (<>
+            {giftOk && <span style={{ background: "#9146FF20", color: "#C9A7FF", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "1px solid #9146FF44" }}>💳 gift card</span>}
+            {bundleOk && <span style={{ background: "#FFD70020", color: "#FFD700", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "1px solid #FFD70044" }}>🎁 bundle</span>}
+            {!giftOk && <span className="badge badge-pend">{ev.zeroed ? "❌ zerou" : "Ainda não participou"}</span>}
+          </>) : (<>
+            <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "Elegível ✓" : "Pendente"}</span>
+            {monthlyOk && <span style={{ background: "#FFD70020", color: "#FFD700", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "1px solid #FFD70044" }}>🏅 Mensal</span>}
+            {!monthlyOk && monthCycles > 0 && <span style={{ background: "#FFD70010", color: "#FFD70099", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 600 }}>{monthCycles}/3 🏅</span>}
+          </>)}
           {v.hasSub && <span className="badge" style={{ background: "#FF69B415", color: "#FF69B4" }}>★ Inscrito</span>}
         </div>
       </div>
+
+      {/* Evento especial — barra de participação */}
+      {specialEvent && (
+        <div style={{ background: ev.zeroed ? "#FF474710" : "#9146FF10", border: `1px solid ${ev.zeroed ? "#FF474733" : "#9146FF33"}`, borderRadius: 12, padding: "10px 14px", marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#ADADB8", textTransform: "uppercase", letterSpacing: .5 }}>🔥 Evento especial</span>
+            <span style={{ fontSize: 11, color: "#ADADB8" }}>{ev.livesAttended}/{specialEvent.totalLives || 0} lives</span>
+          </div>
+          <EventBar bar={ev.bar} zeroed={ev.zeroed} size={16} />
+          {ev.zeroed && <div style={{ fontSize: 11, color: "#FF8080", marginTop: 8 }}>Sua barra já zerou uma vez — fora do evento até o próximo reset.</div>}
+        </div>
+      )}
 
       {/* XP Bar */}
       {(() => {
