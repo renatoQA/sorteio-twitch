@@ -50,19 +50,18 @@ function isEventBundleEligible(v, specialEvent) {
   const e = v.event || { livesAttended: 0 };
   return (e.livesAttended / total) * 100 >= (specialEvent?.bundleMinPct ?? 70);
 }
-function EventBar({ bar = 0, zeroed = false, size = 12 }) {
-  const color = bar >= 4 ? "#00C853" : bar === 0 ? "#FF4747" : "#FFB347";
+function EventBar({ bar = 0, zeroed = false, width = 90, height = 8, showLabel = true }) {
+  const pct = Math.max(0, Math.min(100, Math.round((bar / MIN_DAYS) * 100)));
+  const isEmpty = bar <= 0;
+  const isFull = bar >= MIN_DAYS;
+  const color = isEmpty ? "#FF4747" : isFull ? "#00C853" : "#FFB347";
+  const status = isEmpty ? (zeroed ? "Zerado" : "Não elegível") : isFull ? "Elegível" : "Atenção";
   return (
-    <div style={{ display: "flex", gap: 3 }}>
-      {Array.from({ length: MIN_DAYS }, (_, i) => (
-        <div key={i} style={{
-          width: size, height: size, borderRadius: "50%",
-          background: i < bar ? color : "#3D3D47",
-          border: `1.5px solid ${i < bar ? color + "66" : "#26262C"}`,
-          boxShadow: zeroed && i === 0 ? "0 0 0 2px #FF474755" : "none",
-          transition: "all .3s",
-        }} />
-      ))}
+    <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: width }}>
+      <div style={{ width, height, borderRadius: 20, background: "#26262C", overflow: "hidden", border: "1px solid #3D3D4744" }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 20, transition: "width .4s ease, background .4s" }} />
+      </div>
+      {showLabel && <span style={{ fontSize: 9, fontWeight: 700, color, letterSpacing: .3 }}>{status}</span>}
     </div>
   );
 }
@@ -1598,7 +1597,7 @@ export default function App() {
                         {ev.zeroed && <span style={{ background: "#FF474715", color: "#FF4747", borderRadius: 20, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>❌ zerou</span>}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
-                        <EventBar bar={ev.bar} zeroed={ev.zeroed} />
+                        <EventBar bar={ev.bar} zeroed={ev.zeroed} width={70} showLabel={false} />
                         <span style={{ fontSize: 10, color: "#ADADB8" }}>
                           <span style={{ fontVariantNumeric: "tabular-nums" }}>{ev.livesAttended}/{state.specialEvent.totalLives || 0} lives</span>
                         </span>
@@ -2524,7 +2523,7 @@ function ViewerCard({ v, vList, monthlyResetAt, specialEvent }) {
             <span style={{ fontSize: 11, fontWeight: 700, color: "#ADADB8", textTransform: "uppercase", letterSpacing: .5 }}>🔥 Evento especial</span>
             <span style={{ fontSize: 11, color: "#ADADB8" }}>{ev.livesAttended}/{specialEvent.totalLives || 0} lives</span>
           </div>
-          <EventBar bar={ev.bar} zeroed={ev.zeroed} size={16} />
+          <EventBar bar={ev.bar} zeroed={ev.zeroed} width="100%" height={10} />
           {ev.zeroed && <div style={{ fontSize: 11, color: "#FF8080", marginTop: 8 }}>Sua barra já zerou uma vez — fora do evento até o próximo reset.</div>}
         </div>
       )}
