@@ -246,7 +246,11 @@ export default async function handler(req, res) {
         Object.values(state.viewers).forEach(v => {
           if (!v.event) v.event = { bar: 0, livesAttended: 0, zeroed: false };
           if (v.checkedInToday) {
-            v.event.bar = Math.min(4, v.event.bar + 1);
+            // Conta já veterana (tem XP/histórico prévio): entra com a barra cheia
+            // já no primeiro check-in do evento — não precisa provar de novo do zero.
+            const isFirstCheckin = v.event.livesAttended === 0;
+            const isVeteran = (v.permanentXP || 0) > 0 || (v.history?.length || 0) > 0;
+            v.event.bar = (isFirstCheckin && isVeteran) ? 4 : Math.min(4, v.event.bar + 1);
             v.event.livesAttended += 1;
           } else {
             const before = v.event.bar;
