@@ -44,18 +44,34 @@ function isEligible(v) {
 function eventHp(v) { return v.event?.hp ?? 100; }
 function isEventGiftEligible(v, specialEvent) { return eventHp(v) >= (specialEvent?.giftMinHp ?? 50); }
 function isEventBundleEligible(v, specialEvent) { return eventHp(v) >= (specialEvent?.bundleMinHp ?? 70); }
-function EventBar({ hp = 100, specialEvent, width = 90, height = 8, showLabel = true }) {
+// Barra de vida em blocos, estilo HUD de jogo 8-bit (Mega Man/Zelda).
+function EventBar({ hp = 100, specialEvent, width = 100, segHeight = 14, showLabel = true }) {
   const bundleMin = specialEvent?.bundleMinHp ?? 70;
   const giftMin = specialEvent?.giftMinHp ?? 50;
   const pct = Math.max(0, Math.min(100, Math.round(hp)));
-  const color = hp >= bundleMin ? "#00C853" : hp >= giftMin ? "#FFB347" : "#FF4747";
-  const status = hp >= bundleMin ? "Elegível" : hp >= giftMin ? "Atenção" : "Não elegível";
+  const color = hp >= bundleMin ? "#00E436" : hp >= giftMin ? "#FFEC27" : "#FF004D";
+  const status = hp >= bundleMin ? "OK" : hp >= giftMin ? "AVISO" : "KO";
+  const segs = 10;
+  const filled = Math.round((pct / 100) * segs);
+  const critical = pct > 0 && pct <= giftMin;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: width }}>
-      <div style={{ width, height, borderRadius: 20, background: "#26262C", overflow: "hidden", border: "1px solid #3D3D4744" }}>
-        <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 20, transition: "width .4s ease, background .4s" }} />
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: width }}>
+      {showLabel && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <span className="pixel-font" style={{ fontSize: 8, color: "#ADADB8" }}>HP</span>
+          <span className={`pixel-font${critical ? " pixel-blink" : ""}`} style={{ fontSize: 9, color }}>{pct}/100</span>
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 1, padding: 3, background: "#000", border: "2px solid #000", boxShadow: "2px 2px 0 #000", width }}>
+        {Array.from({ length: segs }, (_, i) => (
+          <div key={i} style={{
+            flex: 1, height: segHeight,
+            background: i < filled ? color : "#1a1a1e",
+            boxShadow: i < filled ? "inset 2px 2px 0 rgba(255,255,255,.35), inset -2px -2px 0 rgba(0,0,0,.35)" : "inset 1px 1px 0 rgba(0,0,0,.6)",
+            transition: "background .2s",
+          }} />
+        ))}
       </div>
-      {showLabel && <span style={{ fontSize: 9, fontWeight: 700, color, letterSpacing: .3 }}>{status} · {pct} HP</span>}
     </div>
   );
 }
@@ -1191,6 +1207,14 @@ export default function App() {
         @keyframes lvGlow { 0%,100%{opacity:.7} 50%{opacity:1} }
         .lv-bar-fill { animation: lvGlow 2.5s ease-in-out infinite; }
         @keyframes eloFramePulse { 0%,100%{box-shadow:0 0 0 1px var(--ef-c,#fff3) ,0 0 10px var(--ef-c,#fff4)} 50%{box-shadow:0 0 0 2px var(--ef-c,#fff5),0 0 20px var(--ef-c,#fff6)} }
+        /* Evento especial — visual 8-bit/retrô */
+        .pixel-font { font-family: 'Press Start 2P', 'Inter', monospace; letter-spacing: .5px; }
+        .pixel-box { background: #0d0d12; border: 3px solid #000; box-shadow: 4px 4px 0 #000, inset 0 0 0 2px rgba(255,255,255,.06); image-rendering: pixelated; border-radius: 0 !important; }
+        .pixel-btn { font-family: 'Press Start 2P', 'Inter', monospace; font-size: 10px !important; border: 3px solid #000 !important; border-radius: 0 !important; box-shadow: 3px 3px 0 #000; letter-spacing: .5px; text-transform: uppercase; transition: transform .08s, box-shadow .08s; }
+        .pixel-btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 0 0 0 #000; }
+        .pixel-tag { font-family: 'Press Start 2P', 'Inter', monospace; font-size: 8px !important; border: 2px solid #000 !important; border-radius: 0 !important; box-shadow: 2px 2px 0 #000; padding: 3px 6px !important; }
+        @keyframes pixelBlink { 0%,100%{opacity:1} 50%{opacity:.4} }
+        .pixel-blink { animation: pixelBlink 1s steps(2) infinite; }
       `}</style>
 
       {/* Navbar */}
@@ -1550,25 +1574,25 @@ export default function App() {
         {/* RANKING */}
         {tab === "ranking" && <div className="fade-up">
           {state?.specialEvent ? (<>
-            {/* Header do evento especial */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+            {/* Header do evento especial — visual 8-bit */}
+            <div className="pixel-box" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10, padding: "14px 16px" }}>
               <div>
-                <div style={{ fontWeight: 900, fontSize: 18, color: "#EFEFF1" }}>🔥 Evento Especial</div>
-                <div style={{ fontSize: 12, color: "#ADADB8", marginTop: 2 }}>Até {formatDate(state.specialEvent.endDate)} · {state.specialEvent.totalLives || 0} live(s) contabilizada(s){!state.specialEvent.active ? " · encerrado" : ""}</div>
+                <div className="pixel-font" style={{ fontSize: 14, color: "#FFEC27", lineHeight: 1.6 }}>🔥 EVENTO ESPECIAL</div>
+                <div className="pixel-font" style={{ fontSize: 8, color: "#ADADB8", marginTop: 8, lineHeight: 1.8 }}>ATÉ {formatDate(state.specialEvent.endDate)} · {state.specialEvent.totalLives || 0} LIVE(S){!state.specialEvent.active ? " · ENCERRADO" : ""}</div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <div style={{ background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 10, padding: "6px 12px", fontSize: 11, color: "#C9A7FF", textAlign: "right" }}>
-                  <div style={{ fontWeight: 700 }}>{vList.filter(v => isEventGiftEligible(v, state.specialEvent)).length} elegíveis</div>
-                  <div style={{ color: "#ADADB8" }}>gift card</div>
+                <div className="pixel-box" style={{ padding: "6px 10px", textAlign: "right" }}>
+                  <div className="pixel-font" style={{ fontSize: 11, color: "#9146FF" }}>{vList.filter(v => isEventGiftEligible(v, state.specialEvent)).length}</div>
+                  <div className="pixel-font" style={{ fontSize: 7, color: "#ADADB8", marginTop: 4 }}>GIFT CARD</div>
                 </div>
-                <div style={{ background: "#FFD70018", border: "1px solid #FFD70033", borderRadius: 10, padding: "6px 12px", fontSize: 11, color: "#FFD700", textAlign: "right" }}>
-                  <div style={{ fontWeight: 700 }}>{vList.filter(v => isEventBundleEligible(v, state.specialEvent)).length} elegíveis</div>
-                  <div style={{ color: "#ADADB8" }}>bundle</div>
+                <div className="pixel-box" style={{ padding: "6px 10px", textAlign: "right" }}>
+                  <div className="pixel-font" style={{ fontSize: 11, color: "#FFEC27" }}>{vList.filter(v => isEventBundleEligible(v, state.specialEvent)).length}</div>
+                  <div className="pixel-font" style={{ fontSize: 7, color: "#ADADB8", marginTop: 4 }}>BUNDLE</div>
                 </div>
               </div>
             </div>
 
-            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+            <div className="pixel-box" style={{ padding: 0, overflow: "hidden" }}>
               {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum participante ainda.</div>}
               {[...vList].sort((a, b) => eventHp(b) - eventHp(a)).map((v, i) => {
                 const ev = v.event || { hp: 100, livesAttended: 0 };
@@ -1589,26 +1613,26 @@ export default function App() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         <span style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</span>
-                        {ev.hp <= 0 && <span style={{ background: "#FF474715", color: "#FF4747", borderRadius: 20, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>💀 0 HP</span>}
+                        {ev.hp <= 0 && <span className="pixel-tag pixel-blink" style={{ background: "#FF004D22", color: "#FF004D" }}>KO</span>}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
                         <EventBar hp={ev.hp} specialEvent={state.specialEvent} width={70} showLabel={false} />
-                        <span style={{ fontSize: 10, color: "#ADADB8" }}>
-                          <span style={{ fontVariantNumeric: "tabular-nums" }}>{ev.hp} HP · {ev.livesAttended}/{state.specialEvent.totalLives || 0} lives</span>
+                        <span className="pixel-font" style={{ fontSize: 7, color: "#ADADB8" }}>
+                          <span style={{ fontVariantNumeric: "tabular-nums" }}>{ev.livesAttended}/{state.specialEvent.totalLives || 0}</span>
                         </span>
                       </div>
                     </div>
-                    <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end" }}>
-                      {bundleOk && <span style={{ fontSize: 9, fontWeight: 700, color: "#FFD700" }}>🎁 bundle</span>}
-                      {giftOk && !bundleOk && <span style={{ fontSize: 9, fontWeight: 700, color: "#C9A7FF" }}>💳 gift card</span>}
-                      {!giftOk && <span style={{ fontSize: 9, color: "#3D3D47" }}>—</span>}
+                    <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+                      {bundleOk && <span className="pixel-tag" style={{ background: "#FFEC2722", color: "#FFEC27" }}>🎁 BUNDLE</span>}
+                      {giftOk && !bundleOk && <span className="pixel-tag" style={{ background: "#9146FF22", color: "#C9A7FF" }}>💳 GIFT</span>}
+                      {!giftOk && <span className="pixel-font" style={{ fontSize: 8, color: "#3D3D47" }}>—</span>}
                     </div>
                   </div>
                 );
               })}
             </div>
-            <div style={{ fontSize: 11, color: "#3D3D47", textAlign: "center", marginTop: 8 }}>
-              todo mundo começa com 100 HP · falta numa live tira HP (proporcional à duração) · sem regenerar
+            <div className="pixel-font" style={{ fontSize: 7, color: "#3D3D47", textAlign: "center", marginTop: 12, lineHeight: 1.8 }}>
+              TODOS COMEÇAM COM 100 HP · FALTAR TIRA VIDA · SEM REGENERAR
             </div>
           </>) : (<>
           {/* Header do mês */}
@@ -2018,8 +2042,8 @@ export default function App() {
             {/* ADMIN: EVENTO ESPECIAL */}
             {adminTab === "evento" && <>
               {!state?.specialEvent ? (
-                <div className="card">
-                  <div className="card-title">🔥 Iniciar evento especial</div>
+                <div className="card pixel-box">
+                  <div className="pixel-font" style={{ fontSize: 11, color: "#FFEC27", marginBottom: 14, lineHeight: 1.8 }}>🔥 INICIAR EVENTO</div>
                   <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14, lineHeight: 1.6 }}>
                     Todo mundo começa com <strong style={{ color: "#EFEFF1" }}>100 HP</strong>. A cada live fechada, quem faltou perde HP proporcional à duração da live (1h perdida = -1 HP, 2h = -2, etc). Não regenera — quem participa não perde nada.
                   </div>
@@ -2029,14 +2053,14 @@ export default function App() {
                   <input type="number" min={1} max={100} className="inp" style={{ marginBottom: 12 }} value={eventBundleMinHp} onChange={e => setEventBundleMinHp(Math.max(1, Math.min(100, Number(e.target.value) || 70)))} />
                   <span className="label">HP mínimo pro gift card</span>
                   <input type="number" min={1} max={100} className="inp" style={{ marginBottom: 16 }} value={eventGiftMinHp} onChange={e => setEventGiftMinHp(Math.max(1, Math.min(100, Number(e.target.value) || 50)))} />
-                  <button className="btn btn-full" disabled={acting || !eventEndDate}
+                  <button className="btn btn-full pixel-btn" style={{ background: "#00E436", color: "#000" }} disabled={acting || !eventEndDate}
                     onClick={() => { if (window.confirm("Iniciar evento especial? Isso põe todo mundo em 100 HP.")) act("start_special_event", { endDate: eventEndDate, bundleMinHp: eventBundleMinHp, giftMinHp: eventGiftMinHp }); }}>
-                    Iniciar evento
+                    ▶ Iniciar evento
                   </button>
                 </div>
               ) : (<>
-                <div className="card">
-                  <div className="card-title">🔥 Evento especial {state.specialEvent.active ? "(ativo)" : "(encerrado)"}</div>
+                <div className="card pixel-box">
+                  <div className="pixel-font" style={{ fontSize: 11, color: "#FFEC27", marginBottom: 16, lineHeight: 1.8 }}>🔥 EVENTO {state.specialEvent.active ? "ATIVO" : "ENCERRADO"}</div>
                   <div className="grid3" style={{ marginBottom: 16 }}>
                     {[["#9146FF", state.specialEvent.totalLives || 0, "lives contadas"],["#C9A7FF", vList.filter(v => isEventGiftEligible(v, state.specialEvent)).length, "p/ gift card"],["#FFD700", vList.filter(v => isEventBundleEligible(v, state.specialEvent)).length, "p/ bundle"]].map(([color,val,lbl]) => (
                       <div key={lbl} className="stat-box"><div className="stat-val" style={{ color }}>{val}</div><div className="stat-lbl">{lbl}</div></div>
@@ -2045,8 +2069,8 @@ export default function App() {
                   <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14 }}>Até {formatDate(state.specialEvent.endDate)} · bundle ≥{state.specialEvent.bundleMinHp} HP · gift card ≥{state.specialEvent.giftMinHp} HP</div>
                   <div className="row">
                     {state.specialEvent.active
-                      ? <button className="btn btn-red btn-full" disabled={acting} onClick={() => { if (window.confirm("Encerrar o evento? O HP para de mudar — dá pra sortear depois.")) act("stop_special_event"); }}>⏹ Encerrar evento</button>
-                      : <button className="btn-ghost" style={{ flex: 1 }} disabled={acting} onClick={() => { if (window.confirm("Reiniciar o evento do zero? Isso põe todo mundo de volta em 100 HP.")) act("start_special_event", { endDate: state.specialEvent.endDate, bundleMinHp: state.specialEvent.bundleMinHp, giftMinHp: state.specialEvent.giftMinHp }); }}>Reiniciar do zero</button>}
+                      ? <button className="btn btn-full pixel-btn" style={{ background: "#FF004D", color: "#000" }} disabled={acting} onClick={() => { if (window.confirm("Encerrar o evento? O HP para de mudar — dá pra sortear depois.")) act("stop_special_event"); }}>⏹ Encerrar</button>
+                      : <button className="btn-ghost pixel-btn" style={{ flex: 1 }} disabled={acting} onClick={() => { if (window.confirm("Reiniciar o evento do zero? Isso põe todo mundo de volta em 100 HP.")) act("start_special_event", { endDate: state.specialEvent.endDate, bundleMinHp: state.specialEvent.bundleMinHp, giftMinHp: state.specialEvent.giftMinHp }); }}>Reiniciar</button>}
                   </div>
                   <button className="btn-ghost btn-full" style={{ marginTop: 8, color: "#FF4747" }} disabled={acting}
                     onClick={() => { if (window.confirm("Resetar o evento por completo? Isso apaga o HP de todo mundo e os sorteios. Não tem como desfazer.")) act("reset_special_event"); }}>
@@ -2054,31 +2078,31 @@ export default function App() {
                   </button>
                 </div>
 
-                <div className="card">
-                  <div className="card-title">🎁 Sorteio do Bundle</div>
+                <div className="card pixel-box">
+                  <div className="pixel-font" style={{ fontSize: 11, color: "#FFEC27", marginBottom: 14 }}>🎁 SORTEIO BUNDLE</div>
                   {state.specialEvent.bundleWinner ? (
-                    <div style={{ background: "#FFD70012", border: "1px solid #FFD70044", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
-                      <div style={{ fontWeight: 800, fontSize: 16, color: "#FFD700" }}>{state.specialEvent.bundleWinner.display_name || state.specialEvent.bundleWinner.nick}</div>
-                      <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 2 }}>código: <strong style={{ color: "#FFD700" }}>{state.specialEvent.bundleWinner.code}</strong></div>
+                    <div className="pixel-box" style={{ padding: "12px 14px", marginBottom: 12 }}>
+                      <div className="pixel-font" style={{ fontSize: 12, color: "#FFEC27" }}>{state.specialEvent.bundleWinner.display_name || state.specialEvent.bundleWinner.nick}</div>
+                      <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 8 }}>código: <strong style={{ color: "#FFD700" }}>{state.specialEvent.bundleWinner.code}</strong></div>
                     </div>
                   ) : <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 12 }}>Nenhum vencedor sorteado ainda.</div>}
-                  <button className="btn btn-full" disabled={acting} onClick={() => act("event_draw_bundle")}>🎲 Sortear vencedor do bundle</button>
+                  <button className="btn btn-full pixel-btn" style={{ background: "#FFEC27", color: "#000" }} disabled={acting} onClick={() => act("event_draw_bundle")}>🎲 Sortear</button>
                 </div>
 
-                <div className="card">
-                  <div className="card-title">💳 Sorteio de Gift Cards</div>
+                <div className="card pixel-box">
+                  <div className="pixel-font" style={{ fontSize: 11, color: "#C9A7FF", marginBottom: 14 }}>💳 SORTEIO GIFT CARDS</div>
                   {!!(state.specialEvent.giftcardWinners || []).length && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
                       {state.specialEvent.giftcardWinners.map((w, i) => (
-                        <div key={i} style={{ background: "#9146FF12", border: "1px solid #9146FF44", borderRadius: 10, padding: "10px 14px" }}>
-                          <div style={{ fontWeight: 800, fontSize: 14, color: "#C9A7FF" }}>{w.display_name || w.nick}</div>
-                          <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 2 }}>código: <strong style={{ color: "#9146FF" }}>{w.code}</strong></div>
+                        <div key={i} className="pixel-box" style={{ padding: "10px 14px" }}>
+                          <div className="pixel-font" style={{ fontSize: 11, color: "#C9A7FF" }}>{w.display_name || w.nick}</div>
+                          <div style={{ fontSize: 11, color: "#ADADB8", marginTop: 8 }}>código: <strong style={{ color: "#9146FF" }}>{w.code}</strong></div>
                         </div>
                       ))}
                     </div>
                   )}
                   {!(state.specialEvent.giftcardWinners || []).length && <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 12 }}>Nenhum vencedor sorteado ainda.</div>}
-                  <button className="btn btn-full" disabled={acting} onClick={() => act("event_draw_giftcard")}>🎲 Sortear vencedor de gift card</button>
+                  <button className="btn btn-full pixel-btn" style={{ background: "#9146FF", color: "#fff" }} disabled={acting} onClick={() => act("event_draw_giftcard")}>🎲 Sortear</button>
                 </div>
 
                 {(state.specialEvent.bundleWinner || !!(state.specialEvent.giftcardWinners || []).length) && (
@@ -2501,9 +2525,9 @@ function ViewerCard({ v, vList, monthlyResetAt, specialEvent }) {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
           {specialEvent ? (<>
-            {giftOk && <span style={{ background: "#9146FF20", color: "#C9A7FF", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "1px solid #9146FF44" }}>💳 gift card</span>}
-            {bundleOk && <span style={{ background: "#FFD70020", color: "#FFD700", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "1px solid #FFD70044" }}>🎁 bundle</span>}
-            {!giftOk && <span className="badge badge-pend">{ev.hp <= 0 ? "💀 0 HP" : "HP baixo"}</span>}
+            {bundleOk && <span className="pixel-tag" style={{ background: "#FFEC2722", color: "#FFEC27" }}>🎁 BUNDLE</span>}
+            {giftOk && !bundleOk && <span className="pixel-tag" style={{ background: "#9146FF22", color: "#C9A7FF" }}>💳 GIFT</span>}
+            {!giftOk && <span className={`pixel-tag${ev.hp<=0?" pixel-blink":""}`} style={{ background: "#FF004D22", color: "#FF004D" }}>{ev.hp <= 0 ? "KO" : "HP BAIXO"}</span>}
           </>) : (<>
             <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "Elegível ✓" : "Pendente"}</span>
             {monthlyOk && <span style={{ background: "#FFD70020", color: "#FFD700", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "1px solid #FFD70044" }}>🏅 Mensal</span>}
@@ -2513,15 +2537,15 @@ function ViewerCard({ v, vList, monthlyResetAt, specialEvent }) {
         </div>
       </div>
 
-      {/* Evento especial — barra de HP */}
+      {/* Evento especial — barra de HP 8-bit */}
       {specialEvent && (
-        <div style={{ background: ev.hp <= 0 ? "#FF474710" : "#9146FF10", border: `1px solid ${ev.hp <= 0 ? "#FF474733" : "#9146FF33"}`, borderRadius: 12, padding: "10px 14px", marginBottom: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#ADADB8", textTransform: "uppercase", letterSpacing: .5 }}>🔥 Evento especial</span>
-            <span style={{ fontSize: 11, color: "#ADADB8" }}>{ev.livesAttended}/{specialEvent.totalLives || 0} lives</span>
+        <div className="pixel-box" style={{ padding: "12px 14px", marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span className="pixel-font" style={{ fontSize: 9, color: "#FFEC27" }}>🔥 EVENTO</span>
+            <span className="pixel-font" style={{ fontSize: 7, color: "#ADADB8" }}>{ev.livesAttended}/{specialEvent.totalLives || 0} LIVES</span>
           </div>
-          <EventBar hp={ev.hp} specialEvent={specialEvent} width="100%" height={10} />
-          {ev.hp <= 0 && <div style={{ fontSize: 11, color: "#FF8080", marginTop: 8 }}>Seu HP zerou — fora do evento até o próximo reset.</div>}
+          <EventBar hp={ev.hp} specialEvent={specialEvent} width="100%" segHeight={18} />
+          {ev.hp <= 0 && <div className="pixel-font pixel-blink" style={{ fontSize: 8, color: "#FF004D", marginTop: 10 }}>KO — FORA DO EVENTO ATÉ O RESET</div>}
         </div>
       )}
 
