@@ -38,30 +38,24 @@ function isEligible(v) {
   return calcStarsCombined(v.sessions, v.bonusStars || 0) >= MIN_DAYS;
 }
 
-// Evento especial (barra de participação) — independente do ciclo semanal/mensal.
-function isEventGiftEligible(v) {
-  const e = v.event || { bar: 0, livesAttended: 0, zeroed: false };
-  return e.livesAttended >= 1 && !e.zeroed;
-}
-function isEventBundleEligible(v, specialEvent) {
-  if (!isEventGiftEligible(v)) return false;
-  const total = specialEvent?.totalLives || 0;
-  if (total <= 0) return false;
-  const e = v.event || { livesAttended: 0 };
-  return (e.livesAttended / total) * 100 >= (specialEvent?.bundleMinPct ?? 70);
-}
-function EventBar({ bar = 0, zeroed = false, width = 90, height = 8, showLabel = true }) {
-  const pct = Math.max(0, Math.min(100, Math.round((bar / MIN_DAYS) * 100)));
-  const isEmpty = bar <= 0;
-  const isFull = bar >= MIN_DAYS;
-  const color = isEmpty ? "#FF4747" : isFull ? "#00C853" : "#FFB347";
-  const status = isEmpty ? (zeroed ? "Zerado" : "Não elegível") : isFull ? "Elegível" : "Atenção";
+// Evento especial (barra de HP) — independente do ciclo semanal/mensal.
+// Todo mundo começa em 100 e só perde HP quando falta uma live (dano = duração
+// da live em horas). Sem regeneração — precisa se manter acima da linha.
+function eventHp(v) { return v.event?.hp ?? 100; }
+function isEventGiftEligible(v, specialEvent) { return eventHp(v) >= (specialEvent?.giftMinHp ?? 50); }
+function isEventBundleEligible(v, specialEvent) { return eventHp(v) >= (specialEvent?.bundleMinHp ?? 70); }
+function EventBar({ hp = 100, specialEvent, width = 90, height = 8, showLabel = true }) {
+  const bundleMin = specialEvent?.bundleMinHp ?? 70;
+  const giftMin = specialEvent?.giftMinHp ?? 50;
+  const pct = Math.max(0, Math.min(100, Math.round(hp)));
+  const color = hp >= bundleMin ? "#00C853" : hp >= giftMin ? "#FFB347" : "#FF4747";
+  const status = hp >= bundleMin ? "Elegível" : hp >= giftMin ? "Atenção" : "Não elegível";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: width }}>
       <div style={{ width, height, borderRadius: 20, background: "#26262C", overflow: "hidden", border: "1px solid #3D3D4744" }}>
         <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 20, transition: "width .4s ease, background .4s" }} />
       </div>
-      {showLabel && <span style={{ fontSize: 9, fontWeight: 700, color, letterSpacing: .3 }}>{status}</span>}
+      {showLabel && <span style={{ fontSize: 9, fontWeight: 700, color, letterSpacing: .3 }}>{status} · {pct} HP</span>}
     </div>
   );
 }
@@ -589,7 +583,8 @@ export default function App() {
   const [prizeWinnerId, setPrizeWinnerId] = useState("");
   const [prizeGiftcard, setPrizeGiftcard] = useState("");
   const [eventEndDate, setEventEndDate] = useState("");
-  const [eventBundlePct, setEventBundlePct] = useState(70);
+  const [eventBundleMinHp, setEventBundleMinHp] = useState(70);
+  const [eventGiftMinHp, setEventGiftMinHp] = useState(50);
   const [xpTarget, setXpTarget] = useState("");
   const [xpAmount, setXpAmount] = useState(500);
   const [starTarget, setStarTarget] = useState("");
@@ -1563,7 +1558,7 @@ export default function App() {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <div style={{ background: "#9146FF18", border: "1px solid #9146FF33", borderRadius: 10, padding: "6px 12px", fontSize: 11, color: "#C9A7FF", textAlign: "right" }}>
-                  <div style={{ fontWeight: 700 }}>{vList.filter(isEventGiftEligible).length} elegíveis</div>
+                  <div style={{ fontWeight: 700 }}>{vList.filter(v => isEventGiftEligible(v, state.specialEvent)).length} elegíveis</div>
                   <div style={{ color: "#ADADB8" }}>gift card</div>
                 </div>
                 <div style={{ background: "#FFD70018", border: "1px solid #FFD70033", borderRadius: 10, padding: "6px 12px", fontSize: 11, color: "#FFD700", textAlign: "right" }}>
@@ -1575,9 +1570,9 @@ export default function App() {
 
             <div className="card" style={{ padding: 0, overflow: "hidden" }}>
               {!vList.length && <div style={{ color: "#ADADB8", textAlign: "center", padding: "30px 0", fontSize: 13 }}>Nenhum participante ainda.</div>}
-              {[...vList].sort((a, b) => (b.event?.livesAttended || 0) - (a.event?.livesAttended || 0)).map((v, i) => {
-                const ev = v.event || { bar: 0, livesAttended: 0, zeroed: false };
-                const giftOk = isEventGiftEligible(v);
+              {[...vList].sort((a, b) => eventHp(b) - eventHp(a)).map((v, i) => {
+                const ev = v.event || { hp: 100, livesAttended: 0 };
+                const giftOk = isEventGiftEligible(v, state.specialEvent);
                 const bundleOk = isEventBundleEligible(v, state.specialEvent);
                 const rowBg = i % 2 === 0 ? "transparent" : "#26262C18";
                 return (
@@ -1594,26 +1589,26 @@ export default function App() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         <span style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.display_name || v.nick}</span>
-                        {ev.zeroed && <span style={{ background: "#FF474715", color: "#FF4747", borderRadius: 20, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>❌ zerou</span>}
+                        {ev.hp <= 0 && <span style={{ background: "#FF474715", color: "#FF4747", borderRadius: 20, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>💀 0 HP</span>}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
-                        <EventBar bar={ev.bar} zeroed={ev.zeroed} width={70} showLabel={false} />
+                        <EventBar hp={ev.hp} specialEvent={state.specialEvent} width={70} showLabel={false} />
                         <span style={{ fontSize: 10, color: "#ADADB8" }}>
-                          <span style={{ fontVariantNumeric: "tabular-nums" }}>{ev.livesAttended}/{state.specialEvent.totalLives || 0} lives</span>
+                          <span style={{ fontVariantNumeric: "tabular-nums" }}>{ev.hp} HP · {ev.livesAttended}/{state.specialEvent.totalLives || 0} lives</span>
                         </span>
                       </div>
                     </div>
                     <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end" }}>
-                      {giftOk && <span style={{ fontSize: 9, fontWeight: 700, color: "#C9A7FF" }}>💳 gift card</span>}
                       {bundleOk && <span style={{ fontSize: 9, fontWeight: 700, color: "#FFD700" }}>🎁 bundle</span>}
-                      {!giftOk && !bundleOk && <span style={{ fontSize: 9, color: "#3D3D47" }}>—</span>}
+                      {giftOk && !bundleOk && <span style={{ fontSize: 9, fontWeight: 700, color: "#C9A7FF" }}>💳 gift card</span>}
+                      {!giftOk && <span style={{ fontSize: 9, color: "#3D3D47" }}>—</span>}
                     </div>
                   </div>
                 );
               })}
             </div>
             <div style={{ fontSize: 11, color: "#3D3D47", textAlign: "center", marginTop: 8 }}>
-              barra = participação nas lives do evento · zerou 1x = fora do evento
+              todo mundo começa com 100 HP · falta numa live tira HP (proporcional à duração) · sem regenerar
             </div>
           </>) : (<>
           {/* Header do mês */}
@@ -2026,14 +2021,16 @@ export default function App() {
                 <div className="card">
                   <div className="card-title">🔥 Iniciar evento especial</div>
                   <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14, lineHeight: 1.6 }}>
-                    Cria a barra de participação pra todo mundo (começa em 0). A cada live fechada, quem fez check-in ganha +1, quem não fez perde 1. Zerou uma vez, fica fora do evento inteiro.
+                    Todo mundo começa com <strong style={{ color: "#EFEFF1" }}>100 HP</strong>. A cada live fechada, quem faltou perde HP proporcional à duração da live (1h perdida = -1 HP, 2h = -2, etc). Não regenera — quem participa não perde nada.
                   </div>
                   <span className="label">Data final do evento</span>
                   <input type="date" className="inp" style={{ marginBottom: 12 }} value={eventEndDate} onChange={e => setEventEndDate(e.target.value)} />
-                  <span className="label">% mínima de lives pro bundle</span>
-                  <input type="number" min={1} max={100} className="inp" style={{ marginBottom: 16 }} value={eventBundlePct} onChange={e => setEventBundlePct(Math.max(1, Math.min(100, Number(e.target.value) || 70)))} />
+                  <span className="label">HP mínimo pro bundle</span>
+                  <input type="number" min={1} max={100} className="inp" style={{ marginBottom: 12 }} value={eventBundleMinHp} onChange={e => setEventBundleMinHp(Math.max(1, Math.min(100, Number(e.target.value) || 70)))} />
+                  <span className="label">HP mínimo pro gift card</span>
+                  <input type="number" min={1} max={100} className="inp" style={{ marginBottom: 16 }} value={eventGiftMinHp} onChange={e => setEventGiftMinHp(Math.max(1, Math.min(100, Number(e.target.value) || 50)))} />
                   <button className="btn btn-full" disabled={acting || !eventEndDate}
-                    onClick={() => { if (window.confirm("Iniciar evento especial? Isso zera a barra de participação de todo mundo.")) act("start_special_event", { endDate: eventEndDate, bundleMinPct: eventBundlePct }); }}>
+                    onClick={() => { if (window.confirm("Iniciar evento especial? Isso põe todo mundo em 100 HP.")) act("start_special_event", { endDate: eventEndDate, bundleMinHp: eventBundleMinHp, giftMinHp: eventGiftMinHp }); }}>
                     Iniciar evento
                   </button>
                 </div>
@@ -2041,18 +2038,18 @@ export default function App() {
                 <div className="card">
                   <div className="card-title">🔥 Evento especial {state.specialEvent.active ? "(ativo)" : "(encerrado)"}</div>
                   <div className="grid3" style={{ marginBottom: 16 }}>
-                    {[["#9146FF", state.specialEvent.totalLives || 0, "lives contadas"],["#C9A7FF", vList.filter(isEventGiftEligible).length, "p/ gift card"],["#FFD700", vList.filter(v => isEventBundleEligible(v, state.specialEvent)).length, "p/ bundle"]].map(([color,val,lbl]) => (
+                    {[["#9146FF", state.specialEvent.totalLives || 0, "lives contadas"],["#C9A7FF", vList.filter(v => isEventGiftEligible(v, state.specialEvent)).length, "p/ gift card"],["#FFD700", vList.filter(v => isEventBundleEligible(v, state.specialEvent)).length, "p/ bundle"]].map(([color,val,lbl]) => (
                       <div key={lbl} className="stat-box"><div className="stat-val" style={{ color }}>{val}</div><div className="stat-lbl">{lbl}</div></div>
                     ))}
                   </div>
-                  <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14 }}>Até {formatDate(state.specialEvent.endDate)} · mínimo {state.specialEvent.bundleMinPct}% das lives pro bundle</div>
+                  <div style={{ fontSize: 12, color: "#ADADB8", marginBottom: 14 }}>Até {formatDate(state.specialEvent.endDate)} · bundle ≥{state.specialEvent.bundleMinHp} HP · gift card ≥{state.specialEvent.giftMinHp} HP</div>
                   <div className="row">
                     {state.specialEvent.active
-                      ? <button className="btn btn-red btn-full" disabled={acting} onClick={() => { if (window.confirm("Encerrar o evento? A barra para de mudar — dá pra sortear depois.")) act("stop_special_event"); }}>⏹ Encerrar evento</button>
-                      : <button className="btn-ghost" style={{ flex: 1 }} disabled={acting} onClick={() => { if (window.confirm("Reabrir o evento? A barra volta a mudar nas próximas lives.")) act("start_special_event", { endDate: state.specialEvent.endDate, bundleMinPct: state.specialEvent.bundleMinPct }); }}>Reiniciar do zero</button>}
+                      ? <button className="btn btn-red btn-full" disabled={acting} onClick={() => { if (window.confirm("Encerrar o evento? O HP para de mudar — dá pra sortear depois.")) act("stop_special_event"); }}>⏹ Encerrar evento</button>
+                      : <button className="btn-ghost" style={{ flex: 1 }} disabled={acting} onClick={() => { if (window.confirm("Reiniciar o evento do zero? Isso põe todo mundo de volta em 100 HP.")) act("start_special_event", { endDate: state.specialEvent.endDate, bundleMinHp: state.specialEvent.bundleMinHp, giftMinHp: state.specialEvent.giftMinHp }); }}>Reiniciar do zero</button>}
                   </div>
                   <button className="btn-ghost btn-full" style={{ marginTop: 8, color: "#FF4747" }} disabled={acting}
-                    onClick={() => { if (window.confirm("Resetar o evento por completo? Isso apaga a barra de todo mundo e os sorteios. Não tem como desfazer.")) act("reset_special_event"); }}>
+                    onClick={() => { if (window.confirm("Resetar o evento por completo? Isso apaga o HP de todo mundo e os sorteios. Não tem como desfazer.")) act("reset_special_event"); }}>
                     Resetar evento (apaga tudo)
                   </button>
                 </div>
@@ -2490,8 +2487,8 @@ function ViewerCard({ v, vList, monthlyResetAt, specialEvent }) {
   const monthlyOk = isMonthlyEligible(v, monthlyResetAt);
   const xp = calcXP(v);
   const li = getLevelInfo(xp);
-  const ev = v.event || { bar: 0, livesAttended: 0, zeroed: false };
-  const giftOk = isEventGiftEligible(v);
+  const ev = v.event || { hp: 100, livesAttended: 0 };
+  const giftOk = isEventGiftEligible(v, specialEvent);
   const bundleOk = isEventBundleEligible(v, specialEvent);
 
   return (
@@ -2506,7 +2503,7 @@ function ViewerCard({ v, vList, monthlyResetAt, specialEvent }) {
           {specialEvent ? (<>
             {giftOk && <span style={{ background: "#9146FF20", color: "#C9A7FF", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "1px solid #9146FF44" }}>💳 gift card</span>}
             {bundleOk && <span style={{ background: "#FFD70020", color: "#FFD700", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "1px solid #FFD70044" }}>🎁 bundle</span>}
-            {!giftOk && <span className="badge badge-pend">{ev.zeroed ? "❌ zerou" : "Ainda não participou"}</span>}
+            {!giftOk && <span className="badge badge-pend">{ev.hp <= 0 ? "💀 0 HP" : "HP baixo"}</span>}
           </>) : (<>
             <span className={`badge ${ok?"badge-ok":"badge-pend"}`}>{ok ? "Elegível ✓" : "Pendente"}</span>
             {monthlyOk && <span style={{ background: "#FFD70020", color: "#FFD700", borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700, border: "1px solid #FFD70044" }}>🏅 Mensal</span>}
@@ -2516,15 +2513,15 @@ function ViewerCard({ v, vList, monthlyResetAt, specialEvent }) {
         </div>
       </div>
 
-      {/* Evento especial — barra de participação */}
+      {/* Evento especial — barra de HP */}
       {specialEvent && (
-        <div style={{ background: ev.zeroed ? "#FF474710" : "#9146FF10", border: `1px solid ${ev.zeroed ? "#FF474733" : "#9146FF33"}`, borderRadius: 12, padding: "10px 14px", marginBottom: 14 }}>
+        <div style={{ background: ev.hp <= 0 ? "#FF474710" : "#9146FF10", border: `1px solid ${ev.hp <= 0 ? "#FF474733" : "#9146FF33"}`, borderRadius: 12, padding: "10px 14px", marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: "#ADADB8", textTransform: "uppercase", letterSpacing: .5 }}>🔥 Evento especial</span>
             <span style={{ fontSize: 11, color: "#ADADB8" }}>{ev.livesAttended}/{specialEvent.totalLives || 0} lives</span>
           </div>
-          <EventBar bar={ev.bar} zeroed={ev.zeroed} width="100%" height={10} />
-          {ev.zeroed && <div style={{ fontSize: 11, color: "#FF8080", marginTop: 8 }}>Sua barra já zerou uma vez — fora do evento até o próximo reset.</div>}
+          <EventBar hp={ev.hp} specialEvent={specialEvent} width="100%" height={10} />
+          {ev.hp <= 0 && <div style={{ fontSize: 11, color: "#FF8080", marginTop: 8 }}>Seu HP zerou — fora do evento até o próximo reset.</div>}
         </div>
       )}
 

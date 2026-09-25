@@ -141,18 +141,12 @@ function isEligible(v) {
   return starCount >= MIN_DAYS;
 }
 
-// Evento especial (barra de participação) — independente do ciclo semanal/mensal.
-function isEventGiftEligible(v) {
-  const e = v.event || { bar: 0, livesAttended: 0, zeroed: false };
-  return e.livesAttended >= 1 && !e.zeroed;
-}
-function isEventBundleEligible(v, specialEvent) {
-  if (!isEventGiftEligible(v)) return false;
-  const total = specialEvent?.totalLives || 0;
-  if (total <= 0) return false;
-  const e = v.event || { livesAttended: 0 };
-  return (e.livesAttended / total) * 100 >= (specialEvent?.bundleMinPct ?? 70);
-}
+// Evento especial (barra de HP) — independente do ciclo semanal/mensal.
+// Todo mundo começa em 100 e só perde HP quando falta uma live (dano = duração
+// da live em horas). Sem regeneração — precisa se manter acima da linha.
+function eventHp(v) { return v.event?.hp ?? 100; }
+function isEventGiftEligible(v, specialEvent) { return eventHp(v) >= (specialEvent?.giftMinHp ?? 50); }
+function isEventBundleEligible(v, specialEvent) { return eventHp(v) >= (specialEvent?.bundleMinHp ?? 70); }
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -197,7 +191,7 @@ export default async function handler(req, res) {
       if (state.viewers[twitch_id]) return res.status(200).json(state);
       const code = Math.random().toString(36).slice(2, 7).toUpperCase();
       state.viewers[twitch_id] = { twitch_id, nick, display_name, code, sessions: [], checkedInToday: false };
-      if (state.specialEvent?.active) state.viewers[twitch_id].event = { bar: 0, livesAttended: 0, zeroed: false };
+      if (state.specialEvent?.active) state.viewers[twitch_id].event = { hp: 100, livesAttended: 0 };
       if (!state.cycleStart) state.cycleStart = new Date().toISOString().slice(0, 10);
     }
 
@@ -220,6 +214,7 @@ export default async function handler(req, res) {
       state.liveDate = new Date().toISOString().slice(0, 10);
       if (!state.cycleStart) state.cycleStart = state.liveDate;
       state.seSnapshotOpen = await fetchSEPoints();
+      if (state.specialEvent?.active) state.specialEvent.liveOpenedAt = Date.now();
       if (!testMode) notifyDiscordLive(liveTitle).catch(() => {});
     }
 
@@ -240,22 +235,18 @@ export default async function handler(req, res) {
       state.liveActive = false;
       delete state.seSnapshotOpen;
 
-      // Barra de participação do evento especial — some se não participou, some se participou.
+      // HP do evento especial — quem faltou toma dano proporcional à duração da live
+      // que perdeu (1h perdida = -1, 2h perdida = -2...). Sem regeneração.
       if (state.specialEvent?.active) {
+        const openedAt = state.specialEvent.liveOpenedAt || Date.now();
+        const damage = Math.max(1, Math.round((Date.now() - openedAt) / 3600000));
         state.specialEvent.totalLives = (state.specialEvent.totalLives || 0) + 1;
         Object.values(state.viewers).forEach(v => {
-          if (!v.event) v.event = { bar: 0, livesAttended: 0, zeroed: false };
+          if (!v.event) v.event = { hp: 100, livesAttended: 0 };
           if (v.checkedInToday) {
-            // Conta já veterana (tem XP/histórico prévio): entra com a barra cheia
-            // já no primeiro check-in do evento — não precisa provar de novo do zero.
-            const isFirstCheckin = v.event.livesAttended === 0;
-            const isVeteran = (v.permanentXP || 0) > 0 || (v.history?.length || 0) > 0;
-            v.event.bar = (isFirstCheckin && isVeteran) ? 4 : Math.min(4, v.event.bar + 1);
             v.event.livesAttended += 1;
           } else {
-            const before = v.event.bar;
-            v.event.bar = Math.max(0, v.event.bar - 1);
-            if (before > 0 && v.event.bar === 0) v.event.zeroed = true;
+            v.event.hp = Math.max(0, v.event.hp - damage);
           }
         });
       }
@@ -366,19 +357,21 @@ export default async function handler(req, res) {
     }
 
     else if (action === 'start_special_event') {
-      const { endDate, bundleMinPct } = payload || {};
+      const { endDate, bundleMinHp, giftMinHp } = payload || {};
       if (!endDate) return res.status(400).json({ error: 'Defina a data final do evento.' });
       state.specialEvent = {
         active: true,
         startDate: new Date().toISOString().slice(0, 10),
         endDate,
-        bundleMinPct: Number(bundleMinPct) > 0 ? Number(bundleMinPct) : 70,
+        bundleMinHp: Number(bundleMinHp) > 0 ? Number(bundleMinHp) : 70,
+        giftMinHp: Number(giftMinHp) > 0 ? Number(giftMinHp) : 50,
         totalLives: 0,
+        liveOpenedAt: null,
         bundleWinner: null,
         giftcardWinners: [],
       };
       Object.keys(state.viewers).forEach(id => {
-        state.viewers[id].event = { bar: 0, livesAttended: 0, zeroed: false };
+        state.viewers[id].event = { hp: 100, livesAttended: 0 };
       });
     }
 
@@ -402,7 +395,7 @@ export default async function handler(req, res) {
     else if (action === 'event_draw_giftcard') {
       if (!state.specialEvent) return res.status(400).json({ error: 'Nenhum evento em andamento.' });
       const already = new Set((state.specialEvent.giftcardWinners || []).map(w => w.twitch_id));
-      const pool = Object.values(state.viewers).filter(v => isEventGiftEligible(v) && !already.has(v.twitch_id));
+      const pool = Object.values(state.viewers).filter(v => isEventGiftEligible(v, state.specialEvent) && !already.has(v.twitch_id));
       if (!pool.length) return res.status(400).json({ error: 'Nenhum elegível disponível pro gift card!' });
       const winner = pool[Math.floor(Math.random() * pool.length)];
       if (!state.specialEvent.giftcardWinners) state.specialEvent.giftcardWinners = [];
